@@ -1,0 +1,129 @@
+"use client";
+
+import * as React from "react";
+import { cn } from "@/lib/utils";
+
+interface DropdownMenuContextValue {
+  open: boolean;
+  setOpen: (open: boolean) => void;
+}
+
+const DropdownMenuContext = React.createContext<DropdownMenuContextValue>({
+  open: false,
+  setOpen: () => {},
+});
+
+function DropdownMenu({ children }: { children: React.ReactNode }) {
+  const [open, setOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!open) return;
+    const handleClick = () => setOpen(false);
+    document.addEventListener("click", handleClick);
+    return () => document.removeEventListener("click", handleClick);
+  }, [open]);
+
+  return (
+    <DropdownMenuContext.Provider value={{ open, setOpen }}>
+      <div className="relative">{children}</div>
+    </DropdownMenuContext.Provider>
+  );
+}
+
+function DropdownMenuTrigger({
+  children,
+  asChild,
+}: {
+  children: React.ReactNode;
+  asChild?: boolean;
+}) {
+  const { open, setOpen } = React.useContext(DropdownMenuContext);
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setOpen(!open);
+  };
+
+  if (asChild && React.isValidElement(children)) {
+    return React.cloneElement(children as React.ReactElement<{ onClick?: (e: React.MouseEvent) => void }>, {
+      onClick: handleClick,
+    });
+  }
+
+  return (
+    <button onClick={handleClick} type="button">
+      {children}
+    </button>
+  );
+}
+
+function DropdownMenuContent({
+  children,
+  className,
+  align = "start",
+  forceMount,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  align?: "start" | "end";
+  forceMount?: boolean;
+}) {
+  const { open } = React.useContext(DropdownMenuContext);
+
+  if (!open && !forceMount) return null;
+  if (!open) return null;
+
+  return (
+    <div
+      className={cn(
+        "absolute z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95",
+        align === "end" ? "right-0" : "left-0",
+        "top-full mt-1",
+        className
+      )}
+      onClick={(e) => e.stopPropagation()}
+    >
+      {children}
+    </div>
+  );
+}
+
+function DropdownMenuItem({
+  children,
+  className,
+  onClick,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  onClick?: () => void;
+}) {
+  const { setOpen } = React.useContext(DropdownMenuContext);
+
+  return (
+    <button
+      className={cn(
+        "relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
+        className
+      )}
+      onClick={() => {
+        onClick?.();
+        setOpen(false);
+      }}
+      type="button"
+    >
+      {children}
+    </button>
+  );
+}
+
+function DropdownMenuSeparator({ className }: { className?: string }) {
+  return <div className={cn("-mx-1 my-1 h-px bg-border", className)} />;
+}
+
+export {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+};
