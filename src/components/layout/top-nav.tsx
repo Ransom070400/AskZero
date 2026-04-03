@@ -12,19 +12,33 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { LogOut, Settings, User } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 export function TopNav() {
   const router = useRouter();
   const supabase = createClient();
   const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [balance, setBalance] = useState<number | null>(null);
+
+  const fetchBalance = useCallback(async () => {
+    try {
+      const res = await fetch("/api/balance");
+      if (res.ok) {
+        const data = await res.json();
+        setBalance(data.balance);
+      }
+    } catch {
+      // silently fail — balance stays null
+    }
+  }, []);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user);
     });
-  }, [supabase.auth]);
+    fetchBalance();
+  }, [supabase.auth, fetchBalance]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -44,7 +58,9 @@ export function TopNav() {
         {/* Balance Display */}
         <div className="flex items-center gap-1.5 rounded-md bg-muted px-3 py-1.5 text-sm">
           <span className="text-muted-foreground">Balance:</span>
-          <span className="font-medium">&#8358;0.00</span>
+          <span className="font-medium">
+            {balance !== null ? `$${(balance / 100).toFixed(2)}` : "—"}
+          </span>
         </div>
 
         {/* User Menu */}
