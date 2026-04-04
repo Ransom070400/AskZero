@@ -41,7 +41,7 @@ export function ogToCredits(ogAmount: number, ogPriceUsd: number): number {
 }
 
 export function formatOGAmount(amount: number): string {
-  return `${amount.toLocaleString()} A0GI`;
+  return `${amount.toLocaleString()} 0G`;
 }
 
 export const REQUIRED_CONFIRMATIONS = 12;

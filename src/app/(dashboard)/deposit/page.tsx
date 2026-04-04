@@ -1,35 +1,25 @@
 "use client";
 
-import { Suspense, useEffect, useState, useCallback } from "react";
+import { Suspense, useEffect, useState, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import {
-  Wallet,
-  CheckCircle,
-  Clock,
-  XCircle,
-  CreditCard,
-  Coins,
-  Copy,
-} from "lucide-react";
+import { Wallet, CheckCircle, Clock, XCircle } from "lucide-react";
 import {
   convertToCredits,
   formatCredits,
   formatCurrency,
   getPresets,
 } from "@/lib/pricing";
-import { ogToCredits } from "@/lib/og-token";
 
 interface Transaction {
   id: string;
@@ -52,21 +42,12 @@ export default function DepositPage() {
 
 function DepositContent() {
   const searchParams = useSearchParams();
-  const [tab, setTab] = useState<"fiat" | "crypto">("fiat");
   const [currency, setCurrency] = useState<"NGN" | "USD">("NGN");
   const [amount, setAmount] = useState("");
   const [balance, setBalance] = useState<number | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-
-  // Crypto state
-  const [ogPrice, setOgPrice] = useState<number>(0.01);
-  const [txHash, setTxHash] = useState("");
-  const [verifying, setVerifying] = useState(false);
-
-  const depositAddress =
-    process.env.NEXT_PUBLIC_DEPOSIT_WALLET_ADDRESS || "";
 
   const fetchData = useCallback(async () => {
     const supabase = createClient();
@@ -95,18 +76,16 @@ function DepositContent() {
     fetchData();
   }, [fetchData]);
 
-  // Fetch OG token price
+  // Handle payment redirects (run once, then clear URL)
+  const verifiedRef = useRef(false);
   useEffect(() => {
-    fetch("/api/deposit/price")
-      .then((r) => r.json())
-      .then((d) => setOgPrice(d.price))
-      .catch(() => {});
-  }, []);
+    if (verifiedRef.current) return;
 
-  // Handle Paystack redirect
-  useEffect(() => {
     const reference = searchParams.get("reference");
+    const stripeRef = searchParams.get("stripe_ref");
+
     if (reference) {
+      verifiedRef.current = true;
       fetch(`/api/deposit/verify/${reference}`)
         .then((res) => res.json())
         .then((data) => {
@@ -116,7 +95,14 @@ function DepositContent() {
             );
             fetchData();
           }
+          // Clear URL params
+          window.history.replaceState({}, "", "/deposit");
         });
+    } else if (stripeRef) {
+      verifiedRef.current = true;
+      setSuccessMessage("Payment received! Credits will be added shortly.");
+      fetchData();
+      window.history.replaceState({}, "", "/deposit");
     }
   }, [searchParams, fetchData]);
 
@@ -128,7 +114,7 @@ function DepositContent() {
     const supabase = createClient();
     const channelName = `deposit-balance-${Date.now()}`;
 
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getUser().then(({ data: { user } }: { data: { user: { id: string } | null } }) => {
       if (!user || cancelled) return;
       channel = supabase
         .channel(channelName)
@@ -140,7 +126,7 @@ function DepositContent() {
             table: "profiles",
             filter: `id=eq.${user.id}`,
           },
-          (payload) => {
+          (payload: { new: Record<string, unknown> }) => {
             const newBalance = payload.new.credits_balance;
             if (newBalance !== undefined) setBalance(Number(newBalance));
           }
@@ -159,61 +145,46 @@ function DepositContent() {
     if (!numAmount || numAmount <= 0) return;
     setLoading(true);
     try {
-      const res = await fetch("/api/deposit/initialize", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: numAmount, currency }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        alert(data.error || "Failed to initialize payment");
-        setLoading(false);
-        return;
+      if (currency === "USD") {
+        // Stripe for USD
+        const res = await fetch("/api/deposit/stripe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ amount: numAmount }),
+        });
+        if (!res.ok) {
+          const data = await res.json();
+          alert(data.error || "Failed to initialize payment");
+          setLoading(false);
+          return;
+        }
+        const { url } = await res.json();
+        window.location.href = url;
+      } else {
+        // Paystack for NGN
+        const res = await fetch("/api/deposit/initialize", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ amount: numAmount, currency }),
+        });
+        if (!res.ok) {
+          const data = await res.json();
+          alert(data.error || "Failed to initialize payment");
+          setLoading(false);
+          return;
+        }
+        const { authorization_url } = await res.json();
+        window.location.href = authorization_url;
       }
-      const { authorization_url } = await res.json();
-      window.location.href = authorization_url;
     } catch {
       alert("Failed to initialize payment");
       setLoading(false);
     }
   };
 
-  const handleVerifyCrypto = async () => {
-    if (!txHash.trim()) return;
-    setVerifying(true);
-    try {
-      const res = await fetch("/api/deposit/crypto", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ txHash: txHash.trim() }),
-      });
-      const data = await res.json();
-      if (data.status === "completed") {
-        setSuccessMessage(
-          `Deposit confirmed! ${formatCredits(data.credits)} credits added.`
-        );
-        setTxHash("");
-        fetchData();
-      } else if (data.status === "pending") {
-        setSuccessMessage(
-          `Waiting for ${data.required - data.confirmations} more confirmations...`
-        );
-      } else {
-        alert(data.error || "Verification failed");
-      }
-    } catch {
-      alert("Verification failed");
-    }
-    setVerifying(false);
-  };
-
   const numericAmount = parseFloat(amount) || 0;
-  const estimatedFiatCredits =
+  const estimatedCredits =
     numericAmount > 0 ? convertToCredits(numericAmount, currency) : 0;
-
-  const copyAddress = () => {
-    navigator.clipboard.writeText(depositAddress);
-  };
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 p-6">
@@ -252,171 +223,81 @@ function DepositContent() {
         </CardContent>
       </Card>
 
-      {/* Tab Toggle */}
-      <div className="flex gap-2">
-        <Button
-          variant={tab === "fiat" ? "default" : "outline"}
-          onClick={() => setTab("fiat")}
-          className="flex-1 gap-2"
-        >
-          <CreditCard className="h-4 w-4" />
-          Pay with Card
-        </Button>
-        <Button
-          variant={tab === "crypto" ? "default" : "outline"}
-          onClick={() => setTab("crypto")}
-          className="flex-1 gap-2"
-        >
-          <Coins className="h-4 w-4" />
-          Pay with 0G Token
-        </Button>
-      </div>
+      {/* Currency */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Currency</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-2">
+            <Button
+              variant={currency === "NGN" ? "default" : "outline"}
+              onClick={() => { setCurrency("NGN"); setAmount(""); }}
+              className="flex-1"
+            >
+              ₦ Naira
+            </Button>
+            <Button
+              variant={currency === "USD" ? "default" : "outline"}
+              onClick={() => { setCurrency("USD"); setAmount(""); }}
+              className="flex-1"
+            >
+              $ USD
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* ====== FIAT TAB ====== */}
-      {tab === "fiat" && (
-        <>
-          <Card>
-            <CardHeader>
-              <CardTitle>Currency</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex gap-2">
-                <Button
-                  variant={currency === "NGN" ? "default" : "outline"}
-                  onClick={() => { setCurrency("NGN"); setAmount(""); }}
-                  className="flex-1"
-                >
-                  ₦ Naira
-                </Button>
-                <Button
-                  variant={currency === "USD" ? "default" : "outline"}
-                  onClick={() => { setCurrency("USD"); setAmount(""); }}
-                  className="flex-1"
-                >
-                  $ USD
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Amount</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="fiat-amount">
-                  Amount ({currency === "NGN" ? "₦" : "$"})
-                </Label>
-                <Input
-                  id="fiat-amount"
-                  type="number"
-                  placeholder="0.00"
-                  min="0"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                />
-              </div>
-              <div className="flex gap-2">
-                {getPresets(currency).map((preset) => (
-                  <Button
-                    key={preset}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setAmount(String(preset))}
-                  >
-                    {formatCurrency(preset, currency)}
-                  </Button>
-                ))}
-              </div>
-              {estimatedFiatCredits > 0 && (
-                <p className="text-sm text-muted-foreground">
-                  {formatCurrency(numericAmount, currency)} ={" "}
-                  <span className="font-medium text-foreground">
-                    {formatCredits(estimatedFiatCredits)} credits
-                  </span>
-                </p>
-              )}
+      {/* Amount */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Amount</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="fiat-amount">
+              Amount ({currency === "NGN" ? "₦" : "$"})
+            </Label>
+            <Input
+              id="fiat-amount"
+              type="number"
+              placeholder="0.00"
+              min="0"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+            />
+          </div>
+          <div className="flex gap-2">
+            {getPresets(currency).map((preset) => (
               <Button
-                className="w-full"
-                disabled={numericAmount <= 0 || loading}
-                onClick={handleFiatDeposit}
+                key={preset}
+                variant="outline"
+                size="sm"
+                onClick={() => setAmount(String(preset))}
               >
-                {loading
-                  ? "Processing..."
-                  : `Fund Account${numericAmount > 0 ? ` ${formatCurrency(numericAmount, currency)}` : ""}`}
+                {formatCurrency(preset, currency)}
               </Button>
-            </CardContent>
-          </Card>
-        </>
-      )}
-
-      {/* ====== CRYPTO TAB ====== */}
-      {tab === "crypto" && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Deposit 0G Tokens</CardTitle>
-            <CardDescription>
-              Send A0GI tokens to the address below, then paste your transaction
-              hash to verify
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {depositAddress ? (
-              <>
-                {/* Deposit address */}
-                <div className="space-y-2">
-                  <Label>Deposit Address</Label>
-                  <div className="flex items-center gap-2">
-                    <code className="flex-1 rounded-md bg-muted px-3 py-2 text-sm font-mono break-all">
-                      {depositAddress}
-                    </code>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={copyAddress}
-                    >
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="rounded-lg bg-muted p-3 text-sm">
-                  <p className="text-muted-foreground">
-                    Current rate: 1 A0GI = ${ogPrice.toFixed(4)} USD ={" "}
-                    {ogToCredits(1, ogPrice)} credits
-                  </p>
-                </div>
-
-                <Separator />
-
-                {/* Verify transaction */}
-                <div className="space-y-2">
-                  <Label htmlFor="tx-hash">Transaction Hash</Label>
-                  <Input
-                    id="tx-hash"
-                    placeholder="0x..."
-                    value={txHash}
-                    onChange={(e) => setTxHash(e.target.value)}
-                  />
-                </div>
-
-                <Button
-                  className="w-full"
-                  disabled={!txHash.trim() || verifying}
-                  onClick={handleVerifyCrypto}
-                >
-                  {verifying ? "Verifying..." : "Verify Deposit"}
-                </Button>
-              </>
-            ) : (
-              <p className="text-center text-sm text-muted-foreground py-4">
-                Crypto deposits are not configured yet. Please use card payment.
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      )}
+            ))}
+          </div>
+          {estimatedCredits > 0 && (
+            <p className="text-sm text-muted-foreground">
+              {formatCurrency(numericAmount, currency)} ={" "}
+              <span className="font-medium text-foreground">
+                {formatCredits(estimatedCredits)} credits
+              </span>
+            </p>
+          )}
+          <Button
+            className="w-full"
+            disabled={numericAmount <= 0 || loading}
+            onClick={handleFiatDeposit}
+          >
+            {loading
+              ? "Processing..."
+              : `Fund Account${numericAmount > 0 ? ` ${formatCurrency(numericAmount, currency)}` : ""}`}
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Transaction History */}
       {transactions.length > 0 && (
@@ -442,7 +323,6 @@ function DepositContent() {
                     <div>
                       <p className="text-sm font-medium capitalize">
                         {tx.type}
-                        {tx.currency === "0G" && " (0G Token)"}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {new Date(tx.created_at).toLocaleDateString()}{" "}
@@ -457,12 +337,10 @@ function DepositContent() {
                     </p>
                     {tx.original_amount > 0 && (
                       <p className="text-xs text-muted-foreground">
-                        {tx.currency === "0G"
-                          ? `${tx.original_amount} A0GI`
-                          : formatCurrency(
-                              tx.original_amount,
-                              tx.currency as "NGN" | "USD"
-                            )}
+                        {formatCurrency(
+                          tx.original_amount,
+                          tx.currency as "NGN" | "USD"
+                        )}
                       </p>
                     )}
                   </div>

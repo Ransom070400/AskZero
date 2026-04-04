@@ -4,48 +4,91 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
+    /* Light mode — warm paper */
+    --background: 40 20% 98%;
+    --surface: 40 10% 96%;
+    --elevated: 0 0% 100%;
+    --foreground: 240 6% 10%;
+    --text-secondary: 240 4% 32%;
+    --text-tertiary: 240 4% 46%;
+
+    --border: 30 6% 90%;
+    --border-strong: 30 5% 83%;
+    --input: 30 5% 83%;
+    --ring: 252 91% 66%;
+
+    --primary: 252 91% 66%;
+    --primary-foreground: 0 0% 100%;
+    --accent: 252 91% 66%;
+    --accent-hover: 252 91% 58%;
+    --accent-muted: 252 91% 66% / 0.08;
+
+    --secondary: 40 10% 96%;
+    --secondary-foreground: 240 6% 10%;
+
+    --muted: 40 10% 96%;
+    --muted-foreground: 240 4% 46%;
+
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
+    --card-foreground: 240 6% 10%;
+
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 0 0% 3.9%;
-    --radius: 0.5rem;
+    --popover-foreground: 240 6% 10%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 142 71% 35%;
+    --warning: 32 95% 44%;
+    --error: 0 72% 51%;
+
+    --radius: 8px;
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
   }
 
   .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 7%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 7%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
+    /* Dark mode — warm near-black */
+    --background: 240 6% 4%;
+    --surface: 240 5% 7%;
+    --elevated: 240 5% 10%;
+    --foreground: 240 5% 96%;
+    --text-secondary: 240 5% 64%;
+    --text-tertiary: 240 4% 46%;
+
+    --border: 240 4% 16%;
+    --border-strong: 240 4% 22%;
+    --input: 240 4% 22%;
+    --ring: 252 100% 75%;
+
+    --primary: 252 100% 75%;
+    --primary-foreground: 240 6% 4%;
+    --accent: 252 100% 75%;
+    --accent-hover: 252 100% 80%;
+    --accent-muted: 252 100% 75% / 0.12;
+
+    --secondary: 240 5% 10%;
+    --secondary-foreground: 240 5% 96%;
+
+    --muted: 240 5% 10%;
+    --muted-foreground: 240 4% 46%;
+
+    --card: 240 5% 10%;
+    --card-foreground: 240 5% 96%;
+
+    --popover: 240 5% 10%;
+    --popover-foreground: 240 5% 96%;
+
+    --destructive: 0 63% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 142 71% 50%;
+    --warning: 38 92% 50%;
+    --error: 0 72% 60%;
+
+    --shadow-sm: none;
+    --shadow-md: none;
   }
 }
 
@@ -53,7 +96,42 @@
   * {
     @apply border-border;
   }
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    transition: background-color 200ms ease, color 200ms ease;
   }
 }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border-strong));
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--text-tertiary));
+}
+
+/* Selection */
+::selection {
+  background: hsl(var(--accent-muted));
+}
+
+/* Code syntax — restrained 3-4 color palette */
+.prose pre code .hljs-keyword,
+.prose pre code .hljs-selector-tag { color: hsl(var(--accent)); }
+.prose pre code .hljs-string,
+.prose pre code .hljs-attr { color: hsl(var(--success)); }
+.prose pre code .hljs-comment { color: hsl(var(--text-tertiary)); }
+.prose pre code .hljs-function,
+.prose pre code .hljs-title,
+.prose pre code .hljs-number,
+.prose pre code .hljs-literal,
+.prose pre code .hljs-built_in,
+.prose pre code .hljs-type { color: hsl(var(--warning)); }

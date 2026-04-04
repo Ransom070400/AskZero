@@ -10,8 +10,8 @@ import {
   MessageSquare,
   Plus,
   Settings,
-  Trash2,
-  Wallet,
+  X,
+  CreditCard,
 } from "lucide-react";
 
 interface Chat {
@@ -61,7 +61,6 @@ export function Sidebar() {
     }
   }, []);
 
-  // Fetch on mount and when path changes (new chat created, etc.)
   useEffect(() => {
     fetchChats();
   }, [fetchChats, pathname]);
@@ -80,29 +79,29 @@ export function Sidebar() {
     }
   };
 
-  const handleNewChat = () => {
-    router.push("/chat");
-  };
-
   const grouped = groupChatsByDate(chats);
 
   return (
-    <div className="flex h-full w-64 flex-col border-r border-border/50 bg-sidebar">
-      {/* Brand Header */}
-      <div className="flex items-center gap-2 px-4 py-5">
-        <MessageSquare className="h-6 w-6 text-primary" />
-        <span className="text-lg font-bold tracking-tight">AskZero</span>
+    <div className="flex h-full w-[260px] flex-col bg-surface">
+      {/* Logo */}
+      <div className="flex items-center gap-2 px-5 h-14">
+        <MessageSquare className="h-4 w-4" />
+        <span className="text-sm font-semibold tracking-tight">AskZero</span>
       </div>
 
-      {/* New Chat Button */}
+      {/* New Chat */}
       <div className="px-3 pb-2">
         <Button
-          variant="outline"
-          className="w-full justify-start gap-2 border-border/50"
-          onClick={handleNewChat}
+          variant="default"
+          size="sm"
+          className="w-full justify-between"
+          onClick={() => router.push("/chat")}
         >
-          <Plus className="h-4 w-4" />
-          New chat
+          <span className="flex items-center gap-2">
+            <Plus className="h-3.5 w-3.5" />
+            New chat
+          </span>
+          <kbd className="text-micro text-primary-foreground/50">&#8984;N</kbd>
         </Button>
       </div>
 
@@ -111,7 +110,7 @@ export function Sidebar() {
         <div className="space-y-4 py-2">
           {Object.entries(grouped).map(([date, dateChats]) => (
             <div key={date}>
-              <p className="mb-1 px-2 text-xs font-medium text-muted-foreground">
+              <p className="mb-1 px-2 text-micro uppercase text-text-tertiary tracking-widest">
                 {date}
               </p>
               <div className="space-y-0.5">
@@ -120,17 +119,19 @@ export function Sidebar() {
                     key={chat.id}
                     href={`/chat/${chat.id}`}
                     className={cn(
-                      "group flex items-center justify-between rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-sidebar-accent",
+                      "group flex items-center justify-between rounded-md px-2 py-1.5 text-sm transition-colors duration-100 hover:bg-elevated",
                       pathname === `/chat/${chat.id}` &&
-                        "bg-sidebar-accent text-sidebar-accent-foreground"
+                        "bg-elevated text-foreground"
                     )}
                   >
-                    <span className="truncate">{chat.title}</span>
+                    <span className="truncate text-text-secondary group-hover:text-foreground">
+                      {chat.title}
+                    </span>
                     <button
                       onClick={(e) => handleDelete(e, chat.id)}
-                      className="hidden shrink-0 rounded p-0.5 text-muted-foreground hover:text-destructive group-hover:block"
+                      className="hidden shrink-0 rounded p-0.5 text-text-tertiary hover:text-error group-hover:block"
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      <X className="h-3 w-3" />
                     </button>
                   </Link>
                 ))}
@@ -140,31 +141,33 @@ export function Sidebar() {
         </div>
       </ScrollArea>
 
-      {/* Bottom Nav */}
-      <div className="border-t border-border/50 p-3 space-y-1">
+      {/* Bottom */}
+      <div className="border-t border-border p-3 space-y-0.5">
         <Button
           asChild
           variant="ghost"
+          size="sm"
           className={cn(
-            "w-full justify-start gap-2",
-            pathname === "/deposit" && "bg-sidebar-accent"
+            "w-full justify-start gap-2 text-text-secondary",
+            pathname === "/deposit" && "bg-elevated text-foreground"
           )}
         >
           <Link href="/deposit">
-            <Wallet className="h-4 w-4" />
+            <CreditCard className="h-3.5 w-3.5" />
             Deposit
           </Link>
         </Button>
         <Button
           asChild
           variant="ghost"
+          size="sm"
           className={cn(
-            "w-full justify-start gap-2",
-            pathname === "/settings" && "bg-sidebar-accent"
+            "w-full justify-start gap-2 text-text-secondary",
+            pathname === "/settings" && "bg-elevated text-foreground"
           )}
         >
           <Link href="/settings">
-            <Settings className="h-4 w-4" />
+            <Settings className="h-3.5 w-3.5" />
             Settings
           </Link>
         </Button>

@@ -37,10 +37,15 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/login") ||
     request.nextUrl.pathname.startsWith("/signup");
 
-  const isWebhook = request.nextUrl.pathname.startsWith("/api/deposit/webhook");
+  const isPublic =
+    request.nextUrl.pathname === "/" ||
+    request.nextUrl.pathname.startsWith("/api/deposit/webhook") ||
+    request.nextUrl.pathname.startsWith("/api/deposit/stripe-webhook") ||
+    request.nextUrl.pathname.startsWith("/api/deposit/price") ||
+    request.nextUrl.pathname.startsWith("/auth");
 
   // If not logged in and trying to access protected routes, redirect to login
-  if (!user && !isAuthPage && !isWebhook && !request.nextUrl.pathname.startsWith("/auth")) {
+  if (!user && !isAuthPage && !isPublic) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

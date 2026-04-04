@@ -2,6 +2,8 @@ import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { deductCredits, checkBalance } from "@/lib/credits";
 import { calculateCost } from "@/lib/pricing";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { sanitizeInput, validateMessage } from "@/lib/sanitize";
 
 function estimateTokens(text: string): number {
   return Math.ceil(text.length / 4);
@@ -24,11 +26,20 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  const { chatId, message, model, provider } = await req.json();
+  // Rate limit: 20 messages per minute per user
+  const { ok } = rateLimit(`chat:${user.id}`, 20);
+  if (!ok) return rateLimitResponse();
 
-  if (!chatId || !message) {
+  const body = await req.json();
+  const chatId = body.chatId;
+  const message = sanitizeInput(body.message || "");
+  const model = body.model;
+  const provider = body.provider;
+
+  const { valid, error: validationError } = validateMessage(message);
+  if (!valid) {
     return new Response(
-      JSON.stringify({ error: "Missing chatId or message" }),
+      JSON.stringify({ error: validationError }),
       { status: 400 }
     );
   }

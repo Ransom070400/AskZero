@@ -44,7 +44,7 @@ function ChatDetailContent() {
       .catch(() => {});
   }, []);
 
-  // Load existing messages
+  // Load existing messages (last 100 for performance)
   useEffect(() => {
     const supabase = createClient();
     supabase
@@ -52,7 +52,8 @@ function ChatDetailContent() {
       .select("id, role, content, token_count, cost_credits")
       .eq("chat_id", chatId)
       .order("created_at", { ascending: true })
-      .then(({ data }) => {
+      .limit(100)
+      .then(({ data }: { data: { id: string; role: string; content: string; token_count: number | null; cost_credits: number | null }[] | null }) => {
         if (data && data.length > 0) {
           setMessages(
             data.map((m) => ({
@@ -177,6 +178,33 @@ function ChatDetailContent() {
     [chatId, isStreaming, selectedModel]
   );
 
+  const handleRegenerate = useCallback(() => {
+    // Find the last user message and resend it
+    const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
+    if (!lastUserMsg || isStreaming) return;
+
+    // Remove last assistant message
+    setMessages((prev) => {
+      const idx = prev.findLastIndex((m) => m.role === "assistant");
+      if (idx >= 0) return prev.filter((_, i) => i !== idx);
+      return prev;
+    });
+
+    sendMessage(lastUserMsg.content);
+  }, [messages, isStreaming, sendMessage]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "/") {
+        e.preventDefault();
+        document.querySelector<HTMLTextAreaElement>("textarea")?.focus();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   // Handle initial message from /chat redirect
   useEffect(() => {
     const q = searchParams.get("q");
@@ -188,7 +216,11 @@ function ChatDetailContent() {
 
   return (
     <div className="flex h-full flex-col">
-      <ChatList messages={messages} isStreaming={isStreaming} />
+      <ChatList
+        messages={messages}
+        isStreaming={isStreaming}
+        onRegenerate={handleRegenerate}
+      />
 
       <div className="border-t border-border/50 p-4">
         <div className="mx-auto max-w-2xl space-y-2">

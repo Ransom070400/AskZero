@@ -2,8 +2,7 @@
 
 import { useRef, useEffect } from "react";
 import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import { Send } from "lucide-react";
+import { ArrowUp } from "lucide-react";
 
 interface ChatInputProps {
   value: string;
@@ -37,18 +36,17 @@ export function ChatInput({ value, onChange, onSend, disabled }: ChatInputProps)
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder="Message AskZero..."
-        className="min-h-[52px] resize-none rounded-xl border-border/50 bg-muted pr-12"
+        className="min-h-[48px] resize-none rounded-xl border-border-strong bg-elevated pr-12 text-sm placeholder:text-text-tertiary focus-visible:ring-accent/20"
         rows={1}
         disabled={disabled}
       />
-      <Button
-        size="icon"
-        className="absolute bottom-2 right-2 h-8 w-8 rounded-lg"
+      <button
+        className="absolute bottom-2.5 right-2.5 flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground transition-all duration-150 hover:bg-accent-hover disabled:opacity-30 active:scale-95"
         disabled={!value.trim() || disabled}
         onClick={onSend}
       >
-        <Send className="h-4 w-4" />
-      </Button>
+        <ArrowUp className="h-4 w-4" />
+      </button>
     </div>
   );
 }
