@@ -37,8 +37,10 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/login") ||
     request.nextUrl.pathname.startsWith("/signup");
 
+  const isWebhook = request.nextUrl.pathname.startsWith("/api/deposit/webhook");
+
   // If not logged in and trying to access protected routes, redirect to login
-  if (!user && !isAuthPage && !request.nextUrl.pathname.startsWith("/auth")) {
+  if (!user && !isAuthPage && !isWebhook && !request.nextUrl.pathname.startsWith("/auth")) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

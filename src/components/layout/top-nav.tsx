@@ -40,6 +40,40 @@ export function TopNav() {
     fetchBalance();
   }, [supabase.auth, fetchBalance]);
 
+  // Realtime balance subscription
+  useEffect(() => {
+    let cancelled = false;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    const channelName = `nav-balance-${Date.now()}`;
+
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user || cancelled) return;
+      channel = supabase
+        .channel(channelName)
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "profiles",
+            filter: `id=eq.${user.id}`,
+          },
+          (payload) => {
+            const newBalance = payload.new.credits_balance;
+            if (newBalance !== undefined) {
+              setBalance(Number(newBalance));
+            }
+          }
+        )
+        .subscribe();
+    });
+
+    return () => {
+      cancelled = true;
+      if (channel) supabase.removeChannel(channel);
+    };
+  }, [supabase]);
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     router.push("/login");
@@ -59,7 +93,7 @@ export function TopNav() {
         <div className="flex items-center gap-1.5 rounded-md bg-muted px-3 py-1.5 text-sm">
           <span className="text-muted-foreground">Balance:</span>
           <span className="font-medium">
-            {balance !== null ? `$${(balance / 100).toFixed(2)}` : "—"}
+            {balance !== null ? `$${(balance / 1000).toFixed(2)}` : "—"}
           </span>
         </div>
 

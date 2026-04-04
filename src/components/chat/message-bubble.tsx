@@ -1,5 +1,6 @@
 "use client";
 
+import "highlight.js/styles/github-dark.css";
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
@@ -10,6 +11,8 @@ export interface Message {
   id: string;
   role: "user" | "assistant" | "system";
   content: string;
+  tokenCount?: number | null;
+  costCredits?: number | null;
 }
 
 export function MessageBubble({ message }: { message: Message }) {
@@ -48,6 +51,12 @@ export function MessageBubble({ message }: { message: Message }) {
             <p className="whitespace-pre-wrap">{message.content}</p>
           )}
         </div>
+        {isAssistant && message.tokenCount != null && (
+          <p className="text-[11px] text-muted-foreground/60">
+            {message.tokenCount} tokens
+            {message.costCredits != null && ` · ${message.costCredits} credits`}
+          </p>
+        )}
       </div>
     </div>
   );
