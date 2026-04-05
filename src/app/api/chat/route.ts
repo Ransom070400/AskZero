@@ -9,10 +9,7 @@ function estimateTokens(text: string): number {
   return Math.ceil(text.length / 4);
 }
 
-const MOCK_RESPONSE =
-  "I'm **AskZero**, powered by decentralized AI compute on the **0G network**.\n\nThis is a mock response — real 0G Compute integration coming soon!\n\nHere's what I can help with:\n\n- Answering questions about blockchain and Web3\n- Explaining decentralized AI concepts\n- Writing and debugging code\n- General knowledge queries\n\n```javascript\nconst response = await og.compute({\n  model: 'default',\n  prompt: message,\n});\n```\n\nStay tuned for the full experience!";
-
-const MIN_CREDITS = 5; // minimum credits to start a message
+const MIN_CREDITS = 5;
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -26,7 +23,6 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // Rate limit: 20 messages per minute per user
   const { ok } = rateLimit(`chat:${user.id}`, 20);
   if (!ok) return rateLimitResponse();
 
@@ -38,13 +34,19 @@ export async function POST(req: NextRequest) {
 
   const { valid, error: validationError } = validateMessage(message);
   if (!valid) {
+    return new Response(JSON.stringify({ error: validationError }), {
+      status: 400,
+    });
+  }
+
+  if (!provider) {
     return new Response(
-      JSON.stringify({ error: validationError }),
+      JSON.stringify({ error: "No model selected. Please select a model." }),
       { status: 400 }
     );
   }
 
-  // Check balance before proceeding
+  // Check balance
   try {
     const balance = await checkBalance(user.id);
     if (balance < MIN_CREDITS) {
@@ -58,7 +60,7 @@ export async function POST(req: NextRequest) {
       );
     }
   } catch {
-    // If balance check fails, proceed anyway
+    // proceed
   }
 
   // Save user message
@@ -76,7 +78,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Load conversation history for context
+  // Load conversation history
   const { data: history } = await supabase
     .from("messages")
     .select("role, content")
@@ -91,39 +93,18 @@ export async function POST(req: NextRequest) {
     })
   );
 
-  // Try 0G Compute, fall back to mock
-  const use0G = !!process.env.ZERO_G_PRIVATE_KEY && !!provider;
-
-  if (use0G) {
-    return stream0GResponse(supabase, user.id, chatId, message, messages, provider, model);
-  }
-  return streamMockResponse(supabase, user.id, chatId, message, model);
-}
-
-async function stream0GResponse(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  userId: string,
-  chatId: string,
-  userMessage: string,
-  messages: { role: "user" | "assistant" | "system"; content: string }[],
-  providerAddress: string,
-  model: string
-) {
+  // Send to 0G Compute
   let ogResponse: Response;
   try {
     const { sendPrompt } = await import("@/lib/og-compute");
-    ogResponse = await sendPrompt(providerAddress, messages, { stream: true });
+    ogResponse = await sendPrompt(provider, messages, { stream: true });
   } catch (err) {
-    const errMsg = err instanceof Error ? err.message : "0G Compute unavailable";
-    // Don't deduct credits on provider failure
-    return new Response(
-      JSON.stringify({ error: errMsg }),
-      { status: 502 }
-    );
+    const errMsg =
+      err instanceof Error ? err.message : "0G Compute unavailable";
+    return new Response(JSON.stringify({ error: errMsg }), { status: 502 });
   }
 
   let fullResponse = "";
-  let outputTokens = 0;
   const inputTokens = estimateTokens(
     messages.map((m) => m.content).join(" ")
   );
@@ -155,7 +136,6 @@ async function stream0GResponse(
               const content = parsed.choices?.[0]?.delta?.content || "";
               if (content) {
                 fullResponse += content;
-                outputTokens++;
                 const chunk = JSON.stringify({ content });
                 controller.enqueue(encoder.encode(`data: ${chunk}\n\n`));
               }
@@ -174,21 +154,20 @@ async function stream0GResponse(
         );
       }
 
-      // Calculate actual cost and deduct
-      outputTokens = estimateTokens(fullResponse);
+      // Calculate cost and deduct
+      const outputTokens = estimateTokens(fullResponse);
       const cost = calculateCost(model || "default", inputTokens, outputTokens);
-      const actualCost = Math.max(cost, 1); // minimum 1 credit
+      const actualCost = Math.max(cost, 1);
 
       try {
-        await deductCredits(userId, actualCost, {
+        await deductCredits(user.id, actualCost, {
           chat_id: chatId,
-          model: model || "default",
+          model: model || "unknown",
           input_tokens: inputTokens,
           output_tokens: outputTokens,
         });
       } catch {
-        // Log but don't fail the stream
-        console.error("Failed to deduct credits after 0G response");
+        console.error("Failed to deduct credits after response");
       }
 
       // Save assistant message
@@ -210,89 +189,7 @@ async function stream0GResponse(
       if (chatData?.title === "New Chat") {
         await supabase
           .from("chats")
-          .update({ title: userMessage.slice(0, 50) })
-          .eq("id", chatId);
-      }
-
-      // Send usage metadata and done
-      controller.enqueue(
-        encoder.encode(
-          `data: ${JSON.stringify({ usage: { input_tokens: inputTokens, output_tokens: outputTokens, cost: actualCost } })}\n\n`
-        )
-      );
-      controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-      controller.close();
-    },
-  });
-
-  return new Response(stream, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      Connection: "keep-alive",
-    },
-  });
-}
-
-async function streamMockResponse(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  userId: string,
-  chatId: string,
-  userMessage: string,
-  model: string
-) {
-  const inputTokens = estimateTokens(userMessage);
-  const outputTokens = estimateTokens(MOCK_RESPONSE);
-  const cost = calculateCost(model || "default", inputTokens, outputTokens);
-  const actualCost = Math.max(cost, 1);
-
-  try {
-    await deductCredits(userId, actualCost, {
-      chat_id: chatId,
-      type: "chat_message",
-      model: model || "mock",
-      input_tokens: inputTokens,
-      output_tokens: outputTokens,
-    });
-  } catch {
-    return new Response(
-      JSON.stringify({ error: "Insufficient credits", depositUrl: "/deposit" }),
-      { status: 402 }
-    );
-  }
-
-  const words = MOCK_RESPONSE.split(/(\s+)/);
-  let fullResponse = "";
-
-  const stream = new ReadableStream({
-    async start(controller) {
-      const encoder = new TextEncoder();
-
-      for (const word of words) {
-        fullResponse += word;
-        const chunk = JSON.stringify({ content: word });
-        controller.enqueue(encoder.encode(`data: ${chunk}\n\n`));
-        await new Promise((r) => setTimeout(r, 30));
-      }
-
-      await supabase.from("messages").insert({
-        chat_id: chatId,
-        role: "assistant",
-        content: fullResponse,
-        token_count: outputTokens,
-        cost_credits: actualCost,
-      });
-
-      const { data: chatData } = await supabase
-        .from("chats")
-        .select("title")
-        .eq("id", chatId)
-        .single();
-
-      if (chatData?.title === "New Chat") {
-        await supabase
-          .from("chats")
-          .update({ title: userMessage.slice(0, 50) })
+          .update({ title: message.slice(0, 50) })
           .eq("id", chatId);
       }
 

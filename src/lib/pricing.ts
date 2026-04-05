@@ -8,6 +8,7 @@ export const MODEL_PRICING: Record<
   { input: number; output: number }
 > = {
   default: { input: 1, output: 2 },
+  "glm-4": { input: 1, output: 2 },
 };
 
 export function calculateCost(

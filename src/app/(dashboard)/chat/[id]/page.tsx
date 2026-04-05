@@ -31,7 +31,7 @@ function ChatDetailContent() {
   const [selectedModel, setSelectedModel] = useState<{
     provider: string;
     model: string;
-  }>({ provider: "mock", model: "default" });
+  } | null>(null);
   const initialSent = useRef(false);
 
   // Load models
@@ -40,6 +40,12 @@ function ChatDetailContent() {
       .then((r) => r.json())
       .then((data) => {
         setModels(data.models);
+        if (data.models.length > 0 && !selectedModel) {
+          setSelectedModel({
+            provider: data.models[0].provider,
+            model: data.models[0].model,
+          });
+        }
       })
       .catch(() => {});
   }, []);
@@ -70,7 +76,7 @@ function ChatDetailContent() {
 
   const sendMessage = useCallback(
     async (text: string) => {
-      if (!text.trim() || isStreaming) return;
+      if (!text.trim() || isStreaming || !selectedModel) return;
 
       const userMsg: Message = {
         id: crypto.randomUUID(),
@@ -94,11 +100,8 @@ function ChatDetailContent() {
           body: JSON.stringify({
             chatId,
             message: text.trim(),
-            model: selectedModel.model,
-            provider:
-              selectedModel.provider !== "mock"
-                ? selectedModel.provider
-                : undefined,
+            model: selectedModel!.model,
+            provider: selectedModel!.provider,
           }),
         });
 
@@ -225,9 +228,9 @@ function ChatDetailContent() {
       <div className="border-t border-border/50 p-4">
         <div className="mx-auto max-w-2xl space-y-2">
           {/* Model selector */}
-          {models.length > 1 && (
+          {models.length > 0 && selectedModel && (
             <div className="flex items-center gap-2">
-              <label className="text-xs text-muted-foreground">Model:</label>
+              <label className="text-xs text-text-tertiary">Model:</label>
               <select
                 value={`${selectedModel.provider}|${selectedModel.model}`}
                 onChange={(e) => {
