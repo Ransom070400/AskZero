@@ -19,7 +19,7 @@ export function ChatList({ messages, isStreaming, onRegenerate }: ChatListProps)
 
   return (
     <div className="flex-1 overflow-y-auto">
-      <div className="mx-auto max-w-2xl space-y-6 p-4">
+      <div className="mx-auto max-w-chat space-y-4 md:space-y-6 px-3 md:px-4 py-4">
         {messages.map((msg, i) => (
           <MessageBubble
             key={msg.id}

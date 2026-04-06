@@ -60,21 +60,21 @@ export function TopNav() {
     : "AZ";
 
   return (
-    <header className="flex h-12 items-center justify-between border-b border-border bg-background px-4">
-      <div />
+    <header className="flex h-12 items-center justify-between border-b border-border md:border-b bg-background px-3 md:px-4">
+      <div className="md:block hidden" />
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5 md:gap-2 ml-auto">
         {/* Balance */}
         <button
           onClick={() => router.push("/deposit")}
-          className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-sm text-text-secondary hover:text-foreground transition-colors duration-150"
+          className="flex items-center gap-1 rounded-lg px-2 md:px-2.5 py-1 text-xs md:text-sm text-text-secondary hover:text-foreground transition-colors duration-150"
         >
           <span className="font-medium text-foreground">
             {balance !== null ? formatBalance(balance) : "—"}
           </span>
         </button>
 
-        <ThemeToggle />
+        <span className="hidden md:block"><ThemeToggle /></span>
 
         {/* User Menu */}
         <DropdownMenu>

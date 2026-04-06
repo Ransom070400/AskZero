@@ -225,19 +225,19 @@ function ChatDetailContent() {
         onRegenerate={handleRegenerate}
       />
 
-      <div className="border-t border-border/50 p-4">
-        <div className="mx-auto max-w-2xl space-y-2">
+      <div className="border-t border-border/50 p-2.5 md:p-4">
+        <div className="mx-auto max-w-chat space-y-2">
           {/* Model selector */}
           {models.length > 0 && selectedModel && (
-            <div className="flex items-center gap-2">
-              <label className="text-xs text-text-tertiary">Model:</label>
+            <div className="flex items-center gap-2 px-1">
+              <label className="text-xs text-text-tertiary hidden md:block">Model:</label>
               <select
                 value={`${selectedModel.provider}|${selectedModel.model}`}
                 onChange={(e) => {
                   const [provider, model] = e.target.value.split("|");
                   setSelectedModel({ provider, model });
                 }}
-                className="rounded-md border border-border/50 bg-muted px-2 py-1 text-xs"
+                className="rounded-lg border border-border bg-surface px-2 py-1.5 text-xs"
                 disabled={isStreaming}
               >
                 {models.map((m) => (

@@ -161,7 +161,7 @@ function DepositContent() {
     numericAmount > 0 ? convertToCredits(numericAmount, currency) : 0;
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 p-6">
+    <div className="mx-auto max-w-form space-y-5 md:space-y-6 px-4 md:px-6 py-4 md:py-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Deposit Funds</h1>
         <p className="text-muted-foreground">

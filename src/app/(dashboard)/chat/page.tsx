@@ -31,20 +31,20 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex h-full flex-col items-center justify-between p-4">
+    <div className="flex h-full flex-col items-center justify-between px-3 md:px-4 py-4">
       <EmptyState
         onSuggestionClick={(text) => {
           setMessage(text);
         }}
       />
-      <div className="w-full max-w-2xl pb-4">
+      <div className="w-full max-w-chat pb-2 md:pb-4">
         <ChatInput
           value={message}
           onChange={setMessage}
           onSend={handleSend}
           disabled={sending}
         />
-        <p className="mt-2 text-center text-xs text-muted-foreground">
+        <p className="mt-2 text-center text-[11px] text-text-tertiary hidden md:block">
           AskZero uses 0G Compute for decentralized AI inference
         </p>
       </div>

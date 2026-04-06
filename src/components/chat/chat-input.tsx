@@ -18,7 +18,7 @@ export function ChatInput({ value, onChange, onSend, disabled }: ChatInputProps)
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = "auto";
-    el.style.height = Math.min(el.scrollHeight, 200) + "px";
+    el.style.height = Math.min(el.scrollHeight, 160) + "px";
   }, [value]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -36,12 +36,12 @@ export function ChatInput({ value, onChange, onSend, disabled }: ChatInputProps)
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder="Message AskZero..."
-        className="min-h-[48px] resize-none rounded-xl border-border-strong bg-elevated pr-12 text-sm placeholder:text-text-tertiary focus-visible:ring-accent/20"
+        className="min-h-[44px] md:min-h-[48px] resize-none rounded-2xl border-border-strong bg-elevated pr-12 text-[16px] md:text-sm placeholder:text-text-tertiary focus-visible:ring-accent/20 py-3 px-4"
         rows={1}
         disabled={disabled}
       />
       <button
-        className="absolute bottom-2.5 right-2.5 flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground transition-all duration-150 hover:bg-accent-hover disabled:opacity-30 active:scale-95"
+        className="absolute bottom-2.5 right-2.5 flex h-8 w-8 md:h-7 md:w-7 items-center justify-center rounded-full bg-primary text-primary-foreground transition-all duration-150 hover:bg-accent-hover disabled:opacity-30 active:scale-90"
         disabled={!value.trim() || disabled}
         onClick={onSend}
       >

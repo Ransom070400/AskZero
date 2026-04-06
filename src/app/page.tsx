@@ -221,8 +221,8 @@ export default function LandingPage() {
       </motion.header>
 
       {/* Hero */}
-      <main className="relative z-10 flex flex-1 flex-col items-center justify-center px-6 text-center">
-        <div className="max-w-3xl space-y-8">
+      <main className="relative z-10 flex flex-1 flex-col items-center justify-center px-5 md:px-6 text-center">
+        <div className="max-w-3xl space-y-6 md:space-y-8">
           <motion.p
             {...fade(0)}
             className="text-xs font-medium uppercase tracking-[0.2em] text-white/30"
@@ -232,7 +232,7 @@ export default function LandingPage() {
 
           <motion.h1
             {...fade(1)}
-            className="text-5xl font-bold tracking-tight text-white sm:text-6xl md:text-7xl"
+            className="text-3xl font-bold tracking-tight text-white sm:text-5xl md:text-7xl"
             style={{ letterSpacing: "-0.03em", lineHeight: "1.05" }}
           >
             The future of AI
@@ -266,7 +266,7 @@ export default function LandingPage() {
         {/* Features row */}
         <motion.div
           {...fade(4)}
-          className="mt-28 flex items-center gap-8 md:gap-16 text-white/25 text-xs uppercase tracking-[0.15em]"
+          className="mt-16 md:mt-28 flex flex-wrap items-center justify-center gap-4 md:gap-16 text-white/25 text-[10px] md:text-xs uppercase tracking-[0.15em]"
         >
           <span>Streaming</span>
           <span className="h-1 w-1 rounded-full bg-white/15" />

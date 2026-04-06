@@ -15,6 +15,8 @@ import {
   Users,
   Sun,
   Moon,
+  CreditCard,
+  Settings,
 } from "lucide-react";
 
 const navItems = [
@@ -116,17 +118,20 @@ export function IconRail() {
       </div>
 
       {/* Mobile bottom nav */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 flex md:hidden items-center justify-around border-t border-border bg-surface/90 backdrop-blur-xl px-2 py-2 safe-area-bottom">
-        {navItems.slice(0, 5).map((item) => {
-          const isActive = item.href !== "#" && pathname.startsWith(item.href);
+      <div className="fixed bottom-0 left-0 right-0 z-50 flex md:hidden items-center justify-around border-t border-border bg-background/95 backdrop-blur-xl px-1 pb-[env(safe-area-inset-bottom,8px)] pt-2">
+        {[
+          navItems[0], // Chat
+          { icon: CreditCard, label: "Deposit", href: "/deposit" },
+          { icon: Settings, label: "Settings", href: "/settings" },
+        ].map((item) => {
+          const isActive = pathname.startsWith(item.href);
           return (
             <button
               key={item.label}
-              onClick={() => !item.disabled && router.push(item.href)}
+              onClick={() => router.push(item.href)}
               className={cn(
-                "flex flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 transition-colors duration-150",
-                isActive ? "text-primary" : "text-text-tertiary",
-                item.disabled && "opacity-40"
+                "flex flex-col items-center gap-0.5 rounded-xl px-4 py-1.5 transition-colors duration-150 min-w-[64px]",
+                isActive ? "text-primary" : "text-text-tertiary"
               )}
             >
               <item.icon className="h-5 w-5" />
