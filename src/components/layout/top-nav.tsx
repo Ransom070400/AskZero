@@ -13,12 +13,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { LogOut, Settings, CreditCard } from "lucide-react";
+import { useCurrency } from "@/lib/currency";
 import { useEffect, useState, useCallback } from "react";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 export function TopNav() {
   const router = useRouter();
   const supabase = createClient();
+  const { formatBalance } = useCurrency();
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [balance, setBalance] = useState<number | null>(null);
 
@@ -41,37 +43,11 @@ export function TopNav() {
     fetchBalance();
   }, [supabase.auth, fetchBalance]);
 
-  // Realtime balance
+  // Realtime balance — poll instead of realtime to avoid channel conflicts
   useEffect(() => {
-    let cancelled = false;
-    let channel: ReturnType<typeof supabase.channel> | null = null;
-    const channelName = `nav-balance-${Date.now()}`;
-
-    supabase.auth.getUser().then(({ data: { user } }: { data: { user: SupabaseUser | null } }) => {
-      if (!user || cancelled) return;
-      channel = supabase
-        .channel(channelName)
-        .on(
-          "postgres_changes",
-          {
-            event: "UPDATE",
-            schema: "public",
-            table: "profiles",
-            filter: `id=eq.${user.id}`,
-          },
-          (payload: { new: Record<string, unknown> }) => {
-            const newBalance = payload.new.credits_balance;
-            if (newBalance !== undefined) setBalance(Number(newBalance));
-          }
-        )
-        .subscribe();
-    });
-
-    return () => {
-      cancelled = true;
-      if (channel) supabase.removeChannel(channel);
-    };
-  }, [supabase]);
+    const interval = setInterval(fetchBalance, 10000);
+    return () => clearInterval(interval);
+  }, [fetchBalance]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -94,7 +70,7 @@ export function TopNav() {
           className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-sm text-text-secondary hover:text-foreground transition-colors duration-150"
         >
           <span className="font-medium text-foreground">
-            {balance !== null ? `$${(balance / 1000).toFixed(2)}` : "—"}
+            {balance !== null ? formatBalance(balance) : "—"}
           </span>
         </button>
 

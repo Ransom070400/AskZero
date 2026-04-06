@@ -76,6 +76,7 @@ const config: Config = {
       boxShadow: {
         sm: "var(--shadow-sm)",
         md: "var(--shadow-md)",
+        lg: "var(--shadow-lg)",
       },
       transitionTimingFunction: {
         smooth: "cubic-bezier(0.16, 1, 0.3, 1)",

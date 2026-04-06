@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useCurrency } from "@/lib/currency";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -48,6 +49,7 @@ function DepositContent() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const { formatBalance: formatBal } = useCurrency();
 
   const fetchData = useCallback(async () => {
     const supabase = createClient();
@@ -106,39 +108,11 @@ function DepositContent() {
     }
   }, [searchParams, fetchData]);
 
-  // Realtime balance
+  // Poll balance updates
   useEffect(() => {
-    let cancelled = false;
-    let channel: ReturnType<ReturnType<typeof createClient>["channel"]> | null =
-      null;
-    const supabase = createClient();
-    const channelName = `deposit-balance-${Date.now()}`;
-
-    supabase.auth.getUser().then(({ data: { user } }: { data: { user: { id: string } | null } }) => {
-      if (!user || cancelled) return;
-      channel = supabase
-        .channel(channelName)
-        .on(
-          "postgres_changes",
-          {
-            event: "UPDATE",
-            schema: "public",
-            table: "profiles",
-            filter: `id=eq.${user.id}`,
-          },
-          (payload: { new: Record<string, unknown> }) => {
-            const newBalance = payload.new.credits_balance;
-            if (newBalance !== undefined) setBalance(Number(newBalance));
-          }
-        )
-        .subscribe();
-    });
-
-    return () => {
-      cancelled = true;
-      if (channel) createClient().removeChannel(channel);
-    };
-  }, []);
+    const interval = setInterval(fetchData, 10000);
+    return () => clearInterval(interval);
+  }, [fetchData]);
 
   const handleFiatDeposit = async () => {
     const numAmount = parseFloat(amount);
@@ -216,7 +190,7 @@ function DepositContent() {
             <p className="text-sm text-muted-foreground">Current Balance</p>
             <p className="text-2xl font-bold">
               {balance !== null
-                ? `${formatCredits(balance)} credits ($${(balance / 1000).toFixed(2)})`
+                ? `${formatBal(balance)} (${formatCredits(balance)} credits)`
                 : "Loading..."}
             </p>
           </div>
