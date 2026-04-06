@@ -56,21 +56,7 @@ export async function GET(
   const cur = (currency as string).toUpperCase() as "NGN" | "USD";
   const credits = convertToCredits(originalAmount, cur);
 
-  // Mark transaction as completed FIRST (prevents double-credit on retry)
-  const { data: updated, error: markError } = await supabase
-    .from("transactions")
-    .update({ status: "completed", amount: credits })
-    .eq("reference", reference)
-    .eq("status", "pending")
-    .select("id")
-    .single();
-
-  // If no row was updated, it was already completed — don't credit again
-  if (markError || !updated) {
-    return NextResponse.json({ status: "completed", message: "Already credited" });
-  }
-
-  // Credit the user's balance — try RPC first, fall back to manual update
+  // Credit the user's balance first
   let credited = false;
 
   const { error: rpcError } = await supabase.rpc("credit_balance", {
@@ -81,7 +67,7 @@ export async function GET(
   if (!rpcError) {
     credited = true;
   } else {
-    // Fallback: read current balance and update directly
+    // Fallback: read + update
     const { data: profile } = await supabase
       .from("profiles")
       .select("credits_balance")
@@ -97,6 +83,15 @@ export async function GET(
 
       if (!updateError) credited = true;
     }
+  }
+
+  // Mark transaction as completed (with user_id for RLS)
+  if (credited) {
+    await supabase
+      .from("transactions")
+      .update({ status: "completed", amount: credits })
+      .eq("reference", reference)
+      .eq("user_id", user.id);
   }
 
   if (!credited) {
