@@ -31,12 +31,16 @@ export async function POST(req: NextRequest) {
   const message = sanitizeInput(body.message || "");
   const model = body.model;
   const provider = body.provider;
+  const attachments = body.attachments || [];
 
-  const { valid, error: validationError } = validateMessage(message);
-  if (!valid) {
-    return new Response(JSON.stringify({ error: validationError }), {
-      status: 400,
-    });
+  const hasAttachments = attachments.length > 0;
+  if (!hasAttachments) {
+    const { valid, error: validationError } = validateMessage(message);
+    if (!valid) {
+      return new Response(JSON.stringify({ error: validationError }), {
+        status: 400,
+      });
+    }
   }
 
   if (!provider) {
@@ -64,11 +68,13 @@ export async function POST(req: NextRequest) {
   }
 
   // Save user message
+  const metadata = attachments.length > 0 ? { attachments } : {};
   const { error: insertError } = await supabase.from("messages").insert({
     chat_id: chatId,
     role: "user",
     content: message,
     token_count: estimateTokens(message),
+    metadata,
   });
 
   if (insertError) {
@@ -81,16 +87,35 @@ export async function POST(req: NextRequest) {
   // Load conversation history
   const { data: history } = await supabase
     .from("messages")
-    .select("role, content")
+    .select("role, content, metadata")
     .eq("chat_id", chatId)
     .order("created_at", { ascending: true })
     .limit(50);
 
   const messages = (history || []).map(
-    (m: { role: string; content: string }) => ({
-      role: m.role as "user" | "assistant" | "system",
-      content: m.content,
-    })
+    (m: { role: string; content: string; metadata?: { attachments?: { type: string; url: string }[] } }) => {
+      const imgAtts = (m.metadata?.attachments || []).filter((a) =>
+        a.type.startsWith("image/")
+      );
+
+      if (imgAtts.length > 0 && m.role === "user") {
+        return {
+          role: m.role as "user" | "assistant" | "system",
+          content: [
+            { type: "text" as const, text: m.content },
+            ...imgAtts.map((a) => ({
+              type: "image_url" as const,
+              image_url: { url: a.url },
+            })),
+          ],
+        };
+      }
+
+      return {
+        role: m.role as "user" | "assistant" | "system",
+        content: m.content,
+      };
+    }
   );
 
   // Send to 0G Compute
@@ -106,8 +131,17 @@ export async function POST(req: NextRequest) {
 
   let fullResponse = "";
   const inputTokens = estimateTokens(
-    messages.map((m) => m.content).join(" ")
-  );
+    messages
+      .map((m) =>
+        typeof m.content === "string"
+          ? m.content
+          : m.content
+              .filter((p): p is { type: "text"; text: string } => p.type === "text")
+              .map((p) => p.text)
+              .join(" ")
+      )
+      .join(" ")
+  ) + (attachments.length * 85); // ~85 tokens per image
 
   const stream = new ReadableStream({
     async start(controller) {

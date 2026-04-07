@@ -5,7 +5,7 @@ import { useParams, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { ChatList } from "@/components/chat/chat-list";
 import { ChatInput } from "@/components/chat/chat-input";
-import type { Message } from "@/components/chat/message-bubble";
+import type { Message, Attachment } from "@/components/chat/message-bubble";
 
 interface ModelOption {
   provider: string;
@@ -32,6 +32,7 @@ function ChatDetailContent() {
     provider: string;
     model: string;
   } | null>(null);
+  const [attachments, setAttachments] = useState<File[]>([]);
   const initialSent = useRef(false);
 
   // Load models
@@ -55,11 +56,11 @@ function ChatDetailContent() {
     const supabase = createClient();
     supabase
       .from("messages")
-      .select("id, role, content, token_count, cost_credits")
+      .select("id, role, content, token_count, cost_credits, metadata")
       .eq("chat_id", chatId)
       .order("created_at", { ascending: true })
       .limit(100)
-      .then(({ data }: { data: { id: string; role: string; content: string; token_count: number | null; cost_credits: number | null }[] | null }) => {
+      .then(({ data }: { data: { id: string; role: string; content: string; token_count: number | null; cost_credits: number | null; metadata?: { attachments?: Attachment[] } }[] | null }) => {
         if (data && data.length > 0) {
           setMessages(
             data.map((m) => ({
@@ -68,20 +69,46 @@ function ChatDetailContent() {
               content: m.content,
               tokenCount: m.token_count,
               costCredits: m.cost_credits,
+              attachments: m.metadata?.attachments,
             }))
           );
         }
       });
   }, [chatId]);
 
+  const uploadFiles = async (files: File[]): Promise<Attachment[]> => {
+    const uploaded: Attachment[] = [];
+    for (const file of files) {
+      const form = new FormData();
+      form.append("file", file);
+      form.append("chatId", chatId);
+
+      const res = await fetch("/api/upload", { method: "POST", body: form });
+      if (res.ok) {
+        uploaded.push(await res.json());
+      }
+    }
+    return uploaded;
+  };
+
   const sendMessage = useCallback(
     async (text: string) => {
-      if (!text.trim() || isStreaming || !selectedModel) return;
+      if ((!text.trim() && attachments.length === 0) || isStreaming || !selectedModel) return;
+
+      // Upload files first
+      let uploadedAttachments: Attachment[] = [];
+      const filesToUpload = [...attachments];
+      setAttachments([]);
+
+      if (filesToUpload.length > 0) {
+        uploadedAttachments = await uploadFiles(filesToUpload);
+      }
 
       const userMsg: Message = {
         id: crypto.randomUUID(),
         role: "user",
         content: text.trim(),
+        attachments: uploadedAttachments.length > 0 ? uploadedAttachments : undefined,
       };
       setMessages((prev) => [...prev, userMsg]);
       setInput("");
@@ -102,6 +129,7 @@ function ChatDetailContent() {
             message: text.trim(),
             model: selectedModel!.model,
             provider: selectedModel!.provider,
+            attachments: uploadedAttachments,
           }),
         });
 
@@ -178,7 +206,7 @@ function ChatDetailContent() {
 
       setIsStreaming(false);
     },
-    [chatId, isStreaming, selectedModel]
+    [chatId, isStreaming, selectedModel, attachments]
   );
 
   const handleRegenerate = useCallback(() => {
@@ -257,6 +285,9 @@ function ChatDetailContent() {
             onChange={setInput}
             onSend={() => sendMessage(input)}
             disabled={isStreaming}
+            attachments={attachments}
+            onAttach={(files) => setAttachments((prev) => [...prev, ...files].slice(0, 5))}
+            onRemoveAttachment={(i) => setAttachments((prev) => prev.filter((_, idx) => idx !== i))}
           />
         </div>
       </div>

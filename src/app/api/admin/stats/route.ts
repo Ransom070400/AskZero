@@ -16,7 +16,7 @@ export async function GET() {
   }
 
   // Fetch stats
-  const [usersRes, chatsRes, messagesRes, transactionsRes, revenueRes] =
+  const [usersRes, chatsRes, messagesRes, transactionsRes, revenueRes, usageRes] =
     await Promise.all([
       supabase.from("profiles").select("id", { count: "exact", head: true }),
       supabase.from("chats").select("id", { count: "exact", head: true }),
@@ -31,10 +31,19 @@ export async function GET() {
         .select("amount")
         .eq("type", "deposit")
         .eq("status", "completed"),
+      supabase
+        .from("transactions")
+        .select("amount")
+        .eq("type", "usage")
+        .eq("status", "completed"),
     ]);
 
   const totalRevenue =
     revenueRes.data?.reduce((sum, t) => sum + Number(t.amount), 0) || 0;
+
+  // Usage amounts are stored as negative values
+  const totalUsageCredits =
+    usageRes.data?.reduce((sum, t) => sum + Math.abs(Number(t.amount)), 0) || 0;
 
   // Recent transactions
   const { data: recentTx } = await supabase
@@ -68,6 +77,8 @@ export async function GET() {
       totalDeposits: transactionsRes.count || 0,
       totalCreditsDeposited: totalRevenue,
       totalRevenueUsd: (totalRevenue / 1000).toFixed(2),
+      totalUsageCredits,
+      totalUsageUsd: (totalUsageCredits / 1000).toFixed(2),
     },
     treasury: {
       address: treasuryAddress,

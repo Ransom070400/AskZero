@@ -27,7 +27,7 @@ function CinematicCanvas() {
         y: Math.random(),
         speed: 0.002 + Math.random() * 0.004,
         len: 0.02 + Math.random() * 0.06,
-        opacity: 0.03 + Math.random() * 0.08,
+        opacity: 0.08 + Math.random() * 0.14,
       });
     }
 
@@ -56,8 +56,8 @@ function CinematicCanvas() {
         cw * 0.5, ch * 0.45, 0,
         cw * 0.5, ch * 0.45, cw * 0.4
       );
-      grd.addColorStop(0, "rgba(100, 140, 255, 0.06)");
-      grd.addColorStop(0.3, "rgba(80, 100, 200, 0.03)");
+      grd.addColorStop(0, "rgba(100, 140, 255, 0.15)");
+      grd.addColorStop(0.3, "rgba(80, 100, 200, 0.08)");
       grd.addColorStop(1, "transparent");
       ctx.fillStyle = grd;
       ctx.fillRect(0, 0, cw, ch);
@@ -94,8 +94,8 @@ function CinematicCanvas() {
             else ctx.lineTo(x, y);
           }
 
-          const opacity = (0.08 - rowProgress * 0.06) * perspective;
-          ctx.strokeStyle = `rgba(120, 150, 255, ${Math.max(opacity, 0.01)})`;
+          const opacity = (0.18 - rowProgress * 0.12) * perspective;
+          ctx.strokeStyle = `rgba(120, 150, 255, ${Math.max(opacity, 0.03)})`;
           ctx.lineWidth = 1 * dpr;
           ctx.stroke();
         }
@@ -114,7 +114,7 @@ function CinematicCanvas() {
         ctx.beginPath();
         ctx.moveTo(vanishX - spread, y);
         ctx.lineTo(vanishX + spread, y);
-        ctx.strokeStyle = `rgba(120, 150, 255, ${0.015 + (i / 12) * 0.02})`;
+        ctx.strokeStyle = `rgba(120, 150, 255, ${0.04 + (i / 12) * 0.05})`;
         ctx.lineWidth = 1 * dpr;
         ctx.stroke();
       }
@@ -133,7 +133,7 @@ function CinematicCanvas() {
 
         const grad = ctx.createLinearGradient(x, y2, x, y1);
         grad.addColorStop(0, "transparent");
-        grad.addColorStop(0.5, `rgba(150, 180, 255, ${line.opacity})`);
+        grad.addColorStop(0.5, `rgba(150, 180, 255, ${line.opacity * 1.5})`);
         grad.addColorStop(1, "transparent");
 
         ctx.beginPath();
@@ -148,7 +148,7 @@ function CinematicCanvas() {
       const imgData = ctx.getImageData(0, 0, cw, ch);
       const data = imgData.data;
       for (let i = 0; i < data.length; i += 32) {
-        const grain = (Math.random() - 0.5) * 6;
+        const grain = (Math.random() - 0.5) * 4;
         data[i] = Math.max(0, Math.min(255, data[i] + grain));
         data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + grain));
         data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + grain));

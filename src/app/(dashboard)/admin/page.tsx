@@ -19,6 +19,7 @@ import {
   Copy,
   ExternalLink,
   Check,
+  TrendingDown,
 } from "lucide-react";
 
 interface Stats {
@@ -28,6 +29,8 @@ interface Stats {
   totalDeposits: number;
   totalCreditsDeposited: number;
   totalRevenueUsd: string;
+  totalUsageCredits: number;
+  totalUsageUsd: string;
 }
 
 interface Treasury {
@@ -186,7 +189,7 @@ export default function AdminPage() {
       )}
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -232,6 +235,21 @@ export default function AdminPage() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">${stats.totalRevenueUsd}</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Fiat Used
+            </CardTitle>
+            <TrendingDown className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold">${stats.totalUsageUsd}</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {stats.totalUsageCredits} credits
+            </p>
           </CardContent>
         </Card>
       </div>
