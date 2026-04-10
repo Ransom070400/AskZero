@@ -1,0 +1,87 @@
+import { Resend } from "resend";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+const FROM = process.env.EMAIL_FROM || "AskZero <noreply@askzero.ai>";
+
+export async function sendDepositConfirmation(
+  to: string,
+  amount: string,
+  credits: number,
+  currency: string
+) {
+  if (!process.env.RESEND_API_KEY) return;
+
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to,
+      subject: "Deposit Confirmed — AskZero",
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px;">
+          <h2 style="margin: 0 0 8px; font-size: 20px; color: #111;">Payment Received</h2>
+          <p style="margin: 0 0 24px; color: #666; font-size: 14px;">Your deposit has been processed successfully.</p>
+          <div style="background: #f9f9f9; border-radius: 12px; padding: 20px;">
+            <p style="margin: 0 0 8px; font-size: 14px; color: #666;">Amount</p>
+            <p style="margin: 0 0 16px; font-size: 24px; font-weight: 700; color: #111;">${amount} ${currency}</p>
+            <p style="margin: 0 0 8px; font-size: 14px; color: #666;">Credits Added</p>
+            <p style="margin: 0; font-size: 24px; font-weight: 700; color: #111;">${credits.toLocaleString()}</p>
+          </div>
+          <p style="margin: 24px 0 0; font-size: 12px; color: #999;">AskZero — Decentralized AI for Everyone</p>
+        </div>
+      `,
+    });
+  } catch (err) {
+    console.error("Failed to send deposit email:", err);
+  }
+}
+
+export async function sendLowBalanceWarning(
+  to: string,
+  currentBalance: number
+) {
+  if (!process.env.RESEND_API_KEY) return;
+
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to,
+      subject: "Low Balance Alert — AskZero",
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px;">
+          <h2 style="margin: 0 0 8px; font-size: 20px; color: #111;">Low Balance Warning</h2>
+          <p style="margin: 0 0 24px; color: #666; font-size: 14px;">Your AskZero credit balance is running low.</p>
+          <div style="background: #fff8e1; border-radius: 12px; padding: 20px;">
+            <p style="margin: 0 0 8px; font-size: 14px; color: #666;">Remaining Credits</p>
+            <p style="margin: 0; font-size: 24px; font-weight: 700; color: #e65100;">${currentBalance.toLocaleString()}</p>
+          </div>
+          <a href="https://askzero.ai/deposit" style="display: inline-block; margin: 24px 0 0; background: #111; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600;">Add Funds</a>
+          <p style="margin: 24px 0 0; font-size: 12px; color: #999;">AskZero — Decentralized AI for Everyone</p>
+        </div>
+      `,
+    });
+  } catch (err) {
+    console.error("Failed to send low balance email:", err);
+  }
+}
+
+export async function sendAccountDeletedConfirmation(to: string) {
+  if (!process.env.RESEND_API_KEY) return;
+
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to,
+      subject: "Account Deleted — AskZero",
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px;">
+          <h2 style="margin: 0 0 8px; font-size: 20px; color: #111;">Account Deleted</h2>
+          <p style="margin: 0 0 24px; color: #666; font-size: 14px;">Your AskZero account and all associated data have been permanently deleted.</p>
+          <p style="margin: 0; color: #666; font-size: 14px;">If this was a mistake, you can always create a new account at <a href="https://askzero.ai" style="color: #2563eb;">askzero.ai</a>.</p>
+          <p style="margin: 24px 0 0; font-size: 12px; color: #999;">AskZero — Decentralized AI for Everyone</p>
+        </div>
+      `,
+    });
+  } catch (err) {
+    console.error("Failed to send deletion email:", err);
+  }
+}

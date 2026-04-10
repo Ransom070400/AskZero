@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Wallet, CheckCircle, Clock, XCircle } from "lucide-react";
 import {
-  convertToCredits,
+  USD_TO_CREDITS_RATE,
   formatCredits,
   formatCurrency,
   getPresets,
@@ -49,7 +49,16 @@ function DepositContent() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [ngnRate, setNgnRate] = useState(1500);
   const { formatBalance: formatBal } = useCurrency();
+
+  // Fetch live exchange rate
+  useEffect(() => {
+    fetch("/api/exchange-rate")
+      .then((r) => r.json())
+      .then((data) => { if (data.rate) setNgnRate(data.rate); })
+      .catch(() => {});
+  }, []);
 
   const fetchData = useCallback(async () => {
     const supabase = createClient();
@@ -157,8 +166,12 @@ function DepositContent() {
   };
 
   const numericAmount = parseFloat(amount) || 0;
-  const estimatedCredits =
-    numericAmount > 0 ? convertToCredits(numericAmount, currency) : 0;
+  const estimatedCredits = numericAmount > 0
+    ? Math.floor(
+        (currency === "NGN" ? numericAmount / ngnRate : numericAmount) *
+          USD_TO_CREDITS_RATE
+      )
+    : 0;
 
   return (
     <div className="mx-auto max-w-form space-y-5 md:space-y-6 px-4 md:px-6 py-4 md:py-6">

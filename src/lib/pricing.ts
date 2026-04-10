@@ -1,5 +1,7 @@
-// Conversion rates — adjust as needed
-export const NGN_TO_USD_RATE = 1500; // 1 USD = 1500 NGN
+import { getNgnPerUsd } from "@/lib/exchange-rate";
+
+// Fallback constant for synchronous contexts
+export const NGN_TO_USD_FALLBACK = 1500;
 export const USD_TO_CREDITS_RATE = 1000; // 1000 credits per $1 (i.e. 1 credit = 0.1 cent)
 
 // Fallback pricing per 1K tokens in credits (when 0G price unavailable)
@@ -23,12 +25,13 @@ export function calculateCost(
   );
 }
 
-export function convertToCredits(
+export async function convertToCredits(
   amount: number,
   currency: "NGN" | "USD"
-): number {
+): Promise<number> {
   if (currency === "NGN") {
-    const usd = amount / NGN_TO_USD_RATE;
+    const rate = await getNgnPerUsd();
+    const usd = amount / rate;
     return Math.floor(usd * USD_TO_CREDITS_RATE);
   }
   return Math.floor(amount * USD_TO_CREDITS_RATE);

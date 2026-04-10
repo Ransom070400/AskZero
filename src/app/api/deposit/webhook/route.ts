@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { createClient } from "@/lib/supabase/server";
 import { convertToCredits } from "@/lib/pricing";
+import { sendDepositConfirmation } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
   const body = await req.text();
@@ -42,7 +43,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: "Already processed" });
     }
 
-    const credits = convertToCredits(originalAmount, cur);
+    const credits = await convertToCredits(originalAmount, cur);
 
     // Credit balance — try RPC, fall back to manual
     let credited = false;
@@ -85,6 +86,17 @@ export async function POST(req: NextRequest) {
       .from("transactions")
       .update({ status: "completed", amount: credits })
       .eq("reference", reference);
+
+    // Send email notification
+    const { data: userData } = await supabase.auth.admin.getUserById(existing.user_id);
+    if (userData?.user?.email) {
+      sendDepositConfirmation(
+        userData.user.email,
+        originalAmount.toLocaleString(),
+        credits,
+        cur
+      );
+    }
   }
 
   return NextResponse.json({ message: "OK" });

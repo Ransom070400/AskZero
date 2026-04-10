@@ -4,6 +4,7 @@ import { deductCredits, checkBalance } from "@/lib/credits";
 import { calculateCost } from "@/lib/pricing";
 import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { sanitizeInput, validateMessage } from "@/lib/sanitize";
+import { sendLowBalanceWarning } from "@/lib/email";
 
 function estimateTokens(text: string): number {
   return Math.ceil(text.length / 4);
@@ -193,13 +194,18 @@ export async function POST(req: NextRequest) {
       const cost = calculateCost(model || "default", inputTokens, outputTokens);
       const actualCost = Math.max(cost, 1);
 
+      const LOW_BALANCE_THRESHOLD = 50;
       try {
-        await deductCredits(user.id, actualCost, {
+        const newBalance = await deductCredits(user.id, actualCost, {
           chat_id: chatId,
           model: model || "unknown",
           input_tokens: inputTokens,
           output_tokens: outputTokens,
         });
+
+        if (newBalance < LOW_BALANCE_THRESHOLD && user.email) {
+          sendLowBalanceWarning(user.email, newBalance);
+        }
       } catch {
         console.error("Failed to deduct credits after response");
       }

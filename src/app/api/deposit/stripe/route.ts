@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
   }
 
-  const credits = convertToCredits(amount, "USD");
+  const credits = await convertToCredits(amount, "USD");
   const reference = `stripe_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
 
   // Save pending transaction

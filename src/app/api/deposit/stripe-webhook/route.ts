@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe";
 import { createClient } from "@/lib/supabase/server";
+import { sendDepositConfirmation } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
   const body = await req.text();
@@ -77,6 +78,18 @@ export async function POST(req: NextRequest) {
         .from("transactions")
         .update({ status: "completed", amount: credits })
         .eq("reference", reference);
+
+      // Send email notification
+      const { data: userData } = await supabase.auth.admin.getUserById(userId);
+      if (userData?.user?.email) {
+        const amountUsd = (session.amount_total || 0) / 100;
+        sendDepositConfirmation(
+          userData.user.email,
+          amountUsd.toFixed(2),
+          credits,
+          "USD"
+        );
+      }
     }
   }
 

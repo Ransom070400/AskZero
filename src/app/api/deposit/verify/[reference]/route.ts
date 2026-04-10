@@ -54,7 +54,7 @@ export async function GET(
   const { amount, currency } = paystackData.data;
   const originalAmount = amount / 100;
   const cur = (currency as string).toUpperCase() as "NGN" | "USD";
-  const credits = convertToCredits(originalAmount, cur);
+  const credits = await convertToCredits(originalAmount, cur);
 
   // Credit the user's balance first
   let credited = false;

@@ -66,13 +66,14 @@ export function estimateCost(
 }
 
 // Format cents to display currency
-export function formatBalance(
+export async function formatBalance(
   cents: number,
   currency: "NGN" | "USD" = "USD"
-): string {
+): Promise<string> {
   const dollars = cents / 100;
   if (currency === "NGN") {
-    const rate = 1500; // NGN per USD — update with real rate
+    const { getNgnPerUsd } = await import("@/lib/exchange-rate");
+    const rate = await getNgnPerUsd();
     return `₦${(dollars * rate).toFixed(2)}`;
   }
   return `$${dollars.toFixed(2)}`;
