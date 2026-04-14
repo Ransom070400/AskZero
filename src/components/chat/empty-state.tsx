@@ -1,12 +1,12 @@
 "use client";
 
-import { MessageSquare } from "lucide-react";
+import { Logo } from "@/components/ui/logo";
 
 const suggestions = [
-  "How does 0G decentralized AI work?",
+  "How does 0g decentralized ai work?",
   "Explain blockchain inference",
-  "What can AskZero help me with?",
-  "Compare centralized vs decentralized AI",
+  "What can askzero help me with?",
+  "Compare centralized vs decentralized ai",
 ];
 
 interface EmptyStateProps {
@@ -16,9 +16,11 @@ interface EmptyStateProps {
 export function EmptyState({ onSuggestionClick }: EmptyStateProps) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center max-w-chat mx-auto px-4">
-      <MessageSquare className="h-7 w-7 md:h-8 md:w-8 text-text-tertiary mb-3 md:mb-4" />
-      <h1 className="text-lg md:text-xl font-semibold mb-6 md:mb-8">
-        What can I help you with?
+      <div className="mb-4 md:mb-5">
+        <Logo size={32} animated />
+      </div>
+      <h1 className="text-lg md:text-xl font-medium mb-6 md:mb-8 tracking-tight">
+        what can i help you with?
       </h1>
       {/* Desktop: inline dots */}
       <div className="hidden md:flex flex-wrap items-center justify-center gap-x-2 gap-y-1">

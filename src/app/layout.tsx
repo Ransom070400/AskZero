@@ -1,19 +1,14 @@
 import type { Metadata } from "next";
-import localFont from "next/font/local";
+import { Inter } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import "./globals.css";
 
-const geistSans = localFont({
-  src: "./fonts/GeistVF.woff",
+const inter = Inter({
+  subsets: ["latin"],
   variable: "--font-sans",
-  weight: "100 900",
-});
-
-const geistMono = localFont({
-  src: "./fonts/GeistMonoVF.woff",
-  variable: "--font-geist-mono",
-  weight: "100 900",
+  weight: ["400", "500"],
+  display: "swap",
 });
 
 export const viewport = {
@@ -24,18 +19,18 @@ export const viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "AskZero — Decentralized AI for Everyone",
+  title: "askzero — decentralized AI for everyone",
   description:
     "Chat with AI powered by 0G decentralized compute. Pay with Naira, USD, or 0G tokens. No subscriptions.",
   openGraph: {
-    title: "AskZero — Decentralized AI for Everyone",
+    title: "askzero — decentralized AI for everyone",
     description:
       "Chat with AI powered by 0G decentralized compute. Pay with Naira, USD, or 0G tokens.",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "AskZero — Decentralized AI for Everyone",
+    title: "askzero — decentralized AI for everyone",
     description:
       "Chat with AI powered by 0G decentralized compute. Pay with Naira, USD, or 0G tokens.",
   },
@@ -51,8 +46,7 @@ export default function RootLayout({
       <body
         className={cn(
           "min-h-screen bg-background font-sans antialiased",
-          geistSans.variable,
-          geistMono.variable
+          inter.variable
         )}
       >
         <ThemeProvider>{children}</ThemeProvider>

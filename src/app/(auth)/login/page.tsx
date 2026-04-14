@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { MessageSquare } from "lucide-react";
+import { Logo } from "@/components/ui/logo";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -46,13 +46,13 @@ export default function LoginPage() {
   return (
     <div className="w-full max-w-[360px] space-y-8">
       {/* Logo */}
-      <div className="text-center space-y-2">
-        <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-surface">
-          <MessageSquare className="h-6 w-6 text-foreground" />
+      <div className="text-center space-y-3">
+        <div className="flex items-center justify-center">
+          <Logo size={36} animated />
         </div>
-        <h1 className="text-2xl font-semibold tracking-tight">Sign in to AskZero</h1>
+        <h1 className="text-2xl font-medium tracking-tight">sign in</h1>
         <p className="text-sm text-text-secondary">
-          AI powered by decentralized compute
+          ai powered by decentralized compute
         </p>
       </div>
 

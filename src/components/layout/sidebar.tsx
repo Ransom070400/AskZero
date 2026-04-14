@@ -6,8 +6,8 @@ import { useEffect, useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
+import { Logo } from "@/components/ui/logo";
 import {
-  MessageSquare,
   Plus,
   Settings,
   X,
@@ -84,9 +84,8 @@ export function Sidebar() {
   return (
     <div className="flex h-full w-[260px] flex-col bg-surface">
       {/* Logo */}
-      <div className="flex items-center gap-2 px-5 h-14">
-        <MessageSquare className="h-4 w-4" />
-        <span className="text-sm font-semibold tracking-tight">AskZero</span>
+      <div className="flex items-center px-5 h-14">
+        <Logo size={22} />
       </div>
 
       {/* New Chat */}

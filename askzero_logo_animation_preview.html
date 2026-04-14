@@ -1,0 +1,54 @@
+<style>
+@keyframes askIn { from { opacity: 0; transform: translateX(-60px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes eroIn { from { opacity: 0; transform: translateX(60px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes zeroIn { 0% { opacity: 0; transform: scale(0.2) rotate(-90deg); } 60% { opacity: 1; } 100% { opacity: 1; transform: scale(1) rotate(0deg); } }
+@keyframes drawBlack { from { stroke-dashoffset: 120; } to { stroke-dashoffset: 0; } }
+@keyframes drawPurple { from { stroke-dashoffset: 120; } to { stroke-dashoffset: 0; } }
+
+.stage { display: flex; align-items: center; justify-content: center; padding: 3rem 0; background: var(--color-background-primary); border-radius: var(--border-radius-lg); border: 0.5px solid var(--color-border-tertiary); min-height: 200px; }
+.stage.dark { background: #000000; }
+.mark { display: flex; align-items: center; gap: 0; }
+.ask { font-family: var(--font-sans); font-size: 72px; font-weight: 500; letter-spacing: -3px; color: #000; animation: askIn 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) 0.1s both; }
+.ero { font-family: var(--font-sans); font-size: 72px; font-weight: 500; letter-spacing: -3px; color: #000; animation: eroIn 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) 0.1s both; margin-left: -2px; }
+.stage.dark .ask, .stage.dark .ero { color: #FEFEFE; }
+.zero-wrap { width: 52px; height: 72px; display: flex; align-items: center; justify-content: center; animation: zeroIn 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) 0.5s both; }
+.zero-wrap svg { overflow: visible; }
+.zero-black, .zero-purple { stroke-dasharray: 120; stroke-dashoffset: 120; }
+.zero-black { animation: drawBlack 0.6s ease-out 0.7s forwards; }
+.zero-purple { animation: drawPurple 0.6s ease-out 0.9s forwards; }
+.replay { display: block; margin: 1rem auto 0; }
+</style>
+
+<div id="stage-light" class="stage">
+  <div class="mark">
+    <span class="ask">ask</span>
+    <span class="zero-wrap">
+      <svg width="52" height="52" viewBox="-26 -26 52 52">
+        <path class="zero-black" d="M 0,-22 A 22,22 0 1 1 15,-15" fill="none" stroke="#000000" stroke-width="9" stroke-linecap="round"/>
+        <path class="zero-purple" d="M 15,-15 A 22,22 0 1 1 0,-22" fill="none" stroke="#B75FFF" stroke-width="9" stroke-linecap="round"/>
+      </svg>
+    </span>
+    <span class="ero">ero</span>
+  </div>
+</div>
+
+<div id="stage-dark" class="stage dark" style="margin-top: 1rem;">
+  <div class="mark">
+    <span class="ask">ask</span>
+    <span class="zero-wrap">
+      <svg width="52" height="52" viewBox="-26 -26 52 52">
+        <path class="zero-black" d="M 0,-22 A 22,22 0 1 1 15,-15" fill="none" stroke="#FEFEFE" stroke-width="9" stroke-linecap="round"/>
+        <path class="zero-purple" d="M 15,-15 A 22,22 0 1 1 0,-22" fill="none" stroke="#CB8AFF" stroke-width="9" stroke-linecap="round"/>
+      </svg>
+    </span>
+    <span class="ero">ero</span>
+  </div>
+</div>
+
+<button class="replay" onclick="
+  document.querySelectorAll('.ask, .ero, .zero-wrap, .zero-black, .zero-purple').forEach(el => {
+    el.style.animation = 'none';
+    void el.offsetWidth;
+    el.style.animation = '';
+  });
+">replay animation</button>

@@ -51,11 +51,11 @@ function ChatItem({
 }) {
   const initial = chat.title.charAt(0).toUpperCase();
   const colors = [
-    "bg-blue-500/15 text-blue-500",
-    "bg-green-500/15 text-green-500",
-    "bg-orange-500/15 text-orange-500",
-    "bg-purple-500/15 text-purple-500",
-    "bg-pink-500/15 text-pink-500",
+    "bg-accent/10 text-accent",
+    "bg-foreground/10 text-foreground",
+    "bg-accent/15 text-accent",
+    "bg-foreground/8 text-foreground",
+    "bg-accent/20 text-accent",
   ];
   const colorClass = colors[chat.id.charCodeAt(0) % colors.length];
 

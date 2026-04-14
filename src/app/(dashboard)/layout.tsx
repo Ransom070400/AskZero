@@ -1,4 +1,4 @@
-import { IconRail } from "@/components/layout/icon-rail";
+import { MobileBottomNav } from "@/components/layout/icon-rail";
 import { ContentSidebar } from "@/components/layout/content-sidebar";
 import { TopNav } from "@/components/layout/top-nav";
 import { MobileSidebar } from "@/components/layout/mobile-sidebar";
@@ -12,8 +12,6 @@ export default function DashboardLayout({
   return (
     <CurrencyProvider>
       <div className="flex h-[100dvh] overflow-hidden">
-        {/* Desktop: Icon Rail + Content Sidebar */}
-        <IconRail />
         <ContentSidebar />
 
         {/* Main Content */}
@@ -33,6 +31,7 @@ export default function DashboardLayout({
             {children}
           </main>
         </div>
+        <MobileBottomNav />
       </div>
     </CurrencyProvider>
   );

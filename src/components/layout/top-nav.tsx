@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/client";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { Logo } from "@/components/ui/logo";
+import Link from "next/link";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -60,8 +62,10 @@ export function TopNav() {
     : "AZ";
 
   return (
-    <header className="flex h-12 items-center justify-between border-b border-border md:border-b bg-background px-3 md:px-4">
-      <div className="md:block hidden" />
+    <header className="flex h-14 items-center justify-between border-b border-border md:border-b bg-background px-3 md:px-6">
+      <Link href="/chat" className="hidden md:flex items-center">
+        <Logo size={20} />
+      </Link>
 
       <div className="flex items-center gap-1.5 md:gap-2 ml-auto">
         {/* Balance */}

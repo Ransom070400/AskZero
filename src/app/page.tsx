@@ -4,8 +4,9 @@ import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
+import { Logo } from "@/components/ui/logo";
 
-// Cinematic canvas — valley with wave dunes + rain lines
+// Brand canvas — black valley with purple accents + rain lines
 function CinematicCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -19,7 +20,6 @@ function CinematicCanvas() {
     let animId: number;
     let dpr: number;
 
-    // Rain lines
     const lines: { x: number; y: number; speed: number; len: number; opacity: number }[] = [];
     for (let i = 0; i < 60; i++) {
       lines.push({
@@ -48,28 +48,27 @@ function CinematicCanvas() {
       const cw = canvas.width;
       const ch = canvas.height;
 
-      ctx.fillStyle = "#050507";
+      ctx.fillStyle = "#000000";
       ctx.fillRect(0, 0, cw, ch);
 
-      // Center spotlight glow
+      // Center spotlight glow — purple accent
       const grd = ctx.createRadialGradient(
         cw * 0.5, ch * 0.45, 0,
         cw * 0.5, ch * 0.45, cw * 0.4
       );
-      grd.addColorStop(0, "rgba(100, 140, 255, 0.15)");
-      grd.addColorStop(0.3, "rgba(80, 100, 200, 0.08)");
+      grd.addColorStop(0, "rgba(183, 95, 255, 0.18)");
+      grd.addColorStop(0.3, "rgba(183, 95, 255, 0.07)");
       grd.addColorStop(1, "transparent");
       ctx.fillStyle = grd;
       ctx.fillRect(0, 0, cw, ch);
 
-      // Draw wave dunes — left and right sides forming valley
       const drawDune = (side: "left" | "right") => {
         const rows = 40;
         const cols = 30;
 
         for (let r = 0; r < rows; r++) {
-          const rowProgress = r / rows; // 0 = near, 1 = far
-          const perspective = 1 - rowProgress * 0.7; // shrinks toward horizon
+          const rowProgress = r / rows;
+          const perspective = 1 - rowProgress * 0.7;
           const yBase = (0.35 + rowProgress * 0.55) * ch;
 
           ctx.beginPath();
@@ -95,7 +94,7 @@ function CinematicCanvas() {
           }
 
           const opacity = (0.18 - rowProgress * 0.12) * perspective;
-          ctx.strokeStyle = `rgba(120, 150, 255, ${Math.max(opacity, 0.03)})`;
+          ctx.strokeStyle = `rgba(213, 163, 255, ${Math.max(opacity, 0.03)})`;
           ctx.lineWidth = 1 * dpr;
           ctx.stroke();
         }
@@ -104,7 +103,7 @@ function CinematicCanvas() {
       drawDune("left");
       drawDune("right");
 
-      // Horizontal perspective lines (vanishing point)
+      // Horizontal perspective lines
       const vanishX = cw * 0.5;
       const vanishY = ch * 0.35;
       for (let i = 0; i < 12; i++) {
@@ -114,12 +113,12 @@ function CinematicCanvas() {
         ctx.beginPath();
         ctx.moveTo(vanishX - spread, y);
         ctx.lineTo(vanishX + spread, y);
-        ctx.strokeStyle = `rgba(120, 150, 255, ${0.04 + (i / 12) * 0.05})`;
+        ctx.strokeStyle = `rgba(213, 163, 255, ${0.04 + (i / 12) * 0.05})`;
         ctx.lineWidth = 1 * dpr;
         ctx.stroke();
       }
 
-      // Rain lines falling from top
+      // Rain lines
       for (const line of lines) {
         line.y += line.speed;
         if (line.y > 1 + line.len) {
@@ -133,7 +132,7 @@ function CinematicCanvas() {
 
         const grad = ctx.createLinearGradient(x, y2, x, y1);
         grad.addColorStop(0, "transparent");
-        grad.addColorStop(0.5, `rgba(150, 180, 255, ${line.opacity * 1.5})`);
+        grad.addColorStop(0.5, `rgba(227, 193, 255, ${line.opacity * 1.5})`);
         grad.addColorStop(1, "transparent");
 
         ctx.beginPath();
@@ -144,7 +143,7 @@ function CinematicCanvas() {
         ctx.stroke();
       }
 
-      // Subtle noise grain
+      // Subtle grain
       const imgData = ctx.getImageData(0, 0, cw, ch);
       const data = imgData.data;
       for (let i = 0; i < data.length; i += 32) {
@@ -191,7 +190,7 @@ const fade = (delay: number) => ({
 
 export default function LandingPage() {
   return (
-    <div className="relative flex min-h-screen flex-col overflow-hidden" style={{ background: "#050507" }}>
+    <div className="relative flex min-h-screen flex-col overflow-hidden bg-black">
       <CinematicCanvas />
 
       {/* Nav */}
@@ -201,21 +200,19 @@ export default function LandingPage() {
         transition={{ duration: 0.6, delay: 0.1 }}
         className="relative z-10 flex items-center justify-between px-6 md:px-10 py-5"
       >
-        <span className="text-sm font-semibold tracking-tight text-white/90">
-          AskZero
-        </span>
+        <Logo size={22} variant="dark" animated />
         <div className="flex items-center gap-4">
           <Link
             href="/login"
-            className="text-sm text-white/40 hover:text-white/70 transition-colors duration-200"
+            className="text-sm font-medium text-white/50 hover:text-white/90 transition-colors duration-200"
           >
-            Sign in
+            sign in
           </Link>
           <Link
             href="/signup"
-            className="rounded-full border border-white/10 px-4 py-1.5 text-sm text-white/80 hover:bg-white/5 hover:border-white/20 transition-all duration-200"
+            className="rounded-full border border-white/15 px-4 py-1.5 text-sm font-medium text-white/90 hover:bg-white/5 hover:border-white/25 transition-all duration-200"
           >
-            Get started
+            get started
           </Link>
         </div>
       </motion.header>
@@ -225,40 +222,40 @@ export default function LandingPage() {
         <div className="max-w-3xl space-y-6 md:space-y-8">
           <motion.p
             {...fade(0)}
-            className="text-xs font-medium uppercase tracking-[0.2em] text-white/30"
+            className="text-xs font-medium tracking-[0.2em] text-white/35"
           >
-            Powered by 0G Decentralized Compute
+            powered by 0g decentralized compute
           </motion.p>
 
           <motion.h1
             {...fade(1)}
-            className="text-3xl font-bold tracking-tight text-white sm:text-5xl md:text-7xl"
-            style={{ letterSpacing: "-0.03em", lineHeight: "1.05" }}
+            className="text-4xl font-medium tracking-tight text-white sm:text-5xl md:text-7xl"
+            style={{ letterSpacing: "-0.035em", lineHeight: "1.05" }}
           >
-            The future of AI
+            the future of ai
             <br />
-            <span className="bg-gradient-to-r from-blue-400 via-blue-300 to-indigo-400 bg-clip-text text-transparent">
-              is decentralized.
-            </span>
+            <span style={{ color: "#CB8AFF" }}>is decentralized.</span>
           </motion.h1>
 
           <motion.p
             {...fade(2)}
-            className="mx-auto max-w-md text-base text-white/40 leading-relaxed md:text-lg"
+            className="mx-auto max-w-md text-base text-white/45 leading-relaxed md:text-lg"
           >
-            Private, verifiable AI inference on a global compute network.
-            Pay with Naira, USD, or 0G tokens.
+            private, verifiable ai inference on a global compute network.
+            pay with naira, usd, or 0g tokens.
           </motion.p>
 
           <motion.div {...fade(3)} className="flex items-center justify-center gap-4">
             <Link
               href="/signup"
-              className="group relative inline-flex items-center gap-2 rounded-full bg-white px-7 py-3 text-sm font-semibold text-black transition-all duration-300 hover:shadow-[0_0_40px_rgba(100,150,255,0.25)] active:scale-[0.97]"
+              className="group relative inline-flex items-center gap-2 rounded-full px-7 py-3 text-sm font-medium text-white transition-all duration-300 active:scale-[0.97]"
+              style={{ background: "#B75FFF" }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "#CB8AFF")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "#B75FFF")}
             >
-              Start chatting
+              start chatting
               <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
-              {/* Glow halo */}
-              <span className="absolute inset-0 -z-10 rounded-full bg-white/20 blur-xl" />
+              <span className="absolute inset-0 -z-10 rounded-full blur-xl" style={{ background: "rgba(183, 95, 255, 0.4)" }} />
             </Link>
           </motion.div>
         </div>
@@ -266,15 +263,15 @@ export default function LandingPage() {
         {/* Features row */}
         <motion.div
           {...fade(4)}
-          className="mt-16 md:mt-28 flex flex-wrap items-center justify-center gap-4 md:gap-16 text-white/25 text-[10px] md:text-xs uppercase tracking-[0.15em]"
+          className="mt-16 md:mt-28 flex flex-wrap items-center justify-center gap-4 md:gap-16 text-white/30 text-[10px] md:text-xs tracking-[0.15em] font-medium"
         >
-          <span>Streaming</span>
+          <span>streaming</span>
           <span className="h-1 w-1 rounded-full bg-white/15" />
-          <span>Verifiable</span>
+          <span>verifiable</span>
           <span className="h-1 w-1 rounded-full bg-white/15" />
-          <span>Private</span>
+          <span>private</span>
           <span className="h-1 w-1 rounded-full bg-white/15" />
-          <span>Affordable</span>
+          <span>affordable</span>
         </motion.div>
       </main>
 
@@ -283,9 +280,9 @@ export default function LandingPage() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1.2, duration: 0.6 }}
-        className="relative z-10 flex items-center justify-center py-8 text-[11px] uppercase tracking-[0.2em] text-white/15"
+        className="relative z-10 flex items-center justify-center py-8 text-[11px] tracking-[0.2em] text-white/20 font-medium"
       >
-        &copy; {new Date().getFullYear()} AskZero &middot; Built on 0G Network
+        &copy; {new Date().getFullYear()} askzero &middot; built on 0g network
       </motion.footer>
     </div>
   );
