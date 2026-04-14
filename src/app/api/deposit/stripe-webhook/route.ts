@@ -82,12 +82,17 @@ export async function POST(req: NextRequest) {
       // Send email notification
       const { data: userData } = await supabase.auth.admin.getUserById(userId);
       if (userData?.user?.email) {
-        const amountUsd = (session.amount_total || 0) / 100;
+        const displayCurrency = (session.metadata?.display_currency || "USD").toUpperCase();
+        const zeroDecimal = ["JPY", "KRW", "VND"].includes(displayCurrency);
+        const raw = session.amount_total || 0;
+        const amountDisplay = zeroDecimal
+          ? raw.toLocaleString()
+          : (raw / 100).toFixed(2);
         sendDepositConfirmation(
           userData.user.email,
-          amountUsd.toFixed(2),
+          amountDisplay,
           credits,
-          "USD"
+          displayCurrency
         );
       }
     }

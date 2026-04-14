@@ -6,7 +6,8 @@ import type { User } from "@supabase/supabase-js";
 import { useTheme } from "next-themes";
 import { Sun, Moon, Monitor, LogOut, Copy, Check, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCurrency } from "@/lib/currency";
+import { useCurrency, type DisplayCurrency } from "@/lib/currency";
+import { APAC_CURRENCIES, APAC_CODES, isApacCurrency } from "@/lib/pricing-apac";
 
 interface Profile {
   display_name: string;
@@ -217,26 +218,56 @@ export default function SettingsPage() {
       <section className="space-y-5">
         <h2 className="text-micro uppercase text-text-tertiary tracking-widest">Preferences</h2>
 
-        <div className="flex items-center justify-between py-3 border-b border-border">
-          <div>
-            <p className="text-sm font-medium">Display currency</p>
-            <p className="text-sm text-text-tertiary">How balances are shown</p>
+        <div className="py-3 border-b border-border space-y-3">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium">Display currency</p>
+              <p className="text-sm text-text-tertiary">How balances are shown</p>
+            </div>
+            <div className="flex items-center gap-1 rounded-lg bg-surface p-1">
+              {(["NGN", "USD", "APAC"] as const).map((c) => {
+                const active =
+                  c === "APAC"
+                    ? isApacCurrency(displayCurrency)
+                    : displayCurrency === c;
+                return (
+                  <button
+                    key={c}
+                    onClick={() => {
+                      if (c === "APAC") {
+                        if (!isApacCurrency(displayCurrency)) setDisplayCurrency("JPY");
+                      } else {
+                        setDisplayCurrency(c);
+                      }
+                    }}
+                    className={`rounded-md px-3 py-1.5 text-xs font-medium transition-all duration-200 ${
+                      active
+                        ? "bg-elevated text-foreground shadow-sm"
+                        : "text-text-tertiary hover:text-foreground"
+                    }`}
+                  >
+                    {c === "NGN" ? "₦ Naira" : c === "USD" ? "$ USD" : "APAC"}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-          <div className="flex items-center gap-1 rounded-lg bg-surface p-1">
-            {(["NGN", "USD"] as const).map((c) => (
-              <button
-                key={c}
-                onClick={() => setDisplayCurrency(c)}
-                className={`rounded-md px-3 py-1.5 text-xs font-medium transition-all duration-200 ${
-                  displayCurrency === c
-                    ? "bg-elevated text-foreground shadow-sm"
-                    : "text-text-tertiary hover:text-foreground"
-                }`}
-              >
-                {c === "NGN" ? "₦ Naira" : "$ USD"}
-              </button>
-            ))}
-          </div>
+          {isApacCurrency(displayCurrency) && (
+            <select
+              value={displayCurrency}
+              onChange={(e) => setDisplayCurrency(e.target.value as DisplayCurrency)}
+              className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {APAC_CODES.map((code) => {
+                const m = APAC_CURRENCIES[code];
+                return (
+                  <option key={code} value={code}>
+                    {m.symbol} {m.code} — {m.label} ({m.country})
+                  </option>
+                );
+              })}
+            </select>
+          )}
         </div>
 
         <div className="flex items-center justify-between py-3 border-b border-border">
