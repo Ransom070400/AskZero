@@ -1,7 +1,13 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM = process.env.EMAIL_FROM || "AskZero <noreply@askzero.ai>";
+
+let _resend: Resend | null = null;
+function getResend(): Resend | null {
+  if (!process.env.RESEND_API_KEY) return null;
+  if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY);
+  return _resend;
+}
 
 export async function sendDepositConfirmation(
   to: string,
@@ -9,7 +15,8 @@ export async function sendDepositConfirmation(
   credits: number,
   currency: string
 ) {
-  if (!process.env.RESEND_API_KEY) return;
+  const resend = getResend();
+  if (!resend) return;
 
   try {
     await resend.emails.send({
@@ -39,7 +46,8 @@ export async function sendLowBalanceWarning(
   to: string,
   currentBalance: number
 ) {
-  if (!process.env.RESEND_API_KEY) return;
+  const resend = getResend();
+  if (!resend) return;
 
   try {
     await resend.emails.send({
@@ -65,7 +73,8 @@ export async function sendLowBalanceWarning(
 }
 
 export async function sendAccountDeletedConfirmation(to: string) {
-  if (!process.env.RESEND_API_KEY) return;
+  const resend = getResend();
+  if (!resend) return;
 
   try {
     await resend.emails.send({
