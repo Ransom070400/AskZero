@@ -63,24 +63,35 @@ function ChatItem({
     <Link
       href={`/chat/${chat.id}`}
       className={cn(
-        "group flex items-center gap-2.5 rounded-xl px-2.5 py-2 transition-all duration-150",
+        "group relative flex items-center gap-2.5 rounded-xl px-2.5 py-2 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-background",
         isActive
           ? "bg-elevated text-foreground"
           : "text-text-secondary hover:bg-elevated/60 hover:text-foreground"
       )}
     >
+      {isActive && (
+        <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-accent" />
+      )}
       <span
         className={cn(
-          "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-semibold",
+          "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold",
           colorClass
         )}
       >
         {initial}
       </span>
-      <span className="flex-1 truncate text-sm">{chat.title}</span>
+      <span
+        className={cn(
+          "flex-1 truncate text-sm",
+          isActive ? "font-semibold" : "font-medium"
+        )}
+      >
+        {chat.title}
+      </span>
       <button
         onClick={onDelete}
-        className="hidden shrink-0 rounded-md p-0.5 text-text-tertiary hover:text-error group-hover:block"
+        aria-label="Delete chat"
+        className="hidden shrink-0 rounded-md p-1 text-text-tertiary transition-colors duration-150 hover:bg-error/10 hover:text-error focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error focus-visible:block group-hover:block"
       >
         <X className="h-3 w-3" />
       </button>
@@ -131,8 +142,11 @@ export function ContentSidebar() {
     <div className="hidden md:flex h-full w-[280px] flex-col border-r border-border bg-background">
       {/* Header */}
       <div className="flex items-center justify-between px-4 pt-5 pb-3">
-        <h2 className="text-lg font-semibold">Chat</h2>
-        <button className="flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary hover:bg-elevated transition-colors duration-150">
+        <h2 className="font-display text-lg font-bold tracking-tight">Chat</h2>
+        <button
+          aria-label="Search chats"
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary transition-colors duration-150 hover:bg-elevated hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        >
           <Search className="h-4 w-4" />
         </button>
       </div>
@@ -141,11 +155,11 @@ export function ContentSidebar() {
       <div className="px-3 pb-3">
         <button
           onClick={() => router.push("/chat")}
-          className="flex w-full items-center justify-center gap-2 rounded-full bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-all duration-200 hover:opacity-90 active:scale-[0.98]"
+          className="group flex w-full items-center justify-center gap-2 rounded-full bg-foreground px-4 py-2.5 text-sm font-semibold text-background transition-all duration-200 hover:opacity-90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
           <Plus className="h-4 w-4" />
           New Chat
-          <Sparkles className="h-3.5 w-3.5 opacity-50" />
+          <Sparkles className="h-3.5 w-3.5 opacity-60 transition-transform duration-200 group-hover:rotate-12" />
         </button>
       </div>
 
@@ -156,7 +170,7 @@ export function ContentSidebar() {
             <div key={label}>
               <button
                 onClick={() => toggleGroup(label)}
-                className="flex w-full items-center gap-1 px-2.5 py-1 text-micro uppercase text-text-tertiary tracking-widest hover:text-text-secondary transition-colors duration-150"
+                className="flex w-full items-center gap-1 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-text-tertiary hover:text-text-secondary transition-colors duration-150 focus-visible:outline-none focus-visible:text-foreground"
               >
                 <ChevronDown
                   className={cn(
@@ -165,6 +179,9 @@ export function ContentSidebar() {
                   )}
                 />
                 {label}
+                <span className="ml-auto text-text-tertiary/70 font-medium normal-case tracking-normal">
+                  {dateChats.length}
+                </span>
               </button>
               {!collapsed[label] && (
                 <div className="mt-0.5 space-y-0.5">
@@ -188,9 +205,9 @@ export function ContentSidebar() {
         <Link
           href="/deposit"
           className={cn(
-            "flex items-center gap-2 rounded-xl px-3 py-2 text-sm transition-colors duration-150",
+            "flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-background",
             pathname === "/deposit"
-              ? "bg-elevated text-foreground"
+              ? "bg-elevated text-foreground font-semibold"
               : "text-text-secondary hover:bg-elevated/60 hover:text-foreground"
           )}
         >

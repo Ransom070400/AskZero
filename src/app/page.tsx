@@ -195,10 +195,10 @@ export default function LandingPage() {
 
       {/* Nav */}
       <motion.header
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.1 }}
-        className="relative z-10 flex items-center justify-between px-6 md:px-10 py-5"
+        className="sticky top-0 z-20 flex items-center justify-between border-b border-white/5 px-6 md:px-10 py-5 backdrop-blur-xl bg-black/40"
       >
         <Logo size={22} variant="dark" animated />
         <div className="flex items-center gap-4">
@@ -229,8 +229,8 @@ export default function LandingPage() {
 
           <motion.h1
             {...fade(1)}
-            className="text-4xl font-medium tracking-tight text-white sm:text-5xl md:text-7xl"
-            style={{ letterSpacing: "-0.035em", lineHeight: "1.05" }}
+            className="font-display text-5xl font-bold text-white sm:text-6xl md:text-7xl lg:text-8xl"
+            style={{ letterSpacing: "-0.05em", lineHeight: "0.95" }}
           >
             the future of ai
             <br />
@@ -248,14 +248,13 @@ export default function LandingPage() {
           <motion.div {...fade(3)} className="flex items-center justify-center gap-4">
             <Link
               href="/signup"
-              className="group relative inline-flex items-center gap-2 rounded-full px-7 py-3 text-sm font-medium text-white transition-all duration-300 active:scale-[0.97]"
+              className="group relative inline-flex items-center gap-2 rounded-full px-8 py-3.5 text-sm font-semibold text-white transition-all duration-300 hover:scale-[1.03] active:scale-[0.97] accent-glow"
               style={{ background: "#B75FFF" }}
               onMouseEnter={(e) => (e.currentTarget.style.background = "#CB8AFF")}
               onMouseLeave={(e) => (e.currentTarget.style.background = "#B75FFF")}
             >
               start chatting
               <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
-              <span className="absolute inset-0 -z-10 rounded-full blur-xl" style={{ background: "rgba(183, 95, 255, 0.4)" }} />
             </Link>
           </motion.div>
         </div>

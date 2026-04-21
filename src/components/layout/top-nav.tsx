@@ -62,7 +62,7 @@ export function TopNav() {
     : "AZ";
 
   return (
-    <header className="flex h-14 items-center justify-between border-b border-border md:border-b bg-background px-3 md:px-6">
+    <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b border-border md:border-b glass-nav px-3 md:px-6">
       <Link href="/chat" className="hidden md:flex items-center">
         <Logo size={20} />
       </Link>

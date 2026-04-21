@@ -63,6 +63,12 @@ const config: Config = {
         lg: "calc(var(--radius) + 2px)",
         md: "var(--radius)",
         sm: "calc(var(--radius) - 2px)",
+        "2xl": "20px",
+        "3xl": "28px",
+      },
+      fontFamily: {
+        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        display: ["var(--font-display)", "var(--font-sans)", "system-ui", "sans-serif"],
       },
       fontSize: {
         micro: ["11px", { lineHeight: "16px", letterSpacing: "0.05em", fontWeight: "500" }],
@@ -72,6 +78,11 @@ const config: Config = {
         xl: ["24px", { lineHeight: "32px", letterSpacing: "-0.01em" }],
         "2xl": ["32px", { lineHeight: "40px", letterSpacing: "-0.01em" }],
         "3xl": ["48px", { lineHeight: "52px", letterSpacing: "-0.02em" }],
+        "4xl": ["60px", { lineHeight: "1.02", letterSpacing: "-0.03em" }],
+        "5xl": ["72px", { lineHeight: "1", letterSpacing: "-0.035em" }],
+        "6xl": ["88px", { lineHeight: "1", letterSpacing: "-0.04em" }],
+        "7xl": ["104px", { lineHeight: "0.98", letterSpacing: "-0.045em" }],
+        "8xl": ["128px", { lineHeight: "0.95", letterSpacing: "-0.05em" }],
       },
       boxShadow: {
         sm: "var(--shadow-sm)",
