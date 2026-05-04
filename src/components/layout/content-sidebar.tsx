@@ -6,12 +6,13 @@ import { useEffect, useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import {
   Plus,
-  Sparkles,
   Search,
-  X,
+  Trash2,
   ChevronDown,
-  Star,
+  CreditCard,
+  Settings,
 } from "lucide-react";
+import { Logo } from "@/components/ui/logo";
 
 interface Chat {
   id: string;
@@ -40,7 +41,7 @@ function groupChatsByDate(chats: Chat[]) {
   return groups;
 }
 
-function ChatItem({
+function ChatRow({
   chat,
   isActive,
   onDelete,
@@ -49,40 +50,22 @@ function ChatItem({
   isActive: boolean;
   onDelete: (e: React.MouseEvent) => void;
 }) {
-  const initial = chat.title.charAt(0).toUpperCase();
-  const colors = [
-    "bg-accent/10 text-accent",
-    "bg-foreground/10 text-foreground",
-    "bg-accent/15 text-accent",
-    "bg-foreground/8 text-foreground",
-    "bg-accent/20 text-accent",
-  ];
-  const colorClass = colors[chat.id.charCodeAt(0) % colors.length];
-
   return (
     <Link
       href={`/chat/${chat.id}`}
       className={cn(
-        "group relative flex items-center gap-2.5 rounded-xl px-2.5 py-2 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-background",
+        "group/row relative flex items-center justify-between rounded-lg pl-3 pr-1.5 py-1.5 text-[13px] transition-colors duration-fast ease-out",
         isActive
-          ? "bg-elevated text-foreground"
-          : "text-text-secondary hover:bg-elevated/60 hover:text-foreground"
+          ? "bg-accent-muted text-foreground"
+          : "text-text-secondary hover:bg-elevated hover:text-foreground"
       )}
     >
       {isActive && (
-        <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-accent" />
+        <span className="absolute left-0 top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-r-full bg-accent" />
       )}
       <span
         className={cn(
-          "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold",
-          colorClass
-        )}
-      >
-        {initial}
-      </span>
-      <span
-        className={cn(
-          "flex-1 truncate text-sm",
+          "truncate",
           isActive ? "font-semibold" : "font-medium"
         )}
       >
@@ -91,10 +74,40 @@ function ChatItem({
       <button
         onClick={onDelete}
         aria-label="Delete chat"
-        className="hidden shrink-0 rounded-md p-1 text-text-tertiary transition-colors duration-150 hover:bg-error/10 hover:text-error focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error focus-visible:block group-hover:block"
+        className="press hidden shrink-0 rounded-md p-1 text-text-tertiary transition-colors duration-fast hover:bg-background hover:text-error group-hover/row:flex items-center justify-center"
       >
-        <X className="h-3 w-3" />
+        <Trash2 className="h-3.5 w-3.5" />
       </button>
+    </Link>
+  );
+}
+
+function FooterLink({
+  href,
+  icon,
+  label,
+  active,
+}: {
+  href: string;
+  icon: React.ReactNode;
+  label: string;
+  active: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      className={cn(
+        "relative flex items-center gap-2.5 rounded-lg pl-3 pr-3 py-2 text-[13px] font-medium transition-colors duration-fast ease-out",
+        active
+          ? "bg-accent-muted text-foreground"
+          : "text-text-secondary hover:bg-elevated hover:text-foreground"
+      )}
+    >
+      {active && (
+        <span className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-[2px] rounded-r-full bg-accent" />
+      )}
+      <span className={cn(active ? "text-accent" : "text-text-tertiary")}>{icon}</span>
+      {label}
     </Link>
   );
 }
@@ -104,6 +117,7 @@ export function ContentSidebar() {
   const router = useRouter();
   const [chats, setChats] = useState<Chat[]>([]);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [query, setQuery] = useState("");
 
   const fetchChats = useCallback(async () => {
     try {
@@ -136,84 +150,106 @@ export function ContentSidebar() {
     setCollapsed((prev) => ({ ...prev, [label]: !prev[label] }));
   };
 
-  const grouped = groupChatsByDate(chats);
+  const filtered = query
+    ? chats.filter((c) =>
+        c.title.toLowerCase().includes(query.toLowerCase())
+      )
+    : chats;
+  const grouped = groupChatsByDate(filtered);
 
   return (
-    <div className="hidden md:flex h-full w-[280px] flex-col border-r border-border bg-background">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 pt-5 pb-3">
-        <h2 className="font-display text-lg font-bold tracking-tight">Chat</h2>
-        <button
-          aria-label="Search chats"
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary transition-colors duration-150 hover:bg-elevated hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-        >
-          <Search className="h-4 w-4" />
-        </button>
+    <div className="hidden md:flex h-full w-[268px] flex-col border-r border-border/60 bg-surface">
+      {/* Brand */}
+      <div className="flex items-center px-5 h-14">
+        <Logo size={22} />
       </div>
 
-      {/* New Chat */}
+      {/* Search */}
+      <div className="px-3 pb-2">
+        <label className="relative block">
+          <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-tertiary" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search"
+            className="h-9 w-full rounded-lg bg-elevated/70 pl-8 pr-3 text-[13px] font-medium text-foreground placeholder:font-normal placeholder:text-text-tertiary outline-none border border-transparent transition-[border-color,background-color,box-shadow] duration-fast ease-out hover:bg-elevated focus:bg-background focus:border-accent/50 focus:shadow-ring"
+          />
+        </label>
+      </div>
+
+      {/* New chat */}
       <div className="px-3 pb-3">
         <button
           onClick={() => router.push("/chat")}
-          className="group flex w-full items-center justify-center gap-2 rounded-full bg-foreground px-4 py-2.5 text-sm font-semibold text-background transition-all duration-200 hover:opacity-90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          className="press group flex w-full items-center justify-between rounded-xl border border-border/70 bg-elevated px-3 py-2 text-[13px] font-semibold text-foreground shadow-sm transition-[border-color,background-color] duration-fast ease-out hover:border-border-strong"
         >
-          <Plus className="h-4 w-4" />
-          New Chat
-          <Sparkles className="h-3.5 w-3.5 opacity-60 transition-transform duration-200 group-hover:rotate-12" />
+          <span className="flex items-center gap-2">
+            <Plus className="h-4 w-4 text-text-tertiary group-hover:text-accent transition-colors duration-fast" />
+            New chat
+          </span>
+          <kbd className="text-[10px] font-medium tracking-wider text-text-tertiary">⌘N</kbd>
         </button>
       </div>
 
-      {/* Chat List */}
-      <div className="flex-1 overflow-y-auto px-3 pb-3">
-        <div className="space-y-4">
-          {Object.entries(grouped).map(([label, dateChats]) => (
-            <div key={label}>
-              <button
-                onClick={() => toggleGroup(label)}
-                className="flex w-full items-center gap-1 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-text-tertiary hover:text-text-secondary transition-colors duration-150 focus-visible:outline-none focus-visible:text-foreground"
-              >
-                <ChevronDown
-                  className={cn(
-                    "h-3 w-3 transition-transform duration-200",
-                    collapsed[label] && "-rotate-90"
-                  )}
-                />
-                {label}
-                <span className="ml-auto text-text-tertiary/70 font-medium normal-case tracking-normal">
-                  {dateChats.length}
-                </span>
-              </button>
-              {!collapsed[label] && (
-                <div className="mt-0.5 space-y-0.5">
-                  {dateChats.map((chat) => (
-                    <ChatItem
-                      key={chat.id}
-                      chat={chat}
-                      isActive={pathname === `/chat/${chat.id}`}
-                      onDelete={(e) => handleDelete(e, chat.id)}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
+      {/* Chat list */}
+      <div className="flex-1 overflow-y-auto px-2">
+        <div className="space-y-5 py-1">
+          {Object.entries(grouped).map(([label, dateChats]) => {
+            const isCollapsed = collapsed[label];
+            return (
+              <div key={label}>
+                <button
+                  onClick={() => toggleGroup(label)}
+                  className="flex w-full items-center gap-1 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-text-tertiary hover:text-text-secondary transition-colors duration-fast"
+                >
+                  <ChevronDown
+                    className={cn(
+                      "h-3 w-3 transition-transform duration-base ease-out",
+                      isCollapsed && "-rotate-90"
+                    )}
+                  />
+                  <span>{label}</span>
+                  <span className="ml-auto font-medium normal-case tracking-normal text-text-tertiary/70">
+                    {dateChats.length}
+                  </span>
+                </button>
+                {!isCollapsed && (
+                  <div className="mt-1 space-y-px">
+                    {dateChats.map((chat) => (
+                      <ChatRow
+                        key={chat.id}
+                        chat={chat}
+                        isActive={pathname === `/chat/${chat.id}`}
+                        onDelete={(e) => handleDelete(e, chat.id)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          {filtered.length === 0 && (
+            <p className="px-3 py-8 text-center text-[12px] text-text-tertiary">
+              {query ? "No matches" : "No chats yet"}
+            </p>
+          )}
         </div>
       </div>
 
-      {/* Bottom */}
-      <div className="border-t border-border p-3">
-        <Link
+      {/* Footer */}
+      <div className="border-t border-border/60 p-2 space-y-px">
+        <FooterLink
           href="/deposit"
-          className={cn(
-            "flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-background",
-            pathname === "/deposit"
-              ? "bg-elevated text-foreground font-semibold"
-              : "text-text-secondary hover:bg-elevated/60 hover:text-foreground"
-          )}
-        >
-          <Star className="h-4 w-4" />
-          Add credits
-        </Link>
+          icon={<CreditCard className="h-4 w-4" />}
+          active={pathname === "/deposit"}
+          label="Deposit"
+        />
+        <FooterLink
+          href="/settings"
+          icon={<Settings className="h-4 w-4" />}
+          active={pathname === "/settings"}
+          label="Settings"
+        />
       </div>
     </div>
   );

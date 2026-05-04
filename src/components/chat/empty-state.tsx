@@ -2,24 +2,25 @@
 
 import { motion } from "framer-motion";
 import { Logo } from "@/components/ui/logo";
+import { ArrowUpRight } from "lucide-react";
 
 const suggestions = [
-  "How does 0g decentralized ai work?",
+  "How does 0G decentralized AI work?",
   "Explain blockchain inference",
-  "What can askzero help me with?",
-  "Compare centralized vs decentralized ai",
+  "What can AskZero help me with?",
+  "Compare centralized vs decentralized AI",
 ];
 
 const container = {
-  animate: { transition: { staggerChildren: 0.06, delayChildren: 0.15 } },
+  animate: { transition: { staggerChildren: 0.07, delayChildren: 0.12 } },
 };
 
 const item = {
-  initial: { opacity: 0, y: 10 },
+  initial: { opacity: 0, y: 12 },
   animate: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] as const },
+    transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] as const },
   },
 };
 
@@ -33,43 +34,38 @@ export function EmptyState({ onSuggestionClick }: EmptyStateProps) {
       initial="initial"
       animate="animate"
       variants={container}
-      className="flex flex-1 flex-col items-center justify-center max-w-chat mx-auto px-4"
+      className="mx-auto flex w-full max-w-chat flex-1 flex-col items-center justify-center px-5 py-12"
     >
-      <motion.div variants={item} className="mb-4 md:mb-5">
-        <Logo size={32} animated />
+      <motion.div variants={item} className="mb-7">
+        <Logo size={40} animated />
       </motion.div>
+
       <motion.h1
         variants={item}
-        className="font-display text-2xl md:text-4xl font-bold mb-6 md:mb-10 tracking-tight"
+        className="font-display text-3xl md:text-5xl font-bold tracking-[-0.03em] text-center text-foreground"
       >
         what can i help you with?
       </motion.h1>
-      {/* Desktop: inline dots */}
+
+      <motion.p
+        variants={item}
+        className="mt-3 text-center text-[15px] text-text-tertiary"
+      >
+        Ask anything. Powered by 0G decentralized compute.
+      </motion.p>
+
       <motion.div
         variants={item}
-        className="hidden md:flex flex-wrap items-center justify-center gap-x-2 gap-y-1"
+        className="mt-10 grid w-full grid-cols-1 gap-2 md:grid-cols-2 md:gap-3"
       >
-        {suggestions.map((s, i) => (
-          <span key={s} className="flex items-center gap-2">
-            {i > 0 && <span className="text-text-tertiary">·</span>}
-            <button
-              onClick={() => onSuggestionClick(s)}
-              className="text-sm text-text-secondary hover:text-accent transition-colors duration-150"
-            >
-              {s}
-            </button>
-          </span>
-        ))}
-      </motion.div>
-      {/* Mobile: stacked buttons */}
-      <motion.div variants={item} className="flex md:hidden flex-col gap-2 w-full">
         {suggestions.map((s) => (
           <button
             key={s}
             onClick={() => onSuggestionClick(s)}
-            className="w-full rounded-2xl border border-border bg-elevated px-4 py-3 text-sm text-left text-text-secondary hover:text-foreground hover:border-border-strong transition-all duration-150 active:scale-[0.98]"
+            className="press group flex items-center justify-between gap-3 rounded-2xl border border-border/70 bg-elevated/60 px-4 py-3.5 text-left text-[14px] text-text-secondary transition-[border-color,background-color,color] duration-base ease-out hover:border-border-strong hover:bg-elevated hover:text-foreground"
           >
-            {s}
+            <span className="leading-snug">{s}</span>
+            <ArrowUpRight className="h-4 w-4 shrink-0 text-text-tertiary transition-colors duration-fast group-hover:text-accent" />
           </button>
         ))}
       </motion.div>

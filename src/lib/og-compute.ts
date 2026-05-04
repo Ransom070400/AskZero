@@ -123,19 +123,24 @@ export function estimateTokens(text: string): number {
   return Math.ceil(text.length / 4);
 }
 
-// Convert neuron price to credits cost
-// 1 0G = 10^18 neuron, 1 credit = 0.1 cent = $0.001
+// 1 0G = 10^18 neuron, 1 credit = 0.1¢ = $0.001
+const NEURON_PER_OG = 1e18;
+const CREDITS_PER_USD = 1000;
+
+export function getZeroGUsdRate(): number {
+  const raw = process.env.ZERO_G_USD_RATE;
+  const parsed = raw ? Number(raw) : NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0.5;
+}
+
+// Convert an on-chain neuron-per-token rate to wholesale credits.
+// Returns a fractional value — round at the call site if you need an integer.
 export function neuronPriceToCredits(
-  neuronPerToken: bigint,
+  neuronPerToken: bigint | number,
   tokenCount: number
 ): number {
-  // neuronPerToken * tokenCount = total neuron cost
-  // Convert neuron to 0G: total / 10^18
-  // Convert 0G to USD: assume 1 0G ~ $0.01 (adjust with market rate)
-  // Convert USD to credits: USD * 1000
-  const OG_TO_USD = 0.01; // configurable
-  const totalNeuron = BigInt(neuronPerToken) * BigInt(tokenCount);
-  const totalOG = Number(totalNeuron) / 1e18;
-  const totalUSD = totalOG * OG_TO_USD;
-  return Math.ceil(totalUSD * 1000); // USD to credits
+  const totalNeuron = Number(BigInt(neuronPerToken) * BigInt(tokenCount));
+  const totalOG = totalNeuron / NEURON_PER_OG;
+  const totalUSD = totalOG * getZeroGUsdRate();
+  return totalUSD * CREDITS_PER_USD;
 }

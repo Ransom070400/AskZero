@@ -76,9 +76,9 @@ function DropdownMenuContent({
   return (
     <div
       className={cn(
-        "absolute z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95",
+        "absolute z-50 min-w-[10rem] overflow-hidden rounded-2xl border border-border/70 bg-popover p-1.5 text-popover-foreground shadow-lg animate-in fade-in-0 zoom-in-95",
         align === "end" ? "right-0" : "left-0",
-        "top-full mt-1",
+        "top-full mt-2",
         className
       )}
       onClick={(e) => e.stopPropagation()}
@@ -102,7 +102,7 @@ function DropdownMenuItem({
   return (
     <button
       className={cn(
-        "relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
+        "relative flex w-full select-none items-center rounded-lg px-2.5 py-2 text-[13px] font-medium text-foreground outline-none transition-colors duration-fast ease-out hover:bg-elevated focus:bg-elevated",
         className
       )}
       onClick={() => {
@@ -117,7 +117,7 @@ function DropdownMenuItem({
 }
 
 function DropdownMenuSeparator({ className }: { className?: string }) {
-  return <div className={cn("-mx-1 my-1 h-px bg-border", className)} />;
+  return <div className={cn("-mx-1.5 my-1 h-px bg-border/60", className)} />;
 }
 
 export {

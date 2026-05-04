@@ -4,10 +4,19 @@ import { createClient } from "@/lib/supabase/client";
 import { useEffect, useState, useCallback } from "react";
 import type { User } from "@supabase/supabase-js";
 import { useTheme } from "next-themes";
-import { Sun, Moon, Monitor, LogOut, Copy, Check, Trash2 } from "lucide-react";
+import { Sun, Moon, Monitor, LogOut, Copy, Check, Trash2, ChevronDown, AlertTriangle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCurrency, type DisplayCurrency } from "@/lib/currency";
 import { APAC_CURRENCIES, APAC_CODES, isApacCurrency } from "@/lib/pricing-apac";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 
 interface Profile {
   display_name: string;
@@ -102,251 +111,318 @@ export default function SettingsPage() {
     : user?.email?.substring(0, 2).toUpperCase() || "AZ";
 
   return (
-    <div className="mx-auto max-w-form space-y-8 p-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
-        <p className="text-sm text-text-secondary mt-1">
-          Manage your profile and preferences
+    <div className="mx-auto w-full max-w-form px-5 md:px-6 py-8 md:py-12 space-y-9">
+      {/* Header */}
+      <div className="space-y-2">
+        <h1 className="font-display text-3xl md:text-4xl font-bold tracking-[-0.025em]">
+          Settings
+        </h1>
+        <p className="text-[15px] text-text-secondary">
+          Manage your profile, appearance, and account.
         </p>
       </div>
 
-      {/* Profile */}
-      <section className="space-y-5">
-        <h2 className="text-micro uppercase text-text-tertiary tracking-widest">Profile</h2>
-
-        <div className="flex items-center gap-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-surface text-lg font-semibold text-text-secondary">
-            {initials}
-          </div>
-          <div>
-            <p className="font-medium">{profile?.display_name || "—"}</p>
-            <p className="text-sm text-text-secondary">{user?.email || "—"}</p>
-          </div>
+      {/* Profile hero */}
+      <div className="flex items-center gap-4 rounded-2xl border border-border/70 bg-elevated/60 p-5">
+        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-accent-muted text-[16px] font-bold text-accent">
+          {initials}
         </div>
+        <div className="min-w-0">
+          <p className="truncate text-[16px] font-semibold text-foreground">
+            {profile?.display_name || user?.email?.split("@")[0] || "—"}
+          </p>
+          <p className="truncate text-[13px] text-text-secondary">
+            {user?.email || "—"}
+          </p>
+        </div>
+      </div>
 
-        <div className="space-y-4">
-          <div className="flex items-center justify-between py-3 border-b border-border">
-            <div>
-              <p className="text-sm font-medium">Display name</p>
-              <p className="text-sm text-text-tertiary">Visible in your chats</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                className="w-48 rounded-lg border border-border-strong bg-elevated px-3 py-2 text-sm outline-none transition-all duration-200 focus:border-primary focus:ring-2 focus:ring-accent-muted text-right"
-              />
-              <button
-                onClick={handleSave}
-                disabled={saving || displayName === profile?.display_name}
-                className="rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-all duration-200 hover:bg-accent-hover active:scale-[0.98] disabled:opacity-40"
-              >
-                {saved ? "Saved" : saving ? "..." : "Save"}
-              </button>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between py-3 border-b border-border">
-            <div>
-              <p className="text-sm font-medium">Email</p>
-              <p className="text-sm text-text-tertiary">Used for sign in</p>
-            </div>
-            <p className="text-sm text-text-secondary">{user?.email || "—"}</p>
-          </div>
-
-          <div className="flex items-center justify-between py-3 border-b border-border">
-            <div>
-              <p className="text-sm font-medium">Account ID</p>
-              <p className="text-sm text-text-tertiary">Your unique identifier</p>
-            </div>
-            <button
-              onClick={copyId}
-              className="flex items-center gap-1.5 text-sm text-text-secondary hover:text-foreground transition-colors duration-150"
+      {/* Profile section */}
+      <Section title="Profile">
+        <Row
+          title="Display name"
+          subtitle="Visible in your chats"
+        >
+          <div className="flex items-center gap-2">
+            <Input
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              className="h-9 w-44 text-right"
+            />
+            <Button
+              size="sm"
+              onClick={handleSave}
+              disabled={saving || displayName === profile?.display_name}
             >
-              <span className="font-mono text-xs">{user?.id?.slice(0, 8)}...</span>
-              {copiedId ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
-            </button>
+              {saved ? "Saved" : saving ? "…" : "Save"}
+            </Button>
           </div>
-
-          <div className="flex items-center justify-between py-3 border-b border-border">
-            <div>
-              <p className="text-sm font-medium">Balance</p>
-              <p className="text-sm text-text-tertiary">Available credits</p>
-            </div>
-            <p className="text-sm font-medium">
-              {profile ? `${formatBalance(profile.credits_balance)} (${profile.credits_balance.toLocaleString()} credits)` : "—"}
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Appearance */}
-      <section className="space-y-5">
-        <h2 className="text-micro uppercase text-text-tertiary tracking-widest">Appearance</h2>
-
-        <div className="flex items-center justify-between py-3 border-b border-border">
-          <div>
-            <p className="text-sm font-medium">Theme</p>
-            <p className="text-sm text-text-tertiary">Choose your preferred appearance</p>
-          </div>
-          {mounted && (
-            <div className="flex items-center gap-1 rounded-lg bg-surface p-1">
-              {([
-                { value: "light", icon: Sun, label: "Light" },
-                { value: "dark", icon: Moon, label: "Dark" },
-                { value: "system", icon: Monitor, label: "System" },
-              ] as const).map(({ value, icon: Icon, label }) => (
-                <button
-                  key={value}
-                  onClick={() => setTheme(value)}
-                  className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all duration-200 ${
-                    theme === value
-                      ? "bg-elevated text-foreground shadow-sm"
-                      : "text-text-tertiary hover:text-foreground"
-                  }`}
-                >
-                  <Icon className="h-3.5 w-3.5" />
-                  {label}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Preferences */}
-      <section className="space-y-5">
-        <h2 className="text-micro uppercase text-text-tertiary tracking-widest">Preferences</h2>
-
-        <div className="py-3 border-b border-border space-y-3">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-sm font-medium">Display currency</p>
-              <p className="text-sm text-text-tertiary">How balances are shown</p>
-            </div>
-            <div className="flex items-center gap-1 rounded-lg bg-surface p-1">
-              {(["NGN", "USD", "APAC"] as const).map((c) => {
-                const active =
-                  c === "APAC"
-                    ? isApacCurrency(displayCurrency)
-                    : displayCurrency === c;
-                return (
-                  <button
-                    key={c}
-                    onClick={() => {
-                      if (c === "APAC") {
-                        if (!isApacCurrency(displayCurrency)) setDisplayCurrency("JPY");
-                      } else {
-                        setDisplayCurrency(c);
-                      }
-                    }}
-                    className={`rounded-md px-3 py-1.5 text-xs font-medium transition-all duration-200 ${
-                      active
-                        ? "bg-elevated text-foreground shadow-sm"
-                        : "text-text-tertiary hover:text-foreground"
-                    }`}
-                  >
-                    {c === "NGN" ? "₦ Naira" : c === "USD" ? "$ USD" : "APAC"}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-          {isApacCurrency(displayCurrency) && (
-            <select
-              value={displayCurrency}
-              onChange={(e) => setDisplayCurrency(e.target.value as DisplayCurrency)}
-              className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              {APAC_CODES.map((code) => {
-                const m = APAC_CURRENCIES[code];
-                return (
-                  <option key={code} value={code}>
-                    {m.symbol} {m.code} — {m.label} ({m.country})
-                  </option>
-                );
-              })}
-            </select>
-          )}
-        </div>
-
-        <div className="flex items-center justify-between py-3 border-b border-border">
-          <div>
-            <p className="text-sm font-medium">API keys</p>
-            <p className="text-sm text-text-tertiary">Programmatic access to AskZero</p>
-          </div>
-          <span className="text-xs text-text-tertiary bg-surface px-2 py-1 rounded-md">Coming soon</span>
-        </div>
-      </section>
-
-      {/* Account */}
-      <section className="space-y-5">
-        <h2 className="text-micro uppercase text-text-tertiary tracking-widest">Account</h2>
-
-        <div className="flex items-center justify-between py-3 border-b border-border">
-          <div>
-            <p className="text-sm font-medium">Sign out</p>
-            <p className="text-sm text-text-tertiary">Sign out of your account on this device</p>
-          </div>
+        </Row>
+        <Row title="Email" subtitle="Used for sign in">
+          <p className="text-[13px] text-text-secondary truncate">
+            {user?.email || "—"}
+          </p>
+        </Row>
+        <Row title="Account ID" subtitle="Your unique identifier">
           <button
-            onClick={handleSignOut}
-            className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm text-text-secondary transition-all duration-200 hover:bg-surface hover:text-foreground active:scale-[0.98]"
+            onClick={copyId}
+            className="press flex items-center gap-1.5 rounded-lg px-2 py-1 text-[12px] font-medium text-text-secondary hover:bg-surface hover:text-foreground transition-colors duration-fast"
           >
-            <LogOut className="h-3.5 w-3.5" />
-            Sign out
+            <span className="font-mono">{user?.id?.slice(0, 8)}…</span>
+            {copiedId ? (
+              <Check className="h-3.5 w-3.5 text-success" />
+            ) : (
+              <Copy className="h-3.5 w-3.5" />
+            )}
           </button>
-        </div>
+        </Row>
+        <Row title="Balance" subtitle="Available credits">
+          <p className="text-[13px] font-semibold text-foreground tabular-nums">
+            {profile
+              ? `${formatBalance(profile.credits_balance)} · ${profile.credits_balance.toLocaleString()}c`
+              : "—"}
+          </p>
+        </Row>
+      </Section>
 
-        <div className="py-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-red-500">Delete account</p>
-              <p className="text-sm text-text-tertiary">Permanently delete your account and all data</p>
+      {/* Appearance section */}
+      <Section title="Appearance">
+        <Row title="Theme" subtitle="Light, dark, or follow system">
+          {mounted && (
+            <Segmented
+              value={theme || "system"}
+              options={[
+                { value: "light", label: "Light", icon: Sun },
+                { value: "dark", label: "Dark", icon: Moon },
+                { value: "system", label: "System", icon: Monitor },
+              ]}
+              onChange={(v) => setTheme(v)}
+            />
+          )}
+        </Row>
+      </Section>
+
+      {/* Preferences section */}
+      <Section title="Preferences">
+        <Row
+          title="Display currency"
+          subtitle="How balances are shown"
+        >
+          <Segmented
+            value={
+              isApacCurrency(displayCurrency) ? "APAC" : displayCurrency
+            }
+            options={[
+              { value: "NGN", label: "₦" },
+              { value: "USD", label: "$" },
+              { value: "APAC", label: "APAC" },
+            ]}
+            onChange={(v) => {
+              if (v === "APAC") {
+                if (!isApacCurrency(displayCurrency)) setDisplayCurrency("JPY");
+              } else {
+                setDisplayCurrency(v as DisplayCurrency);
+              }
+            }}
+          />
+        </Row>
+        {isApacCurrency(displayCurrency) && (
+          <Row title="APAC currency" subtitle="Test mode">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="press group flex items-center gap-2 rounded-lg border border-border/70 bg-elevated px-3 py-1.5 text-[13px] font-medium text-foreground transition-[border-color,background-color] duration-fast ease-out hover:border-border-strong">
+                  <span className="text-text-tertiary">
+                    {APAC_CURRENCIES[displayCurrency].symbol}
+                  </span>
+                  <span>{APAC_CURRENCIES[displayCurrency].code}</span>
+                  <ChevronDown className="h-3.5 w-3.5 text-text-tertiary group-hover:text-foreground transition-colors duration-fast" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="max-h-72 overflow-y-auto">
+                {APAC_CODES.map((code) => {
+                  const m = APAC_CURRENCIES[code];
+                  return (
+                    <DropdownMenuItem
+                      key={code}
+                      onClick={() => setDisplayCurrency(code)}
+                    >
+                      <span className="w-7 text-text-tertiary">{m.symbol}</span>
+                      <span className="font-semibold">{m.code}</span>
+                      <span className="ml-2 truncate text-text-secondary">
+                        {m.label}
+                      </span>
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </Row>
+        )}
+        <Row
+          title="API keys"
+          subtitle="Programmatic access to AskZero"
+        >
+          <span className="rounded-full bg-surface px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
+            Soon
+          </span>
+        </Row>
+      </Section>
+
+      {/* Account section */}
+      <Section title="Account">
+        <Row title="Sign out" subtitle="Sign out on this device">
+          <Button variant="outline" size="sm" onClick={handleSignOut}>
+            <LogOut className="mr-1.5 h-3.5 w-3.5" />
+            Sign out
+          </Button>
+        </Row>
+      </Section>
+
+      {/* Danger zone — separate, never grouped with normal settings */}
+      <section className="space-y-2.5">
+        <h2 className="px-1 text-[12px] font-semibold uppercase tracking-[0.14em] text-error/80">
+          Danger zone
+        </h2>
+        <div className="overflow-hidden rounded-2xl border border-error/30 bg-error/5">
+          <div className="flex items-center justify-between gap-4 p-5">
+            <div className="min-w-0">
+              <p className="text-[14px] font-semibold text-foreground">
+                Delete account
+              </p>
+              <p className="text-[12px] text-text-secondary leading-relaxed">
+                Permanently delete your account, all chats, and transactions.
+                This cannot be undone.
+              </p>
             </div>
-            <button
-              onClick={() => setShowDeleteConfirm(!showDeleteConfirm)}
-              className="flex items-center gap-1.5 rounded-lg border border-red-500/30 px-3 py-2 text-sm text-red-500 transition-all duration-200 hover:bg-red-500/10 active:scale-[0.98]"
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setShowDeleteConfirm((s) => !s)}
             >
-              <Trash2 className="h-3.5 w-3.5" />
+              <Trash2 className="mr-1.5 h-3.5 w-3.5" />
               Delete
-            </button>
+            </Button>
           </div>
 
           {showDeleteConfirm && (
-            <div className="mt-4 rounded-lg border border-red-500/30 bg-red-500/5 p-4 space-y-3">
-              <p className="text-sm text-red-500 font-medium">
-                This action is irreversible. All your chats, messages, transactions, and uploaded files will be permanently deleted.
-              </p>
-              <div>
-                <label className="text-xs text-text-tertiary block mb-1.5">
-                  Type <span className="font-mono font-bold">DELETE</span> to confirm
+            <div className="border-t border-error/30 bg-error/5 p-5 space-y-3">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-error" />
+                <p className="text-[13px] font-medium leading-relaxed text-error">
+                  This action is irreversible. All your chats, messages,
+                  transactions, and uploaded files will be permanently deleted.
+                </p>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+                  Type <span className="font-mono">DELETE</span> to confirm
                 </label>
-                <input
+                <Input
                   value={deleteConfirmText}
                   onChange={(e) => setDeleteConfirmText(e.target.value)}
                   placeholder="DELETE"
-                  className="w-full rounded-lg border border-red-500/30 bg-elevated px-3 py-2 text-sm outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                  className="border-error/40 focus:border-error focus:shadow-[0_0_0_3px_hsl(var(--error)/0.18)]"
                 />
               </div>
-              <div className="flex gap-2">
-                <button
+              <div className="flex gap-2 pt-1">
+                <Button
+                  variant="destructive"
                   onClick={handleDeleteAccount}
                   disabled={deleteConfirmText !== "DELETE" || deleting}
-                  className="rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white transition-all duration-200 hover:bg-red-600 disabled:opacity-40 active:scale-[0.98]"
                 >
-                  {deleting ? "Deleting..." : "Permanently delete my account"}
-                </button>
-                <button
-                  onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(""); }}
-                  className="rounded-lg border border-border px-4 py-2 text-sm text-text-secondary transition-all duration-200 hover:bg-surface"
+                  {deleting ? "Deleting…" : "Permanently delete my account"}
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setShowDeleteConfirm(false);
+                    setDeleteConfirmText("");
+                  }}
                 >
                   Cancel
-                </button>
+                </Button>
               </div>
             </div>
           )}
         </div>
       </section>
+    </div>
+  );
+}
+
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="space-y-2.5">
+      <h2 className="px-1 text-[12px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+        {title}
+      </h2>
+      <div className="overflow-hidden rounded-2xl border border-border/70 bg-elevated/40 divide-y divide-border/50">
+        {children}
+      </div>
+    </section>
+  );
+}
+
+function Row({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4 px-5 py-4">
+      <div className="min-w-0">
+        <p className="text-[14px] font-semibold text-foreground">{title}</p>
+        {subtitle && (
+          <p className="text-[12px] text-text-tertiary leading-relaxed">
+            {subtitle}
+          </p>
+        )}
+      </div>
+      <div className="shrink-0">{children}</div>
+    </div>
+  );
+}
+
+function Segmented<T extends string>({
+  value,
+  options,
+  onChange,
+}: {
+  value: T;
+  options: { value: T; label: string; icon?: React.ComponentType<{ className?: string }> }[];
+  onChange: (value: T) => void;
+}) {
+  return (
+    <div className="inline-flex items-center rounded-lg bg-surface p-0.5">
+      {options.map((opt) => {
+        const Icon = opt.icon;
+        const active = value === opt.value;
+        return (
+          <button
+            key={opt.value}
+            onClick={() => onChange(opt.value)}
+            className={cn(
+              "press flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[12px] font-semibold transition-[background-color,color,box-shadow] duration-fast ease-out",
+              active
+                ? "bg-elevated text-foreground shadow-sm"
+                : "text-text-tertiary hover:text-foreground"
+            )}
+          >
+            {Icon && <Icon className="h-3.5 w-3.5" />}
+            {opt.label}
+          </button>
+        );
+      })}
     </div>
   );
 }

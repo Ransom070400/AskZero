@@ -5,6 +5,11 @@ import { calculateCost } from "@/lib/pricing";
 import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { sanitizeInput, validateMessage } from "@/lib/sanitize";
 import { sendLowBalanceWarning } from "@/lib/email";
+import {
+  INTEGRATE_PREFIX,
+  findIntegrateModel,
+  sendIntegratePrompt,
+} from "@/lib/integrate-network";
 
 function estimateTokens(text: string): number {
   return Math.ceil(text.length / 4);
@@ -119,11 +124,24 @@ export async function POST(req: NextRequest) {
     }
   );
 
-  // Send to 0G Compute
+  // Send to 0G Compute (broker SDK) or Integrate Network proxy
   let ogResponse: Response;
   try {
-    const { sendPrompt } = await import("@/lib/og-compute");
-    ogResponse = await sendPrompt(provider, messages, { stream: true });
+    if (provider.startsWith(INTEGRATE_PREFIX)) {
+      const integrateModel = findIntegrateModel(provider);
+      if (!integrateModel) {
+        return new Response(
+          JSON.stringify({ error: "Unknown integrate model" }),
+          { status: 400 }
+        );
+      }
+      ogResponse = await sendIntegratePrompt(integrateModel, messages, {
+        stream: true,
+      });
+    } else {
+      const { sendPrompt } = await import("@/lib/og-compute");
+      ogResponse = await sendPrompt(provider, messages, { stream: true });
+    }
   } catch (err) {
     const errMsg =
       err instanceof Error ? err.message : "0G Compute unavailable";

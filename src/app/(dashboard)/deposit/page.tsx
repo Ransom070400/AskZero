@@ -5,16 +5,22 @@ import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useCurrency } from "@/lib/currency";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { Wallet, CheckCircle, Clock, XCircle } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  CheckCircle2,
+  Clock,
+  XCircle,
+  ChevronDown,
+  ShieldCheck,
+  Sparkles,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
   USD_TO_CREDITS_RATE,
   formatCredits,
@@ -60,11 +66,12 @@ function DepositContent() {
   const [ngnRate, setNgnRate] = useState(1500);
   const { formatBalance: formatBal } = useCurrency();
 
-  // Fetch live exchange rate
   useEffect(() => {
     fetch("/api/exchange-rate")
       .then((r) => r.json())
-      .then((data) => { if (data.rate) setNgnRate(data.rate); })
+      .then((data) => {
+        if (data.rate) setNgnRate(data.rate);
+      })
       .catch(() => {});
   }, []);
 
@@ -95,7 +102,6 @@ function DepositContent() {
     fetchData();
   }, [fetchData]);
 
-  // Handle payment redirects (run once, then clear URL)
   const verifiedRef = useRef(false);
   useEffect(() => {
     if (verifiedRef.current) return;
@@ -145,7 +151,6 @@ function DepositContent() {
     }
   }, [searchParams, fetchData]);
 
-  // Poll balance updates
   useEffect(() => {
     const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
@@ -169,7 +174,6 @@ function DepositContent() {
     setLoading(true);
     try {
       if (currency === "NGN") {
-        // Paystack for NGN
         const res = await fetch("/api/deposit/initialize", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -184,7 +188,6 @@ function DepositContent() {
         const { authorization_url } = await res.json();
         window.location.href = authorization_url;
       } else {
-        // Stripe for USD and APAC currencies
         const res = await fetch("/api/deposit/stripe", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -218,214 +221,288 @@ function DepositContent() {
   })();
 
   return (
-    <div className="mx-auto max-w-form space-y-5 md:space-y-6 px-4 md:px-6 py-4 md:py-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Deposit Funds</h1>
-        <p className="text-muted-foreground">
-          Add funds to your AskZero account
+    <div className="mx-auto w-full max-w-form px-5 md:px-6 py-8 md:py-12 space-y-10">
+      {/* Header */}
+      <div className="space-y-2">
+        <h1 className="font-display text-3xl md:text-4xl font-bold tracking-[-0.025em]">
+          Add credits
+        </h1>
+        <p className="text-[15px] text-text-secondary">
+          Top up to keep chatting. No subscription, pay only for what you use.
         </p>
       </div>
 
-      <Separator />
-
+      {/* Success banner */}
       {successMessage && (
-        <Card className="border-green-500/50 bg-green-500/10">
-          <CardContent className="flex items-center gap-3 pt-6">
-            <CheckCircle className="h-5 w-5 text-green-500" />
-            <p className="text-sm text-green-500">{successMessage}</p>
-          </CardContent>
-        </Card>
+        <div className="flex items-start gap-3 rounded-2xl border border-success/30 bg-success/10 px-4 py-3.5">
+          <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-success" />
+          <p className="text-[14px] font-medium leading-relaxed text-success">
+            {successMessage}
+          </p>
+        </div>
       )}
 
-      {/* Balance */}
-      <Card>
-        <CardContent className="flex items-center gap-4 pt-6">
-          <div className="rounded-full bg-primary/10 p-3">
-            <Wallet className="h-6 w-6 text-primary" />
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Current Balance</p>
-            <p className="text-2xl font-bold">
-              {balance !== null
-                ? `${formatBal(balance)} (${formatCredits(balance)} credits)`
-                : "Loading..."}
+      {/* Balance hero */}
+      <div className="rounded-3xl border border-border/70 bg-gradient-to-br from-elevated to-surface p-6 md:p-8 shadow-md">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+          Current balance
+        </p>
+        <div className="mt-2 flex items-end gap-3">
+          <p className="font-display text-4xl md:text-5xl font-bold tracking-[-0.03em] tabular-nums">
+            {balance !== null ? formatBal(balance) : "—"}
+          </p>
+          {balance !== null && (
+            <p className="pb-1.5 text-[13px] font-medium text-text-tertiary tabular-nums">
+              {formatCredits(balance)} credits
             </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Currency */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Currency</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex gap-2">
-            <Button
-              variant={currency === "NGN" ? "default" : "outline"}
-              onClick={() => { setCurrency("NGN"); setAmount(""); }}
-              className="flex-1"
-            >
-              ₦ Naira
-            </Button>
-            <Button
-              variant={currency === "USD" ? "default" : "outline"}
-              onClick={() => { setCurrency("USD"); setAmount(""); }}
-              className="flex-1"
-            >
-              $ USD
-            </Button>
-            <Button
-              variant={isApac(currency) ? "default" : "outline"}
-              onClick={() => {
-                if (!isApac(currency)) setCurrency("JPY");
-                setAmount("");
-              }}
-              className="flex-1"
-            >
-              APAC
-            </Button>
-          </div>
-          {isApac(currency) && (
-            <div className="space-y-1.5">
-              <Label htmlFor="apac-currency" className="text-xs text-text-tertiary">
-                Select APAC currency (test mode)
-              </Label>
-              <select
-                id="apac-currency"
-                value={currency}
-                onChange={(e) => {
-                  setCurrency(e.target.value as ApacCurrency);
-                  setAmount("");
-                }}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                {APAC_CODES.map((code) => {
-                  const m = APAC_CURRENCIES[code];
-                  return (
-                    <option key={code} value={code}>
-                      {m.symbol} {m.code} — {m.label} ({m.country})
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
+
+      {/* Currency selector */}
+      <section className="space-y-3">
+        <h2 className="text-[12px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+          Pay with
+        </h2>
+        <div className="inline-flex w-full rounded-2xl border border-border/70 bg-elevated/60 p-1">
+          <CurrencyTab
+            label="₦ Naira"
+            active={currency === "NGN"}
+            onClick={() => {
+              setCurrency("NGN");
+              setAmount("");
+            }}
+          />
+          <CurrencyTab
+            label="$ USD"
+            active={currency === "USD"}
+            onClick={() => {
+              setCurrency("USD");
+              setAmount("");
+            }}
+          />
+          <CurrencyTab
+            label="APAC"
+            active={isApac(currency)}
+            onClick={() => {
+              if (!isApac(currency)) setCurrency("JPY");
+              setAmount("");
+            }}
+          />
+        </div>
+
+        {isApac(currency) && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="press group flex h-11 w-full items-center justify-between rounded-xl border border-border bg-background px-4 text-[14px] font-medium text-foreground transition-[border-color,background-color] duration-fast ease-out hover:border-border-strong">
+                <span className="flex items-center gap-2">
+                  <span className="text-text-tertiary">
+                    {APAC_CURRENCIES[currency].symbol}
+                  </span>
+                  <span>
+                    {APAC_CURRENCIES[currency].code} —{" "}
+                    {APAC_CURRENCIES[currency].label}
+                  </span>
+                </span>
+                <ChevronDown className="h-4 w-4 text-text-tertiary group-hover:text-foreground transition-colors duration-fast" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-full max-h-72 overflow-y-auto">
+              {APAC_CODES.map((code) => {
+                const m = APAC_CURRENCIES[code];
+                return (
+                  <DropdownMenuItem
+                    key={code}
+                    onClick={() => {
+                      setCurrency(code);
+                      setAmount("");
+                    }}
+                  >
+                    <span className="w-7 text-text-tertiary">{m.symbol}</span>
+                    <span className="font-semibold">{m.code}</span>
+                    <span className="ml-2 text-text-secondary truncate">
+                      {m.label}
+                    </span>
+                  </DropdownMenuItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </section>
 
       {/* Amount */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Amount</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="fiat-amount">
-              Amount ({currencySymbol(currency)} {currency})
-            </Label>
-            <Input
-              id="fiat-amount"
-              type="number"
-              placeholder="0.00"
-              min="0"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-            />
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {presetsAny(currency).map((preset) => (
-              <Button
-                key={preset}
-                variant="outline"
-                size="sm"
-                onClick={() => setAmount(String(preset))}
-              >
-                {formatAny(preset, currency)}
-              </Button>
+      <section className="space-y-3">
+        <div className="flex items-baseline justify-between">
+          <h2 className="text-[12px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+            Amount
+          </h2>
+          {estimatedCredits > 0 && (
+            <p className="text-[12px] font-medium text-text-tertiary tabular-nums">
+              <Sparkles className="inline h-3 w-3 -mt-0.5 mr-1 text-accent" />
+              {formatCredits(estimatedCredits)} credits
+            </p>
+          )}
+        </div>
+
+        <div className="relative">
+          <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[18px] font-semibold text-text-tertiary">
+            {currencySymbol(currency)}
+          </span>
+          <Input
+            id="fiat-amount"
+            type="number"
+            placeholder="0.00"
+            min="0"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            className="h-14 pl-10 text-[20px] font-semibold tracking-tight tabular-nums"
+          />
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {presetsAny(currency).map((preset) => (
+            <button
+              key={preset}
+              onClick={() => setAmount(String(preset))}
+              className={cn(
+                "press rounded-full border px-3.5 py-1.5 text-[13px] font-semibold transition-[border-color,background-color,color] duration-fast ease-out",
+                amount === String(preset)
+                  ? "border-foreground bg-foreground text-background"
+                  : "border-border/70 bg-elevated/60 text-text-secondary hover:border-border-strong hover:text-foreground"
+              )}
+            >
+              {formatAny(preset, currency)}
+            </button>
+          ))}
+        </div>
+
+        {isApac(currency) && (
+          <p className="text-[11px] text-text-tertiary leading-relaxed">
+            Test mode · processed by Stripe. Use card{" "}
+            <span className="rounded bg-elevated/80 px-1 py-0.5 font-mono text-[10px]">
+              4242 4242 4242 4242
+            </span>
+            .
+          </p>
+        )}
+
+        <Button
+          size="lg"
+          className="w-full"
+          disabled={numericAmount <= 0 || loading}
+          onClick={handleFiatDeposit}
+        >
+          {loading
+            ? "Processing…"
+            : `Fund account${numericAmount > 0 ? ` · ${formatAny(numericAmount, currency)}` : ""}`}
+        </Button>
+
+        <p className="flex items-center justify-center gap-1.5 text-[11px] font-medium text-text-tertiary">
+          <ShieldCheck className="h-3 w-3" />
+          Payments secured by{" "}
+          {currency === "NGN" ? "Paystack" : "Stripe"} · funds custodied on-chain
+        </p>
+      </section>
+
+      {/* Transaction history */}
+      {transactions.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-[12px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+            Recent activity
+          </h2>
+          <div className="overflow-hidden rounded-2xl border border-border/70 divide-y divide-border/50">
+            {transactions.map((tx) => (
+              <TransactionRow key={tx.id} tx={tx} />
             ))}
           </div>
-          {estimatedCredits > 0 && (
-            <p className="text-sm text-muted-foreground">
-              {formatAny(numericAmount, currency)} ={" "}
-              <span className="font-medium text-foreground">
-                {formatCredits(estimatedCredits)} credits
-              </span>
-            </p>
-          )}
-          {isApac(currency) && (
-            <p className="text-xs text-text-tertiary">
-              Test mode &middot; processed by Stripe. Use test card{" "}
-              <span className="font-mono">4242 4242 4242 4242</span>.
-            </p>
-          )}
-          <Button
-            className="w-full"
-            disabled={numericAmount <= 0 || loading}
-            onClick={handleFiatDeposit}
-          >
-            {loading
-              ? "Processing..."
-              : `Fund account${numericAmount > 0 ? ` ${formatAny(numericAmount, currency)}` : ""}`}
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Transaction History */}
-      {transactions.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Transaction History</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {transactions.map((tx) => (
-                <div
-                  key={tx.id}
-                  className="flex items-center justify-between rounded-lg border border-border/50 p-3"
-                >
-                  <div className="flex items-center gap-3">
-                    {tx.status === "completed" ? (
-                      <CheckCircle className="h-4 w-4 text-green-500" />
-                    ) : tx.status === "pending" ? (
-                      <Clock className="h-4 w-4 text-yellow-500" />
-                    ) : (
-                      <XCircle className="h-4 w-4 text-red-500" />
-                    )}
-                    <div>
-                      <p className="text-sm font-medium capitalize">
-                        {tx.type}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(tx.created_at).toLocaleDateString()}{" "}
-                        {new Date(tx.created_at).toLocaleTimeString()}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium">
-                      {tx.type === "usage" ? "-" : "+"}
-                      {formatCredits(Math.abs(tx.amount))} credits
-                    </p>
-                    {tx.original_amount > 0 && (
-                      <p className="text-xs text-muted-foreground">
-                        {tx.currency === "NGN" || tx.currency === "USD"
-                          ? formatCurrency(tx.original_amount, tx.currency)
-                          : APAC_CODES.includes(tx.currency as ApacCurrency)
-                            ? formatApacCurrency(
-                                tx.original_amount,
-                                tx.currency as ApacCurrency
-                              )
-                            : `${tx.original_amount} ${tx.currency}`}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        </section>
       )}
+    </div>
+  );
+}
+
+function CurrencyTab({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "press flex-1 rounded-xl px-3 py-2 text-[13px] font-semibold transition-[background-color,color,box-shadow] duration-fast ease-out",
+        active
+          ? "bg-background text-foreground shadow-sm"
+          : "text-text-tertiary hover:text-foreground"
+      )}
+    >
+      {label}
+    </button>
+  );
+}
+
+function TransactionRow({ tx }: { tx: Transaction }) {
+  const isUsage = tx.type === "usage";
+  const status = tx.status;
+  const StatusIcon =
+    status === "completed"
+      ? CheckCircle2
+      : status === "pending"
+        ? Clock
+        : XCircle;
+  const statusColor =
+    status === "completed"
+      ? "text-success"
+      : status === "pending"
+        ? "text-warning"
+        : "text-error";
+
+  return (
+    <div className="flex items-center justify-between gap-3 bg-elevated/40 px-4 py-3.5">
+      <div className="flex min-w-0 items-center gap-3">
+        <StatusIcon className={cn("h-4 w-4 shrink-0", statusColor)} />
+        <div className="min-w-0">
+          <p className="text-[13px] font-semibold capitalize text-foreground">
+            {tx.type}
+          </p>
+          <p className="text-[11px] text-text-tertiary">
+            {new Date(tx.created_at).toLocaleString(undefined, {
+              month: "short",
+              day: "numeric",
+              hour: "numeric",
+              minute: "2-digit",
+            })}
+          </p>
+        </div>
+      </div>
+      <div className="text-right">
+        <p
+          className={cn(
+            "text-[13px] font-semibold tabular-nums",
+            isUsage ? "text-text-secondary" : "text-foreground"
+          )}
+        >
+          {isUsage ? "−" : "+"}
+          {formatCredits(Math.abs(tx.amount))} credits
+        </p>
+        {tx.original_amount > 0 && (
+          <p className="text-[11px] text-text-tertiary tabular-nums">
+            {tx.currency === "NGN" || tx.currency === "USD"
+              ? formatCurrency(tx.original_amount, tx.currency)
+              : APAC_CODES.includes(tx.currency as ApacCurrency)
+                ? formatApacCurrency(
+                    tx.original_amount,
+                    tx.currency as ApacCurrency
+                  )
+                : `${tx.original_amount} ${tx.currency}`}
+          </p>
+        )}
+      </div>
     </div>
   );
 }

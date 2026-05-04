@@ -1,15 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import {
   Users,
   MessageSquare,
@@ -20,7 +12,9 @@ import {
   ExternalLink,
   Check,
   TrendingDown,
+  AlertTriangle,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface Stats {
   totalUsers: number;
@@ -79,16 +73,19 @@ export default function AdminPage() {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-muted-foreground">{error}</p>
+      <div className="flex h-full items-center justify-center px-5 py-12">
+        <div className="text-center space-y-2">
+          <AlertTriangle className="mx-auto h-8 w-8 text-text-tertiary" />
+          <p className="text-[14px] text-text-secondary">{error}</p>
+        </div>
       </div>
     );
   }
 
   if (!stats) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-muted-foreground">Loading...</p>
+      <div className="flex h-full items-center justify-center px-5 py-12">
+        <p className="text-[14px] text-text-tertiary">Loading…</p>
       </div>
     );
   }
@@ -97,211 +94,242 @@ export default function AdminPage() {
   const isLowBalance = balanceNum < 5;
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 p-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Admin Dashboard</h1>
-        <p className="text-muted-foreground">Key metrics and activity</p>
+    <div className="mx-auto w-full max-w-4xl px-5 md:px-6 py-8 md:py-12 space-y-9">
+      {/* Header */}
+      <div className="space-y-2">
+        <h1 className="font-display text-3xl md:text-4xl font-bold tracking-[-0.025em]">
+          Admin
+        </h1>
+        <p className="text-[15px] text-text-secondary">
+          Key metrics, treasury, and recent activity.
+        </p>
       </div>
 
-      <Separator />
-
-      {/* Treasury */}
+      {/* Treasury hero */}
       {treasury?.address && (
-        <Card className={isLowBalance ? "border-yellow-500/50" : ""}>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Wallet className="h-5 w-5 text-muted-foreground" />
-                <CardTitle>Treasury Wallet</CardTitle>
+        <section
+          className={cn(
+            "overflow-hidden rounded-3xl border bg-gradient-to-br from-elevated to-surface p-6 md:p-8 shadow-md",
+            isLowBalance ? "border-warning/30" : "border-border/70"
+          )}
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent-muted">
+                <Wallet className="h-4 w-4 text-accent" />
               </div>
-              {isLowBalance && (
-                <span className="text-xs px-2 py-1 rounded-full bg-yellow-500/10 text-yellow-500">
-                  Low balance
-                </span>
-              )}
-            </div>
-            <CardDescription>
-              Backend wallet used to pay 0G providers for AI inference
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Balance</p>
-                <p className="text-3xl font-bold">
-                  {parseFloat(treasury.balance).toFixed(4)} 0G
+                <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+                  Treasury wallet
+                </p>
+                <p className="text-[12px] text-text-tertiary leading-snug">
+                  Pays 0G providers for inference
                 </p>
               </div>
             </div>
-
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">Address</p>
-              <div className="flex items-center gap-2">
-                <code className="flex-1 rounded-md bg-muted px-3 py-2 text-sm font-mono break-all">
-                  {treasury.address}
-                </code>
-                <Button variant="outline" size="icon" onClick={copyAddress}>
-                  {copied ? (
-                    <Check className="h-4 w-4 text-green-500" />
-                  ) : (
-                    <Copy className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-            </div>
-
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-2"
-                onClick={() =>
-                  window.open(
-                    `https://chainscan-newton.0g.ai/address/${treasury.address}`,
-                    "_blank"
-                  )
-                }
-              >
-                <ExternalLink className="h-3.5 w-3.5" />
-                View on explorer
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-2"
-                onClick={() =>
-                  window.open("https://faucet.0g.ai", "_blank")
-                }
-              >
-                <Coins className="h-3.5 w-3.5" />
-                Get testnet tokens
-              </Button>
-            </div>
-
             {isLowBalance && (
-              <p className="text-xs text-yellow-500">
-                Treasury balance is low. Send more 0G to the address above to
-                keep AI inference running.
-              </p>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-warning/30 bg-warning/10 px-2.5 py-1 text-[11px] font-semibold text-warning">
+                <AlertTriangle className="h-3 w-3" />
+                Low balance
+              </span>
             )}
-          </CardContent>
-        </Card>
+          </div>
+
+          <div className="mt-5 flex items-end gap-3">
+            <p className="font-display text-4xl md:text-5xl font-bold tracking-[-0.03em] tabular-nums">
+              {parseFloat(treasury.balance).toFixed(4)}
+            </p>
+            <p className="pb-1.5 text-[14px] font-semibold text-text-tertiary">
+              0G
+            </p>
+          </div>
+
+          <div className="mt-6 space-y-2">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+              Address
+            </p>
+            <div className="flex items-stretch gap-2">
+              <code className="flex-1 rounded-xl border border-border/60 bg-background px-3 py-2 text-[12px] font-mono text-foreground break-all">
+                {treasury.address}
+              </code>
+              <button
+                onClick={copyAddress}
+                aria-label="Copy address"
+                className="press shrink-0 flex h-10 w-10 items-center justify-center rounded-xl border border-border/70 bg-background text-text-secondary transition-[border-color,color] duration-fast ease-out hover:border-border-strong hover:text-foreground"
+              >
+                {copied ? (
+                  <Check className="h-4 w-4 text-success" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-5 flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                window.open(
+                  `https://chainscan-newton.0g.ai/address/${treasury.address}`,
+                  "_blank"
+                )
+              }
+            >
+              <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
+              Explorer
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.open("https://faucet.0g.ai", "_blank")}
+            >
+              <Coins className="mr-1.5 h-3.5 w-3.5" />
+              Get testnet tokens
+            </Button>
+          </div>
+
+          {isLowBalance && (
+            <p className="mt-4 text-[12px] leading-relaxed text-warning">
+              Treasury balance is low. Send more 0G to the address above to keep
+              AI inference running.
+            </p>
+          )}
+        </section>
       )}
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Users
-            </CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{stats.totalUsers}</p>
-          </CardContent>
-        </Card>
+      {/* Stats grid */}
+      <section className="space-y-3">
+        <h2 className="px-1 text-[12px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+          Metrics
+        </h2>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
+          <StatCard
+            label="Users"
+            icon={<Users className="h-4 w-4" />}
+            value={stats.totalUsers.toLocaleString()}
+          />
+          <StatCard
+            label="Messages"
+            icon={<MessageSquare className="h-4 w-4" />}
+            value={stats.totalMessages.toLocaleString()}
+          />
+          <StatCard
+            label="Deposits"
+            icon={<CreditCard className="h-4 w-4" />}
+            value={stats.totalDeposits.toLocaleString()}
+          />
+          <StatCard
+            label="Revenue"
+            icon={<Coins className="h-4 w-4" />}
+            value={`$${stats.totalRevenueUsd}`}
+          />
+          <StatCard
+            label="Fiat used"
+            icon={<TrendingDown className="h-4 w-4" />}
+            value={`$${stats.totalUsageUsd}`}
+            sub={`${stats.totalUsageCredits.toLocaleString()} credits`}
+          />
+        </div>
+      </section>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Messages
-            </CardTitle>
-            <MessageSquare className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{stats.totalMessages}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Deposits
-            </CardTitle>
-            <CreditCard className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{stats.totalDeposits}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Revenue
-            </CardTitle>
-            <Coins className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">${stats.totalRevenueUsd}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Fiat Used
-            </CardTitle>
-            <TrendingDown className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">${stats.totalUsageUsd}</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {stats.totalUsageCredits} credits
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Recent Transactions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Transactions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            {transactions.length === 0 && (
-              <p className="text-sm text-muted-foreground">
-                No transactions yet
-              </p>
-            )}
+      {/* Recent transactions */}
+      <section className="space-y-3">
+        <h2 className="px-1 text-[12px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+          Recent activity
+        </h2>
+        {transactions.length === 0 ? (
+          <div className="rounded-2xl border border-border/70 bg-elevated/40 px-5 py-12 text-center">
+            <p className="text-[13px] text-text-tertiary">No transactions yet</p>
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-2xl border border-border/70 divide-y divide-border/50">
             {transactions.map((tx) => (
-              <div
-                key={tx.id}
-                className="flex items-center justify-between rounded-lg border border-border/50 p-3 text-sm"
-              >
-                <div>
-                  <span className="font-medium capitalize">{tx.type}</span>
-                  <span className="ml-2 text-xs text-muted-foreground">
-                    {tx.user_id.slice(0, 8)}...
-                  </span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span
-                    className={`text-xs px-2 py-0.5 rounded-full ${
-                      tx.status === "completed"
-                        ? "bg-green-500/10 text-green-500"
-                        : tx.status === "pending"
-                          ? "bg-yellow-500/10 text-yellow-500"
-                          : "bg-red-500/10 text-red-500"
-                    }`}
-                  >
-                    {tx.status}
-                  </span>
-                  <span className="font-medium">
-                    {tx.type === "usage" ? "-" : "+"}
-                    {Math.abs(tx.amount)}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {new Date(tx.created_at).toLocaleDateString()}
-                  </span>
-                </div>
-              </div>
+              <TransactionRow key={tx.id} tx={tx} />
             ))}
           </div>
-        </CardContent>
-      </Card>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function StatCard({
+  label,
+  icon,
+  value,
+  sub,
+}: {
+  label: string;
+  icon: React.ReactNode;
+  value: string;
+  sub?: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-border/70 bg-elevated/60 p-4 shadow-sm">
+      <div className="flex items-center justify-between">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-text-tertiary">
+          {label}
+        </p>
+        <span className="text-text-tertiary">{icon}</span>
+      </div>
+      <p className="mt-2 font-display text-2xl font-bold tabular-nums tracking-tight">
+        {value}
+      </p>
+      {sub && (
+        <p className="mt-0.5 text-[11px] text-text-tertiary tabular-nums">
+          {sub}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function TransactionRow({ tx }: { tx: Transaction }) {
+  const isUsage = tx.type === "usage";
+  const statusStyle =
+    tx.status === "completed"
+      ? "border-success/30 bg-success/10 text-success"
+      : tx.status === "pending"
+        ? "border-warning/30 bg-warning/10 text-warning"
+        : "border-error/30 bg-error/10 text-error";
+
+  return (
+    <div className="flex items-center justify-between gap-3 bg-elevated/40 px-4 py-3.5">
+      <div className="flex min-w-0 flex-col">
+        <p className="text-[13px] font-semibold capitalize text-foreground">
+          {tx.type}
+        </p>
+        <p className="text-[11px] font-mono text-text-tertiary">
+          {tx.user_id.slice(0, 8)}…
+        </p>
+      </div>
+      <div className="flex items-center gap-3">
+        <span
+          className={cn(
+            "rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider",
+            statusStyle
+          )}
+        >
+          {tx.status}
+        </span>
+        <p
+          className={cn(
+            "text-[13px] font-semibold tabular-nums",
+            isUsage ? "text-text-secondary" : "text-foreground"
+          )}
+        >
+          {isUsage ? "−" : "+"}
+          {Math.abs(tx.amount).toLocaleString()}
+        </p>
+        <p className="hidden sm:block text-[11px] text-text-tertiary tabular-nums">
+          {new Date(tx.created_at).toLocaleDateString(undefined, {
+            month: "short",
+            day: "numeric",
+          })}
+        </p>
+      </div>
     </div>
   );
 }

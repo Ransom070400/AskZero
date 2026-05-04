@@ -1,8 +1,8 @@
 "use client";
 
 import { useRef, useEffect, useState } from "react";
-import { Textarea } from "@/components/ui/textarea";
 import { ArrowUp, Paperclip, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface ChatInputProps {
   value: string;
@@ -35,12 +35,13 @@ export function ChatInput({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [focused, setFocused] = useState(false);
 
   useEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = "auto";
-    el.style.height = Math.min(el.scrollHeight, 160) + "px";
+    el.style.height = Math.min(el.scrollHeight, 200) + "px";
   }, [value]);
 
   const canSend = (value.trim() || attachments.length > 0) && !disabled;
@@ -83,11 +84,14 @@ export function ChatInput({
 
   return (
     <div
-      className={`relative rounded-2xl border transition-colors ${
-        dragOver
-          ? "border-accent bg-accent/5"
-          : "border-transparent"
-      }`}
+      className={cn(
+        "relative rounded-3xl border bg-elevated/80 backdrop-blur-sm",
+        "transition-[border-color,box-shadow,background-color] duration-base ease-out",
+        focused
+          ? "border-accent/60 shadow-ring bg-elevated"
+          : "border-border/70",
+        dragOver && "border-accent bg-accent-muted"
+      )}
       onDragOver={(e) => {
         e.preventDefault();
         setDragOver(true);
@@ -97,27 +101,29 @@ export function ChatInput({
     >
       {/* Attachment previews */}
       {attachments.length > 0 && (
-        <div className="flex gap-2 overflow-x-auto px-3 pt-3 pb-1">
+        <div className="flex gap-2 overflow-x-auto px-4 pt-3.5 pb-1">
           {attachments.map((file, i) => (
             <div
               key={`${file.name}-${i}`}
-              className="relative flex-shrink-0 group"
+              className="relative flex-shrink-0 group/att"
             >
               {file.type.startsWith("image/") ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
                 <img
                   src={URL.createObjectURL(file)}
                   alt={file.name}
-                  className="h-16 w-16 rounded-lg object-cover border border-border"
+                  className="h-16 w-16 rounded-xl object-cover border border-border/80"
                 />
               ) : (
-                <div className="flex h-16 w-16 items-center justify-center rounded-lg border border-border bg-surface text-[10px] text-text-tertiary text-center px-1">
-                  {file.name.split(".").pop()?.toUpperCase()}
+                <div className="flex h-16 w-16 flex-col items-center justify-center rounded-xl border border-border/80 bg-surface text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
+                  {file.name.split(".").pop()?.toUpperCase().slice(0, 4)}
                 </div>
               )}
               {onRemoveAttachment && (
                 <button
                   onClick={() => onRemoveAttachment(i)}
-                  className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-surface border border-border text-text-tertiary hover:text-foreground transition-colors"
+                  aria-label="Remove attachment"
+                  className="press absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-foreground text-background shadow-md opacity-0 group-hover/att:opacity-100 transition-opacity duration-fast"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -127,32 +133,33 @@ export function ChatInput({
         </div>
       )}
 
-      <div className="relative">
-        <Textarea
+      <div className="flex items-end gap-1 px-2 py-2">
+        {onAttach && (
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            aria-label="Attach file"
+            className="press shrink-0 flex h-9 w-9 items-center justify-center rounded-full text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast"
+            disabled={disabled}
+          >
+            <Paperclip className="h-[18px] w-[18px]" />
+          </button>
+        )}
+
+        <textarea
           ref={textareaRef}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
-          placeholder="Message AskZero..."
-          className="min-h-[44px] md:min-h-[48px] resize-none rounded-2xl border-border-strong bg-elevated pr-12 pl-10 text-[16px] md:text-sm placeholder:text-text-tertiary focus-visible:ring-accent/20 py-3 px-4"
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          placeholder="Message AskZero…"
           rows={1}
           disabled={disabled}
+          className="flex-1 resize-none bg-transparent px-2 py-2 text-[15px] leading-[1.5] text-foreground caret-accent outline-none placeholder:text-text-tertiary disabled:opacity-50 max-h-[200px]"
         />
 
-        {/* Attach button */}
-        {onAttach && (
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="absolute bottom-2.5 left-2.5 flex h-8 w-8 md:h-7 md:w-7 items-center justify-center rounded-full text-text-tertiary hover:text-foreground transition-colors duration-150"
-            disabled={disabled}
-          >
-            <Paperclip className="h-4 w-4" />
-          </button>
-        )}
-
-        {/* Hidden file input */}
         <input
           ref={fileInputRef}
           type="file"
@@ -165,13 +172,18 @@ export function ChatInput({
           }}
         />
 
-        {/* Send button */}
         <button
-          className="absolute bottom-2.5 right-2.5 flex h-8 w-8 md:h-7 md:w-7 items-center justify-center rounded-full bg-primary text-primary-foreground transition-all duration-150 hover:bg-accent-hover disabled:opacity-30 active:scale-90"
-          disabled={!canSend}
+          aria-label="Send message"
           onClick={onSend}
+          disabled={!canSend}
+          className={cn(
+            "press shrink-0 flex h-9 w-9 items-center justify-center rounded-full transition-[background-color,opacity,transform,box-shadow] duration-fast ease-out",
+            canSend
+              ? "bg-accent text-white shadow-sm hover:bg-accent-hover hover:shadow-md"
+              : "bg-surface text-text-tertiary opacity-60"
+          )}
         >
-          <ArrowUp className="h-4 w-4" />
+          <ArrowUp className="h-[18px] w-[18px]" />
         </button>
       </div>
     </div>

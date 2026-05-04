@@ -14,7 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, Settings, CreditCard } from "lucide-react";
+import { LogOut, Settings, CreditCard, Plus } from "lucide-react";
 import { useCurrency } from "@/lib/currency";
 import { useEffect, useState, useCallback } from "react";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
@@ -62,51 +62,59 @@ export function TopNav() {
     : "AZ";
 
   return (
-    <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b border-border md:border-b glass-nav px-3 md:px-6">
+    <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b border-border/60 glass-nav px-3 md:px-6">
       <Link href="/chat" className="hidden md:flex items-center">
         <Logo size={20} />
       </Link>
 
-      <div className="flex items-center gap-1.5 md:gap-2 ml-auto">
-        {/* Balance */}
+      <div className="ml-auto flex items-center gap-1.5 md:gap-2">
+        {/* Balance pill — refined affordance, hover lifts subtly */}
         <button
           onClick={() => router.push("/deposit")}
-          className="flex items-center gap-1 rounded-lg px-2 md:px-2.5 py-1 text-xs md:text-sm text-text-secondary hover:text-foreground transition-colors duration-150"
+          className="press group flex items-center gap-1.5 rounded-full border border-border/70 bg-elevated/80 px-3 py-1 text-[13px] font-semibold text-foreground transition-[border-color,background-color,box-shadow] duration-fast ease-out hover:border-border-strong hover:shadow-sm"
         >
-          <span className="font-medium text-foreground">
+          <Plus className="h-3 w-3 text-text-tertiary group-hover:text-accent transition-colors duration-fast" />
+          <span className="tabular-nums">
             {balance !== null ? formatBalance(balance) : "—"}
           </span>
         </button>
 
-        <span className="hidden md:block"><ThemeToggle /></span>
+        <span className="hidden md:block">
+          <ThemeToggle />
+        </span>
 
-        {/* User Menu */}
+        {/* User menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="rounded-full">
-              <Avatar className="h-7 w-7">
-                <AvatarFallback className="bg-surface text-text-secondary text-micro">
+              <Avatar className="h-8 w-8">
+                <AvatarFallback className="bg-elevated text-text-secondary text-[11px] font-semibold">
                   {initials}
                 </AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-52" align="end">
+          <DropdownMenuContent className="w-56" align="end">
             <div className="px-3 py-2">
-              <p className="text-sm font-medium truncate">{user?.email ?? "User"}</p>
+              <p className="text-[13px] font-medium truncate text-foreground">
+                {user?.email ?? "User"}
+              </p>
+              <p className="text-[11px] text-text-tertiary mt-0.5">
+                Signed in
+              </p>
             </div>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => router.push("/settings")}>
-              <Settings className="mr-2 h-4 w-4" />
+              <Settings className="mr-2 h-4 w-4 text-text-tertiary" />
               Settings
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => router.push("/deposit")}>
-              <CreditCard className="mr-2 h-4 w-4" />
+              <CreditCard className="mr-2 h-4 w-4 text-text-tertiary" />
               Deposit
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleSignOut}>
-              <LogOut className="mr-2 h-4 w-4" />
+              <LogOut className="mr-2 h-4 w-4 text-text-tertiary" />
               Sign out
             </DropdownMenuItem>
           </DropdownMenuContent>

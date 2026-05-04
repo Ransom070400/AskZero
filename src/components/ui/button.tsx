@@ -3,25 +3,30 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center whitespace-nowrap rounded-md font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50",
+  // Base: rounded-xl for substance, single motion vocabulary, calm focus halo, physical press
+  "press focus-ring inline-flex items-center justify-center whitespace-nowrap rounded-xl font-semibold tracking-tight select-none disabled:pointer-events-none disabled:opacity-40",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-accent-hover",
+        // Filled primary — soft elevation, brighten on hover, no color shift on press
+        default:
+          "bg-primary text-primary-foreground shadow-sm hover:brightness-110 hover:shadow-md",
         outline:
-          "border border-border bg-transparent text-foreground hover:bg-surface",
+          "border border-border-strong bg-transparent text-foreground hover:bg-surface hover:border-border-strong",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "text-foreground hover:bg-surface",
-        link: "text-accent underline-offset-4 hover:underline",
+          "bg-secondary text-secondary-foreground hover:bg-elevated",
+        ghost:
+          "text-foreground hover:bg-surface",
+        link:
+          "text-accent underline-offset-4 hover:underline px-0 h-auto",
         destructive:
-          "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+          "bg-destructive text-destructive-foreground shadow-sm hover:brightness-110 hover:shadow-md",
       },
       size: {
-        default: "h-[42px] px-4 text-sm",
-        sm: "h-9 px-3 text-sm",
-        lg: "h-12 px-6 text-base",
-        icon: "h-8 w-8",
+        default: "h-11 px-5 text-sm",
+        sm: "h-9 px-4 text-sm",
+        lg: "h-12 px-7 text-base",
+        icon: "h-10 w-10 rounded-lg",
       },
     },
     defaultVariants: {
