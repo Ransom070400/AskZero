@@ -379,11 +379,7 @@ function DepositContent() {
 
         {isApac(currency) && (
           <p className="text-[11px] text-text-tertiary leading-relaxed">
-            Test mode · processed by Stripe. Use card{" "}
-            <span className="rounded bg-elevated/80 px-1 py-0.5 font-mono text-[10px]">
-              4242 4242 4242 4242
-            </span>
-            .
+            Processed securely by Stripe.
           </p>
         )}
 

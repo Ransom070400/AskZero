@@ -27,75 +27,38 @@ export async function POST(req: NextRequest) {
     const cur = (currency as string).toUpperCase() as "NGN" | "USD";
 
     const supabase = await createClient();
+    const credits = await convertToCredits(originalAmount, cur);
 
-    // Check idempotency
-    const { data: existing } = await supabase
-      .from("transactions")
-      .select("id, status, user_id")
-      .eq("reference", reference)
-      .single();
+    const { data: result, error: rpcError } = await supabase.rpc(
+      "complete_deposit",
+      { p_reference: reference, p_credits: credits }
+    );
 
-    if (!existing) {
-      return NextResponse.json({ error: "Transaction not found" }, { status: 404 });
+    if (rpcError) {
+      return NextResponse.json(
+        { error: "Failed to credit" },
+        { status: 500 }
+      );
     }
 
-    if (existing.status === "completed") {
+    const credited = (result as { credited?: boolean })?.credited === true;
+    const userId = (result as { user_id?: string })?.user_id;
+
+    if (!credited) {
+      // Either already processed, or no pending transaction for this reference.
       return NextResponse.json({ message: "Already processed" });
     }
 
-    const credits = await convertToCredits(originalAmount, cur);
-
-    // Credit balance — try RPC, fall back to manual
-    let credited = false;
-
-    const { error: rpcError } = await supabase.rpc("credit_balance", {
-      p_user_id: existing.user_id,
-      p_amount: credits,
-    });
-
-    if (!rpcError) {
-      credited = true;
-    } else {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("credits_balance")
-        .eq("id", existing.user_id)
-        .single();
-
-      if (profile) {
-        const newBalance = Number(profile.credits_balance) + credits;
-        const { error: updateError } = await supabase
-          .from("profiles")
-          .update({ credits_balance: newBalance })
-          .eq("id", existing.user_id);
-
-        if (!updateError) credited = true;
+    if (userId) {
+      const { data: userData } = await supabase.auth.admin.getUserById(userId);
+      if (userData?.user?.email) {
+        sendDepositConfirmation(
+          userData.user.email,
+          originalAmount.toLocaleString(),
+          credits,
+          cur
+        );
       }
-    }
-
-    if (!credited) {
-      await supabase
-        .from("transactions")
-        .update({ status: "failed" })
-        .eq("reference", reference);
-      return NextResponse.json({ error: "Failed to credit" }, { status: 500 });
-    }
-
-    // Mark completed
-    await supabase
-      .from("transactions")
-      .update({ status: "completed", amount: credits })
-      .eq("reference", reference);
-
-    // Send email notification
-    const { data: userData } = await supabase.auth.admin.getUserById(existing.user_id);
-    if (userData?.user?.email) {
-      sendDepositConfirmation(
-        userData.user.email,
-        originalAmount.toLocaleString(),
-        credits,
-        cur
-      );
     }
   }
 

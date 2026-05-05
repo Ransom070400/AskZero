@@ -1,0 +1,40 @@
+[
+  {
+    "type": "function",
+    "name": "postRoot",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      { "name": "root", "type": "bytes32" },
+      { "name": "leafCount", "type": "uint64" },
+      { "name": "fromTs", "type": "uint64" },
+      { "name": "toTs", "type": "uint64" }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "roots",
+    "stateMutability": "view",
+    "inputs": [{ "name": "", "type": "bytes32" }],
+    "outputs": [{ "name": "", "type": "uint256" }]
+  },
+  {
+    "type": "function",
+    "name": "isAnchored",
+    "stateMutability": "view",
+    "inputs": [{ "name": "root", "type": "bytes32" }],
+    "outputs": [{ "name": "", "type": "bool" }]
+  },
+  {
+    "type": "event",
+    "name": "RootPosted",
+    "inputs": [
+      { "name": "root", "type": "bytes32", "indexed": true },
+      { "name": "leafCount", "type": "uint64", "indexed": false },
+      { "name": "fromTs", "type": "uint64", "indexed": false },
+      { "name": "toTs", "type": "uint64", "indexed": false },
+      { "name": "poster", "type": "address", "indexed": true }
+    ],
+    "anonymous": false
+  }
+]

@@ -10,6 +10,7 @@ import {
   findIntegrateModel,
   sendIntegratePrompt,
 } from "@/lib/integrate-network";
+import { buildReceipt, makeNonce } from "@/lib/receipts";
 
 function estimateTokens(text: string): number {
   return Math.ceil(text.length / 4);
@@ -229,13 +230,56 @@ export async function POST(req: NextRequest) {
       }
 
       // Save assistant message
-      await supabase.from("messages").insert({
-        chat_id: chatId,
-        role: "assistant",
-        content: fullResponse,
-        token_count: outputTokens,
-        cost_credits: actualCost,
-      });
+      const { data: assistantMsg } = await supabase
+        .from("messages")
+        .insert({
+          chat_id: chatId,
+          role: "assistant",
+          content: fullResponse,
+          token_count: outputTokens,
+          cost_credits: actualCost,
+        })
+        .select("id")
+        .single();
+
+      if (assistantMsg) {
+        try {
+          const nonce = makeNonce();
+          const receipt = buildReceipt(
+            {
+              userId: user.id,
+              chatId,
+              messageId: assistantMsg.id,
+              provider,
+              model: model || "default",
+              inputTokens,
+              outputTokens,
+              costCredits: actualCost,
+              teeAttestation: null,
+              timestamp: Math.floor(Date.now() / 1000),
+              nonce,
+            },
+            messages,
+            fullResponse
+          );
+          await supabase.rpc("record_receipt", {
+            p_chat_id: chatId,
+            p_message_id: assistantMsg.id,
+            p_provider: provider,
+            p_model: model || "default",
+            p_input_hash: receipt.inputHash,
+            p_output_hash: receipt.outputHash,
+            p_input_tokens: inputTokens,
+            p_output_tokens: outputTokens,
+            p_cost_credits: actualCost,
+            p_tee_attestation: null,
+            p_nonce: nonce,
+            p_receipt_hash: receipt.receiptHash,
+          });
+        } catch (err) {
+          console.error("record_receipt failed", err);
+        }
+      }
 
       // Auto-title
       const { data: chatData } = await supabase

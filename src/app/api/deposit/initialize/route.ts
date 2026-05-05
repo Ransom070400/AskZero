@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
   const reference = `askzero_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
 
   // Amount in smallest currency unit (kobo for NGN, cents for USD)
-  const paystackAmount = currency === "NGN" ? amount * 100 : amount * 100;
+  const paystackAmount = amount * 100;
 
   // Save pending transaction
   const { error: txError } = await supabase.from("transactions").insert({
