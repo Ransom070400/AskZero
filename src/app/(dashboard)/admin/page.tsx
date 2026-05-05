@@ -170,23 +170,18 @@ export default function AdminPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() =>
-                window.open(
-                  `https://chainscan-newton.0g.ai/address/${treasury.address}`,
-                  "_blank"
-                )
-              }
+              onClick={() => {
+                const base =
+                  process.env.NEXT_PUBLIC_ZERO_G_EXPLORER_URL?.replace(
+                    /\/+$/,
+                    ""
+                  );
+                if (!base) return;
+                window.open(`${base}/address/${treasury.address}`, "_blank");
+              }}
             >
               <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
               Explorer
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => window.open("https://faucet.0g.ai", "_blank")}
-            >
-              <Coins className="mr-1.5 h-3.5 w-3.5" />
-              Get testnet tokens
             </Button>
           </div>
 

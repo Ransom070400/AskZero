@@ -1,8 +1,15 @@
 "use client";
 
 import { useRef, useEffect, useState } from "react";
-import { ArrowUp, Paperclip, X } from "lucide-react";
+import { ArrowUp, ChevronDown, Paperclip, Sparkles, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { CHAT_STYLES, type ChatStyle } from "@/lib/system-prompt";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface ChatInputProps {
   value: string;
@@ -12,6 +19,8 @@ interface ChatInputProps {
   attachments?: File[];
   onAttach?: (files: File[]) => void;
   onRemoveAttachment?: (index: number) => void;
+  style?: ChatStyle;
+  onStyleChange?: (style: ChatStyle) => void;
 }
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -31,7 +40,10 @@ export function ChatInput({
   attachments = [],
   onAttach,
   onRemoveAttachment,
+  style = "default",
+  onStyleChange,
 }: ChatInputProps) {
+  const currentStyle = CHAT_STYLES.find((s) => s.id === style) ?? CHAT_STYLES[0];
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -186,6 +198,40 @@ export function ChatInput({
           <ArrowUp className="h-[18px] w-[18px]" />
         </button>
       </div>
+
+      {onStyleChange && (
+        <div className="flex items-center px-3 pb-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="press inline-flex h-7 items-center gap-1 rounded-full px-2 text-[12px] font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
+                aria-label="Choose response style"
+              >
+                <Sparkles className="h-3 w-3" />
+                {currentStyle.label}
+                <ChevronDown className="h-3 w-3" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56">
+              {CHAT_STYLES.map((s) => (
+                <DropdownMenuItem
+                  key={s.id}
+                  onClick={() => onStyleChange(s.id)}
+                  className="flex flex-col items-start gap-0.5 py-2"
+                >
+                  <span className="text-[13px] font-medium text-foreground">
+                    {s.label}
+                  </span>
+                  <span className="text-[11px] text-text-tertiary">
+                    {s.description}
+                  </span>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
     </div>
   );
 }

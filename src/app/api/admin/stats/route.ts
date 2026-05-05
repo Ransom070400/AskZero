@@ -56,9 +56,11 @@ export async function GET() {
   let treasuryBalance = "0";
   let treasuryAddress = "";
   try {
-    const rpcUrl = process.env.ZERO_G_CHAIN_RPC_URL || "https://evmrpc-testnet.0g.ai";
+    const rpcUrl =
+      process.env.NEXT_PUBLIC_ZERO_G_RPC_URL ??
+      process.env.ZERO_G_CHAIN_RPC_URL;
     const privateKey = process.env.ZERO_G_PRIVATE_KEY;
-    if (privateKey) {
+    if (rpcUrl && privateKey) {
       const provider = new ethers.JsonRpcProvider(rpcUrl);
       const wallet = new ethers.Wallet(privateKey, provider);
       treasuryAddress = wallet.address;

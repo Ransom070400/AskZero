@@ -4,27 +4,24 @@ import { cn } from "@/lib/utils";
 
 interface LogoProps {
   size?: number;
-  variant?: "light" | "dark";
   animated?: boolean;
   className?: string;
 }
 
-export function Logo({
-  size = 28,
-  variant = "light",
-  animated = false,
-  className,
-}: LogoProps) {
-  const wordColor = variant === "dark" ? "#FEFEFE" : "#0A0A0A";
-  const blackArc = variant === "dark" ? "#FEFEFE" : "#0A0A0A";
-  const purpleArc = variant === "dark" ? "#CB8AFF" : "#B75FFF";
-
+// Logo colors are theme-driven:
+//  - word + "black" arc inherit `currentColor` (callers control via text-* classes)
+//  - purple arc reads --accent in light mode, --accent-hover in dark mode (see globals.css)
+export function Logo({ size = 28, animated = false, className }: LogoProps) {
   const stroke = Math.max(6, Math.round(size * 0.32));
   const zeroSize = size;
 
   return (
     <span
-      className={cn("inline-flex items-center", animated && "logo-animated", className)}
+      className={cn(
+        "inline-flex items-center text-foreground",
+        animated && "logo-animated",
+        className
+      )}
       style={{ gap: 0 }}
       aria-label="askzero"
     >
@@ -35,7 +32,7 @@ export function Logo({
           lineHeight: 1,
           fontWeight: 500,
           letterSpacing: "-0.04em",
-          color: wordColor,
+          color: "currentColor",
         }}
       >
         ask
@@ -60,7 +57,7 @@ export function Logo({
             className="logo-zero-black"
             d="M 0,-22 A 22,22 0 1 1 15,-15"
             fill="none"
-            stroke={blackArc}
+            stroke="currentColor"
             strokeWidth={stroke}
             strokeLinecap="round"
           />
@@ -68,7 +65,6 @@ export function Logo({
             className="logo-zero-purple"
             d="M 15,-15 A 22,22 0 1 1 0,-22"
             fill="none"
-            stroke={purpleArc}
             strokeWidth={stroke}
             strokeLinecap="round"
           />
@@ -81,7 +77,7 @@ export function Logo({
           lineHeight: 1,
           fontWeight: 500,
           letterSpacing: "-0.04em",
-          color: wordColor,
+          color: "currentColor",
           marginLeft: -2,
         }}
       >

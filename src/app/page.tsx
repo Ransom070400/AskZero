@@ -30,7 +30,7 @@ export default function LandingPage() {
         transition={{ duration: 0.6, delay: 0.1 }}
         className="relative z-20 flex items-center justify-between px-6 md:px-10 py-6"
       >
-        <Logo size={22} variant="dark" animated />
+        <Logo size={22} animated className="text-white" />
         <Link
           href="/login"
           className="rounded-full px-3 py-1.5 text-[13px] font-semibold text-white/55 transition-colors duration-fast ease-out hover:text-white"

@@ -1,10 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import React, { createContext, useContext, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
+import rehypeKatex from "rehype-katex";
 import remarkGfm from "remark-gfm";
-import { Copy, Check, FileText, RotateCw } from "lucide-react";
+import remarkMath from "remark-math";
+import { Copy, Check, ExternalLink, FileText, FileCode, Pencil, RotateCw, X } from "lucide-react";
+import { MermaidBlock } from "./mermaid-block";
+
+interface PreContextValue {
+  messageId: string;
+  onOpenAsArtifact: (
+    messageId: string,
+    body: { type: string; title: string; language: string | null; content: string }
+  ) => void;
+}
+
+const PreContext = createContext<PreContextValue | null>(null);
 
 export interface Attachment {
   name: string;
@@ -14,6 +27,12 @@ export interface Attachment {
   url: string;
 }
 
+export interface ArtifactRef {
+  id: string;
+  type: string;
+  title: string;
+}
+
 export interface Message {
   id: string;
   role: "user" | "assistant" | "system";
@@ -21,6 +40,7 @@ export interface Message {
   tokenCount?: number | null;
   costCredits?: number | null;
   attachments?: Attachment[];
+  artifacts?: ArtifactRef[];
 }
 
 function ActionButton({
@@ -43,68 +63,205 @@ function ActionButton({
   );
 }
 
-function CopyBtn({ text }: { text: string }) {
+function CopyBtn({
+  text,
+  size = "md",
+}: {
+  text: string;
+  size?: "sm" | "md";
+}) {
   const [copied, setCopied] = useState(false);
+  const small = size === "sm";
   return (
-    <ActionButton
-      label={copied ? "Copied" : "Copy"}
+    <button
       onClick={() => {
         navigator.clipboard.writeText(text);
         setCopied(true);
         setTimeout(() => setCopied(false), 1200);
       }}
+      aria-label={copied ? "Copied" : "Copy"}
+      className={
+        small
+          ? "press inline-flex h-6 items-center gap-1 rounded-md px-1.5 text-[11px] font-medium text-text-tertiary hover:bg-background/60 hover:text-foreground transition-colors duration-fast ease-out"
+          : "press inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
+      }
     >
-      {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+      {copied ? (
+        <Check className={small ? "h-3 w-3" : "h-3.5 w-3.5"} />
+      ) : (
+        <Copy className={small ? "h-3 w-3" : "h-3.5 w-3.5"} />
+      )}
       {copied ? "Copied" : "Copy"}
-    </ActionButton>
+    </button>
   );
 }
 
-function CodeBlock({
-  children,
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLElement> & { children?: React.ReactNode }) {
-  if (!className) {
-    return <code className={className} {...props}>{children}</code>;
+// Walks the rendered code tree (after rehype-highlight has transformed it
+// into nested spans) to recover the plain text for copy.
+function extractText(node: React.ReactNode): string {
+  if (node == null || typeof node === "boolean") return "";
+  if (typeof node === "string") return node;
+  if (typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(extractText).join("");
+  if (React.isValidElement<{ children?: React.ReactNode }>(node)) {
+    return extractText(node.props.children);
+  }
+  return "";
+}
+
+function PreBlock({ children }: { children?: React.ReactNode }) {
+  const ctx = useContext(PreContext);
+  const codeEl = React.Children.toArray(children).find(
+    (c): c is React.ReactElement<{
+      className?: string;
+      children?: React.ReactNode;
+    }> => React.isValidElement(c)
+  );
+
+  const className = codeEl?.props.className ?? "";
+  const lang = className.match(/language-([\w+-]+)/)?.[1] ?? "";
+  const text = extractText(codeEl?.props.children).replace(/\n$/, "");
+
+  if (lang === "mermaid") {
+    return <MermaidBlock code={text} />;
   }
 
-  const text = typeof children === "string" ? children : String(children || "");
-  const lang = className?.replace("hljs language-", "").replace("language-", "");
+  const handleOpen = () => {
+    if (!ctx) return;
+    const inferred = inferArtifactType(lang, text);
+    ctx.onOpenAsArtifact(ctx.messageId, {
+      type: inferred.type,
+      title: inferred.title,
+      language: lang || null,
+      content: text,
+    });
+  };
 
   return (
-    <div className="relative group/code my-4">
-      <div className="absolute right-2 top-2 flex items-center gap-2 opacity-0 group-hover/code:opacity-100 transition-opacity duration-base ease-out">
-        {lang && (
-          <span className="rounded-md bg-background/60 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-text-tertiary">
-            {lang}
-          </span>
-        )}
-        <CopyBtn text={text.replace(/\n$/, "")} />
+    <div className="my-4 overflow-hidden rounded-xl border border-border/60 bg-surface">
+      <div className="flex items-center justify-between border-b border-border/60 bg-elevated/40 px-3 py-1">
+        <span className="text-[11px] font-medium uppercase tracking-wider text-text-tertiary">
+          {lang || "code"}
+        </span>
+        <div className="flex items-center gap-1">
+          {ctx && (
+            <button
+              onClick={handleOpen}
+              aria-label="Open in artifact panel"
+              className="press inline-flex h-6 items-center gap-1 rounded-md px-1.5 text-[11px] font-medium text-text-tertiary hover:bg-background/60 hover:text-foreground transition-colors duration-fast"
+            >
+              <ExternalLink className="h-3 w-3" />
+              Open
+            </button>
+          )}
+          <CopyBtn text={text} size="sm" />
+        </div>
       </div>
-      <code className={className} {...props}>{children}</code>
+      <pre className="overflow-x-auto p-4 text-[13px] leading-relaxed">
+        {children}
+      </pre>
     </div>
   );
+}
+
+function inferArtifactType(
+  lang: string,
+  body: string
+): { type: string; title: string } {
+  const low = lang.toLowerCase();
+  const trimmed = body.trim();
+  if (low === "html" || /^<!doctype html/i.test(trimmed)) {
+    return { type: "html", title: "HTML document" };
+  }
+  if (low === "svg" || /^<svg[\s>]/i.test(trimmed)) {
+    return { type: "svg", title: "SVG graphic" };
+  }
+  if (low === "jsx" || low === "tsx") {
+    return { type: "react", title: "React component" };
+  }
+  if (low === "md" || low === "markdown") {
+    return { type: "markdown", title: "Markdown" };
+  }
+  return { type: "code", title: lang ? `${lang.toUpperCase()} snippet` : "Snippet" };
 }
 
 export function MessageBubble({
   message,
   onRegenerate,
+  onEdit,
+  onOpenArtifact,
+  onOpenAsArtifact,
   isLast,
+  isStreaming,
 }: {
   message: Message;
   onRegenerate?: () => void;
+  onEdit?: (messageId: string, newContent: string) => void;
+  onOpenArtifact?: (artifactId: string) => void;
+  onOpenAsArtifact?: PreContextValue["onOpenAsArtifact"];
   isLast?: boolean;
+  isStreaming?: boolean;
 }) {
   const isUser = message.role === "user";
+  const [editing, setEditing] = useState(false);
+  const [editValue, setEditValue] = useState("");
 
   if (isUser) {
     const images = message.attachments?.filter((a) => a.type.startsWith("image/")) || [];
     const files = message.attachments?.filter((a) => !a.type.startsWith("image/")) || [];
 
+    if (editing) {
+      return (
+        <div className="flex justify-end">
+          <div className="w-full max-w-[85%] md:max-w-[72%] rounded-3xl rounded-br-lg bg-elevated border border-accent/40 px-4 py-3 shadow-sm">
+            <textarea
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              autoFocus
+              rows={Math.min(8, Math.max(1, editValue.split("\n").length))}
+              className="w-full resize-none bg-transparent text-[15px] leading-relaxed text-foreground caret-accent outline-none"
+            />
+            <div className="mt-2 flex justify-end gap-1">
+              <button
+                onClick={() => setEditing(false)}
+                className="press inline-flex h-7 items-center gap-1 rounded-full px-2.5 text-[12px] font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast"
+              >
+                <X className="h-3.5 w-3.5" />
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  const trimmed = editValue.trim();
+                  if (!trimmed || !onEdit) return;
+                  setEditing(false);
+                  onEdit(message.id, trimmed);
+                }}
+                disabled={!editValue.trim()}
+                className="press inline-flex h-7 items-center gap-1 rounded-full bg-accent px-3 text-[12px] font-semibold text-white shadow-sm hover:bg-accent-hover disabled:opacity-50"
+              >
+                Save & resend
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
-      <div className="flex justify-end">
-        <div className="max-w-[85%] md:max-w-[72%] rounded-3xl rounded-br-lg bg-elevated border border-border/60 px-5 py-3 shadow-sm">
+      <div className="group/user flex justify-end">
+        <div className="relative max-w-[85%] md:max-w-[72%] rounded-3xl rounded-br-lg bg-elevated border border-border/60 px-5 py-3 shadow-sm">
+          {onEdit && (
+            <button
+              onClick={() => {
+                setEditValue(message.content);
+                setEditing(true);
+              }}
+              aria-label="Edit message"
+              className="press absolute -left-2 top-1/2 -translate-y-1/2 -translate-x-full hidden md:flex h-7 w-7 items-center justify-center rounded-full bg-elevated border border-border/60 text-text-tertiary opacity-0 group-hover/user:opacity-100 hover:text-foreground hover:border-border-strong transition-[opacity,color,border-color] duration-fast"
+            >
+              <Pencil className="h-3 w-3" />
+            </button>
+          )}
           {message.content && (
             <p className="text-[15px] leading-relaxed whitespace-pre-wrap text-foreground">
               {message.content}
@@ -148,6 +305,10 @@ export function MessageBubble({
     );
   }
 
+  const showCursor = isStreaming && isLast;
+  const assistantImages =
+    message.attachments?.filter((a) => a.type.startsWith("image/")) ?? [];
+
   return (
     <div className="group">
       <div
@@ -155,7 +316,6 @@ export function MessageBubble({
           [&_p]:my-3
           [&_h1]:font-display [&_h2]:font-display [&_h3]:font-display
           [&_h1]:tracking-tight [&_h2]:tracking-tight [&_h3]:tracking-tight
-          [&_pre]:rounded-xl [&_pre]:bg-surface [&_pre]:border [&_pre]:border-border/60 [&_pre]:p-4 [&_pre]:text-[13px] [&_pre]:leading-relaxed
           [&_code]:rounded-md [&_code]:bg-surface [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-[0.9em] [&_code]:font-medium
           [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_pre_code]:font-normal
           [&_a]:text-accent [&_a]:no-underline hover:[&_a]:underline
@@ -163,14 +323,71 @@ export function MessageBubble({
           [&_ul]:my-3 [&_ol]:my-3 [&_li]:my-1
           [&_table]:border-collapse [&_th]:text-left [&_th]:p-2 [&_th]:border-b [&_th]:border-border [&_td]:p-2 [&_td]:border-b [&_td]:border-border/40"
       >
-        <ReactMarkdown
-          rehypePlugins={[rehypeHighlight]}
-          remarkPlugins={[remarkGfm]}
-          components={{ code: CodeBlock as never }}
+        <PreContext.Provider
+          value={
+            onOpenAsArtifact
+              ? { messageId: message.id, onOpenAsArtifact }
+              : null
+          }
         >
-          {message.content}
-        </ReactMarkdown>
+          <ReactMarkdown
+            rehypePlugins={[rehypeHighlight, rehypeKatex]}
+            remarkPlugins={[remarkGfm, remarkMath]}
+            components={{ pre: PreBlock as never }}
+          >
+            {message.content}
+          </ReactMarkdown>
+        </PreContext.Provider>
+        {showCursor && (
+          <span
+            aria-hidden="true"
+            className="ml-0.5 inline-block h-[1em] w-[2px] -mb-[2px] bg-foreground/80 animate-pulse align-text-bottom"
+          />
+        )}
       </div>
+      {assistantImages.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {assistantImages.map((att) => (
+            <a
+              key={att.path}
+              href={att.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block overflow-hidden rounded-2xl border border-border/60 bg-elevated/40"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={att.url}
+                alt={att.name}
+                className="max-h-[480px] w-auto object-contain"
+              />
+            </a>
+          ))}
+        </div>
+      )}
+      {message.artifacts && message.artifacts.length > 0 && onOpenArtifact && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {message.artifacts.map((art) => (
+            <button
+              key={art.id}
+              onClick={() => onOpenArtifact(art.id)}
+              className="press group/art inline-flex items-center gap-2 rounded-xl border border-border/70 bg-elevated/60 px-3 py-2 text-left transition-[border-color,background-color] duration-fast ease-out hover:border-border-strong hover:bg-elevated"
+            >
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent-muted text-accent">
+                <FileCode className="h-3.5 w-3.5" />
+              </span>
+              <span className="flex flex-col">
+                <span className="text-[13px] font-semibold text-foreground">
+                  {art.title || "Artifact"}
+                </span>
+                <span className="text-[11px] uppercase tracking-wider text-text-tertiary">
+                  {art.type}
+                </span>
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
       <div className="mt-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-base ease-out">
         <CopyBtn text={message.content} />
         {isLast && onRegenerate && (

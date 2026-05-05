@@ -24,7 +24,9 @@ import {
 } from "@0glabs/0g-serving-broker";
 
 const RPC_URL =
-  process.env.ZERO_G_CHAIN_RPC_URL || "https://evmrpc-testnet.0g.ai";
+  process.env.NEXT_PUBLIC_ZERO_G_RPC_URL ??
+  process.env.ZERO_G_CHAIN_RPC_URL ??
+  "https://evmrpc-testnet.0g.ai";
 const PRIVATE_KEY = process.env.ZERO_G_PRIVATE_KEY;
 const DEPOSIT_AMOUNT = 3; // A0GI tokens to deposit into ledger (minimum 3 required)
 

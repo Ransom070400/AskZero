@@ -318,3 +318,11 @@ html {
 .logo-animated .logo-zero-purple {
   animation: logoDraw 0.6s ease-out 0.9s forwards;
 }
+
+/* Theme-aware purple arc — primary accent in light mode, lighter accent in dark. */
+.logo-zero-purple {
+  stroke: hsl(var(--accent));
+}
+.dark .logo-zero-purple {
+  stroke: hsl(var(--accent-hover));
+}

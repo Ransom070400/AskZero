@@ -11,6 +11,8 @@ import {
   sendIntegratePrompt,
 } from "@/lib/integrate-network";
 import { buildReceipt, makeNonce } from "@/lib/receipts";
+import { buildSystemPrompt, type ChatStyle } from "@/lib/system-prompt";
+import { detectArtifacts } from "@/lib/artifact-detect";
 
 function estimateTokens(text: string): number {
   return Math.ceil(text.length / 4);
@@ -39,6 +41,7 @@ export async function POST(req: NextRequest) {
   const model = body.model;
   const provider = body.provider;
   const attachments = body.attachments || [];
+  const style = (body.style as ChatStyle | undefined) ?? "default";
 
   const hasAttachments = attachments.length > 0;
   if (!hasAttachments) {
@@ -99,7 +102,7 @@ export async function POST(req: NextRequest) {
     .order("created_at", { ascending: true })
     .limit(50);
 
-  const messages = (history || []).map(
+  const historyMessages = (history || []).map(
     (m: { role: string; content: string; metadata?: { attachments?: { type: string; url: string }[] } }) => {
       const imgAtts = (m.metadata?.attachments || []).filter((a) =>
         a.type.startsWith("image/")
@@ -124,6 +127,11 @@ export async function POST(req: NextRequest) {
       };
     }
   );
+
+  const messages = [
+    { role: "system" as const, content: buildSystemPrompt(style) },
+    ...historyMessages,
+  ];
 
   // Send to 0G Compute (broker SDK) or Integrate Network proxy
   let ogResponse: Response;
@@ -242,6 +250,8 @@ export async function POST(req: NextRequest) {
         .select("id")
         .single();
 
+      const emittedArtifacts: { id: string; type: string; title: string }[] = [];
+
       if (assistantMsg) {
         try {
           const nonce = makeNonce();
@@ -279,6 +289,48 @@ export async function POST(req: NextRequest) {
         } catch (err) {
           console.error("record_receipt failed", err);
         }
+
+        try {
+          const detected = detectArtifacts(fullResponse);
+          for (const artifact of detected) {
+            // Link this artifact as a revision if a previous artifact in the
+            // same chat shares the same type AND title (case-insensitive).
+            // This is a deliberately conservative heuristic — distinct
+            // titles produce separate chains.
+            let parentId: string | null = null;
+            const { data: prev } = await supabase
+              .from("artifacts")
+              .select("id, parent_artifact_id")
+              .eq("chat_id", chatId)
+              .eq("type", artifact.type)
+              .ilike("title", artifact.title)
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            if (prev) {
+              parentId = (prev.parent_artifact_id as string | null) ?? prev.id;
+            }
+
+            const { data: artifactId } = await supabase.rpc("record_artifact", {
+              p_chat_id: chatId,
+              p_message_id: assistantMsg.id,
+              p_type: artifact.type,
+              p_title: artifact.title,
+              p_language: artifact.language,
+              p_content: artifact.content,
+              p_parent_artifact_id: parentId,
+            });
+            if (typeof artifactId === "string") {
+              emittedArtifacts.push({
+                id: artifactId,
+                type: artifact.type,
+                title: artifact.title,
+              });
+            }
+          }
+        } catch (err) {
+          console.error("record_artifact failed", err);
+        }
       }
 
       // Auto-title
@@ -297,7 +349,15 @@ export async function POST(req: NextRequest) {
 
       controller.enqueue(
         encoder.encode(
-          `data: ${JSON.stringify({ usage: { input_tokens: inputTokens, output_tokens: outputTokens, cost: actualCost } })}\n\n`
+          `data: ${JSON.stringify({
+            usage: {
+              input_tokens: inputTokens,
+              output_tokens: outputTokens,
+              cost: actualCost,
+            },
+            messageId: assistantMsg?.id ?? null,
+            artifacts: emittedArtifacts,
+          })}\n\n`
         )
       );
       controller.enqueue(encoder.encode("data: [DONE]\n\n"));

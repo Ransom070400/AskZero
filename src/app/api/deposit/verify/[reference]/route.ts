@@ -54,10 +54,10 @@ export async function GET(
   const cur = (currency as string).toUpperCase() as "NGN" | "USD";
   const credits = await convertToCredits(originalAmount, cur);
 
-  const { data: result, error: rpcError } = await supabase.rpc(
-    "complete_deposit",
-    { p_reference: reference, p_credits: credits }
-  );
+  const { error: rpcError } = await supabase.rpc("complete_deposit", {
+    p_reference: reference,
+    p_credits: credits,
+  });
 
   if (rpcError) {
     return NextResponse.json(
