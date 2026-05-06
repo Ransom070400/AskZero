@@ -6,7 +6,7 @@ import rehypeHighlight from "rehype-highlight";
 import rehypeKatex from "rehype-katex";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
-import { Copy, Check, ExternalLink, FileText, FileCode, Pencil, RotateCw, X } from "lucide-react";
+import { Copy, Check, Download, ExternalLink, FileText, FileCode, Pencil, RotateCw, X } from "lucide-react";
 import { MermaidBlock } from "./mermaid-block";
 
 interface PreContextValue {
@@ -188,6 +188,7 @@ function inferArtifactType(
 export function MessageBubble({
   message,
   onRegenerate,
+  onRegenerateImage,
   onEdit,
   onOpenArtifact,
   onOpenAsArtifact,
@@ -196,6 +197,7 @@ export function MessageBubble({
 }: {
   message: Message;
   onRegenerate?: () => void;
+  onRegenerateImage?: (messageId: string) => void;
   onEdit?: (messageId: string, newContent: string) => void;
   onOpenArtifact?: (artifactId: string) => void;
   onOpenAsArtifact?: PreContextValue["onOpenAsArtifact"];
@@ -211,12 +213,27 @@ export function MessageBubble({
     const files = message.attachments?.filter((a) => !a.type.startsWith("image/")) || [];
 
     if (editing) {
+      const submitEdit = () => {
+        const trimmed = editValue.trim();
+        if (!trimmed || !onEdit) return;
+        setEditing(false);
+        onEdit(message.id, trimmed);
+      };
       return (
         <div className="flex justify-end">
           <div className="w-full max-w-[85%] md:max-w-[72%] rounded-3xl rounded-br-lg bg-elevated border border-accent/40 px-4 py-3 shadow-sm">
             <textarea
               value={editValue}
               onChange={(e) => setEditValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                  e.preventDefault();
+                  submitEdit();
+                } else if (e.key === "Escape") {
+                  e.preventDefault();
+                  setEditing(false);
+                }
+              }}
               autoFocus
               rows={Math.min(8, Math.max(1, editValue.split("\n").length))}
               className="w-full resize-none bg-transparent text-[15px] leading-relaxed text-foreground caret-accent outline-none"
@@ -230,12 +247,7 @@ export function MessageBubble({
                 Cancel
               </button>
               <button
-                onClick={() => {
-                  const trimmed = editValue.trim();
-                  if (!trimmed || !onEdit) return;
-                  setEditing(false);
-                  onEdit(message.id, trimmed);
-                }}
+                onClick={submitEdit}
                 disabled={!editValue.trim()}
                 className="press inline-flex h-7 items-center gap-1 rounded-full bg-accent px-3 text-[12px] font-semibold text-white shadow-sm hover:bg-accent-hover disabled:opacity-50"
               >
@@ -248,20 +260,8 @@ export function MessageBubble({
     }
 
     return (
-      <div className="group/user flex justify-end">
+      <div className="group/user flex flex-col items-end">
         <div className="relative max-w-[85%] md:max-w-[72%] rounded-3xl rounded-br-lg bg-elevated border border-border/60 px-5 py-3 shadow-sm">
-          {onEdit && (
-            <button
-              onClick={() => {
-                setEditValue(message.content);
-                setEditing(true);
-              }}
-              aria-label="Edit message"
-              className="press absolute -left-2 top-1/2 -translate-y-1/2 -translate-x-full hidden md:flex h-7 w-7 items-center justify-center rounded-full bg-elevated border border-border/60 text-text-tertiary opacity-0 group-hover/user:opacity-100 hover:text-foreground hover:border-border-strong transition-[opacity,color,border-color] duration-fast"
-            >
-              <Pencil className="h-3 w-3" />
-            </button>
-          )}
           {message.content && (
             <p className="text-[15px] leading-relaxed whitespace-pre-wrap text-foreground">
               {message.content}
@@ -301,6 +301,21 @@ export function MessageBubble({
             </div>
           )}
         </div>
+        {onEdit && message.content && (
+          <div className="mt-1 flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover/user:opacity-100 transition-opacity duration-base ease-out">
+            <button
+              onClick={() => {
+                setEditValue(message.content);
+                setEditing(true);
+              }}
+              aria-label="Edit message"
+              className="press inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+              Edit
+            </button>
+          </div>
+        )}
       </div>
     );
   }
@@ -348,20 +363,40 @@ export function MessageBubble({
       {assistantImages.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-2">
           {assistantImages.map((att) => (
-            <a
+            <div
               key={att.path}
-              href={att.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block overflow-hidden rounded-2xl border border-border/60 bg-elevated/40"
+              className="group/img relative overflow-hidden rounded-2xl border border-border/60 bg-elevated/40"
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={att.url}
-                alt={att.name}
-                className="max-h-[480px] w-auto object-contain"
-              />
-            </a>
+              <a href={att.url} target="_blank" rel="noopener noreferrer">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={att.url}
+                  alt={att.name}
+                  className="block max-h-[480px] w-auto object-contain"
+                />
+              </a>
+              <div className="absolute right-2 top-2 flex items-center gap-1 opacity-0 group-hover/img:opacity-100 transition-opacity duration-fast">
+                <a
+                  href={att.url}
+                  download={att.name}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Download image"
+                  className="press inline-flex h-7 w-7 items-center justify-center rounded-full bg-foreground/85 text-background shadow-sm hover:bg-foreground transition-colors duration-fast"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                </a>
+                {onRegenerateImage && (
+                  <button
+                    onClick={() => onRegenerateImage(message.id)}
+                    aria-label="Regenerate image"
+                    className="press inline-flex h-7 w-7 items-center justify-center rounded-full bg-foreground/85 text-background shadow-sm hover:bg-foreground transition-colors duration-fast"
+                  >
+                    <RotateCw className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
           ))}
         </div>
       )}

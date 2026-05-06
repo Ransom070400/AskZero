@@ -4,12 +4,30 @@ import { Suspense, useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { ChatList } from "@/components/chat/chat-list";
-import { ChatInput } from "@/components/chat/chat-input";
+import { ChatInput, type ImageSize } from "@/components/chat/chat-input";
 import { ModelPicker, type ModelOption } from "@/components/chat/model-picker";
 import type { Message, Attachment, ArtifactRef } from "@/components/chat/message-bubble";
 import type { ChatStyle } from "@/lib/system-prompt";
 import { ArtifactPanel } from "@/components/artifact/artifact-panel";
 import { cn } from "@/lib/utils";
+
+// Detect natural-language image requests. Returns the cleaned prompt
+// to send to the image API, or null if not an image request.
+//
+// We only fire on explicit "verb + image-noun" pairs because false positives
+// here are expensive (100 credits charged for a misrouted chat). Examples
+// that should match: "draw me a sunset", "generate an image of a cat",
+// "make a picture of a dog". Examples that should NOT match: "describe this
+// picture", "what's in the image".
+function detectImageIntent(text: string): string | null {
+  const re =
+    /^(?:please\s+|can\s+you\s+|could\s+you\s+)?(?:draw|generate|create|make|render|paint|design|produce|sketch)\s+(?:me\s+)?(?:a|an|the|some)?\s*(?:image|picture|photo|photograph|illustration|drawing|render|artwork|logo|icon|poster|sketch)\s+(?:of\s+|showing\s+|with\s+|that\s+)?(.+)/i;
+  const m = text.match(re);
+  if (!m) return null;
+  const subject = m[1].trim().replace(/[.!?]+$/, "");
+  if (subject.length < 2) return null;
+  return subject;
+}
 
 export default function ChatDetailPage() {
   return (
@@ -32,19 +50,34 @@ function ChatDetailContent() {
   } | null>(null);
   const [attachments, setAttachments] = useState<File[]>([]);
   const [style, setStyle] = useState<ChatStyle>("default");
+  const [imageSize, setImageSize] = useState<ImageSize>("1024x1024");
   const [openArtifactId, setOpenArtifactId] = useState<string | null>(null);
   const initialSent = useRef(false);
+  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem("askzero:chat-style");
     if (saved === "default" || saved === "concise" || saved === "explanatory" || saved === "code") {
       setStyle(saved);
     }
+    const savedSize = localStorage.getItem("askzero:image-size");
+    if (
+      savedSize === "1024x1024" ||
+      savedSize === "1024x1792" ||
+      savedSize === "1792x1024"
+    ) {
+      setImageSize(savedSize);
+    }
   }, []);
 
   const updateStyle = useCallback((next: ChatStyle) => {
     setStyle(next);
     localStorage.setItem("askzero:chat-style", next);
+  }, []);
+
+  const updateImageSize = useCallback((next: ImageSize) => {
+    setImageSize(next);
+    localStorage.setItem("askzero:image-size", next);
   }, []);
 
   // Load models
@@ -131,6 +164,77 @@ function ChatDetailContent() {
     return uploaded;
   };
 
+  const runImageGeneration = useCallback(
+    async (prompt: string, displayContent: string) => {
+      const userMsg: Message = {
+        id: crypto.randomUUID(),
+        role: "user",
+        content: displayContent,
+      };
+      setMessages((prev) => [...prev, userMsg]);
+      setInput("");
+      setIsStreaming(true);
+
+      const assistantId = crypto.randomUUID();
+      setMessages((prev) => [
+        ...prev,
+        { id: assistantId, role: "assistant", content: "Generating image…" },
+      ]);
+
+      try {
+        const res = await fetch("/api/image", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ chatId, prompt, size: imageSize }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          const errorContent =
+            err.error === "Insufficient credits"
+              ? "Insufficient credits. [Deposit funds](/deposit) to continue."
+              : `Error: ${err.error || "Image generation failed"}`;
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantId ? { ...m, content: errorContent } : m
+            )
+          );
+        } else {
+          const data = (await res.json()) as {
+            assistantMessage: {
+              id: string;
+              content: string;
+              cost_credits: number;
+              attachments: Attachment[];
+            };
+          };
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantId
+                ? {
+                    id: data.assistantMessage.id,
+                    role: "assistant",
+                    content: "",
+                    costCredits: data.assistantMessage.cost_credits,
+                    attachments: data.assistantMessage.attachments,
+                  }
+                : m
+            )
+          );
+        }
+      } catch {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === assistantId
+              ? { ...m, content: "Error: Failed to generate image" }
+              : m
+          )
+        );
+      }
+      setIsStreaming(false);
+    },
+    [chatId, imageSize]
+  );
+
   const sendMessage = useCallback(
     async (text: string) => {
       if ((!text.trim() && attachments.length === 0) || isStreaming || !selectedModel) return;
@@ -140,73 +244,20 @@ function ChatDetailContent() {
       if (imageMatch) {
         const prompt = imageMatch[1].trim();
         if (!prompt) return;
-
-        const userMsg: Message = {
-          id: crypto.randomUUID(),
-          role: "user",
-          content: `/image ${prompt}`,
-        };
-        setMessages((prev) => [...prev, userMsg]);
-        setInput("");
-        setIsStreaming(true);
-
-        const assistantId = crypto.randomUUID();
-        setMessages((prev) => [
-          ...prev,
-          { id: assistantId, role: "assistant", content: "Generating image…" },
-        ]);
-
-        try {
-          const res = await fetch("/api/image", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ chatId, prompt }),
-          });
-          if (!res.ok) {
-            const err = await res.json().catch(() => ({}));
-            const errorContent =
-              err.error === "Insufficient credits"
-                ? "Insufficient credits. [Deposit funds](/deposit) to continue."
-                : `Error: ${err.error || "Image generation failed"}`;
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === assistantId ? { ...m, content: errorContent } : m
-              )
-            );
-          } else {
-            const data = (await res.json()) as {
-              assistantMessage: {
-                id: string;
-                content: string;
-                cost_credits: number;
-                attachments: Attachment[];
-              };
-            };
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === assistantId
-                  ? {
-                      id: data.assistantMessage.id,
-                      role: "assistant",
-                      content: "",
-                      costCredits: data.assistantMessage.cost_credits,
-                      attachments: data.assistantMessage.attachments,
-                    }
-                  : m
-              )
-            );
-          }
-        } catch {
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === assistantId
-                ? { ...m, content: "Error: Failed to generate image" }
-                : m
-            )
-          );
-        }
-        setIsStreaming(false);
+        await runImageGeneration(prompt, `/image ${prompt}`);
         return;
+      }
+
+      // Auto-detect natural-language image requests when no attachments are
+      // present. Conservative regex — only fires on explicit verbs paired
+      // with explicit nouns (image/picture/photo/etc) so chat questions
+      // like "describe this picture" or "what's in this image" don't trigger.
+      if (attachments.length === 0) {
+        const detected = detectImageIntent(text.trim());
+        if (detected) {
+          await runImageGeneration(detected, text.trim());
+          return;
+        }
       }
 
       // Upload files first
@@ -234,6 +285,9 @@ function ChatDetailContent() {
         { id: assistantId, role: "assistant", content: "" },
       ]);
 
+      const controller = new AbortController();
+      abortRef.current = controller;
+
       try {
         const res = await fetch("/api/chat", {
           method: "POST",
@@ -246,6 +300,7 @@ function ChatDetailContent() {
             attachments: uploadedAttachments,
             style,
           }),
+          signal: controller.signal,
         });
 
         if (!res.ok) {
@@ -313,20 +368,32 @@ function ChatDetailContent() {
             }
           }
         }
-      } catch {
+      } catch (err) {
+        const aborted =
+          err instanceof DOMException && err.name === "AbortError";
         setMessages((prev) =>
           prev.map((m) =>
             m.id === assistantId
-              ? { ...m, content: "Error: Failed to get response" }
+              ? aborted
+                ? { ...m, content: m.content || "_(stopped)_" }
+                : { ...m, content: "Error: Failed to get response" }
               : m
           )
         );
+      } finally {
+        abortRef.current = null;
       }
 
       setIsStreaming(false);
     },
-    [chatId, isStreaming, selectedModel, attachments, style]
+    [chatId, isStreaming, selectedModel, attachments, style, runImageGeneration]
   );
+
+  const handleStop = useCallback(() => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setIsStreaming(false);
+  }, []);
 
   const handleOpenAsArtifact = useCallback(
     async (
@@ -387,6 +454,32 @@ function ChatDetailContent() {
     [messages, isStreaming, sendMessage]
   );
 
+  const handleRegenerateImage = useCallback(
+    (messageId: string) => {
+      if (isStreaming) return;
+      const idx = messages.findIndex((m) => m.id === messageId);
+      if (idx <= 0) return;
+
+      // Find the user message that produced this image — typically the
+      // immediately preceding message. Strip the /image prefix the API
+      // adds when it persists the prompt.
+      const prevUser = [...messages]
+        .slice(0, idx)
+        .reverse()
+        .find((m) => m.role === "user");
+      if (!prevUser) return;
+      const prompt = prevUser.content
+        .replace(/^\/(?:image|img)\s+/i, "")
+        .trim();
+      if (!prompt) return;
+
+      // Drop the existing assistant image so the regenerated one takes its place
+      setMessages((prev) => prev.filter((m) => m.id !== messageId));
+      runImageGeneration(prompt, `/image ${prompt}`);
+    },
+    [messages, isStreaming, runImageGeneration]
+  );
+
   const handleRegenerate = useCallback(() => {
     // Find the last user message and resend it
     const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
@@ -437,6 +530,7 @@ function ChatDetailContent() {
         messages={messages}
         isStreaming={isStreaming}
         onRegenerate={handleRegenerate}
+        onRegenerateImage={handleRegenerateImage}
         onEdit={handleEdit}
         onOpenArtifact={setOpenArtifactId}
         onOpenAsArtifact={handleOpenAsArtifact}
@@ -449,11 +543,15 @@ function ChatDetailContent() {
             onChange={setInput}
             onSend={() => sendMessage(input)}
             disabled={isStreaming}
+            isStreaming={isStreaming}
+            onStop={handleStop}
             attachments={attachments}
             onAttach={(files) => setAttachments((prev) => [...prev, ...files].slice(0, 5))}
             onRemoveAttachment={(i) => setAttachments((prev) => prev.filter((_, idx) => idx !== i))}
             style={style}
             onStyleChange={updateStyle}
+            imageSize={imageSize}
+            onImageSizeChange={updateImageSize}
           />
 
           {/* Status row — model picker + helper text */}

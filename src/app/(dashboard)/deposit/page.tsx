@@ -276,18 +276,14 @@ function DepositContent() {
           <CurrencyTab
             label="$ USD"
             active={currency === "USD"}
-            onClick={() => {
-              setCurrency("USD");
-              setAmount("");
-            }}
+            comingSoon
+            onClick={() => {}}
           />
           <CurrencyTab
             label="APAC"
             active={isApac(currency)}
-            onClick={() => {
-              if (!isApac(currency)) setCurrency("JPY");
-              setAmount("");
-            }}
+            comingSoon
+            onClick={() => {}}
           />
         </div>
 
@@ -377,12 +373,6 @@ function DepositContent() {
           ))}
         </div>
 
-        {isApac(currency) && (
-          <p className="text-[11px] text-text-tertiary leading-relaxed">
-            Processed securely by Stripe.
-          </p>
-        )}
-
         <Button
           size="lg"
           className="w-full"
@@ -396,8 +386,7 @@ function DepositContent() {
 
         <p className="flex items-center justify-center gap-1.5 text-[11px] font-medium text-text-tertiary">
           <ShieldCheck className="h-3 w-3" />
-          Payments secured by{" "}
-          {currency === "NGN" ? "Paystack" : "Stripe"} · funds custodied on-chain
+          Payments secured by Paystack · funds custodied on-chain
         </p>
       </section>
 
@@ -422,22 +411,36 @@ function CurrencyTab({
   label,
   active,
   onClick,
+  comingSoon,
 }: {
   label: string;
   active: boolean;
   onClick: () => void;
+  comingSoon?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
+      disabled={comingSoon}
+      aria-disabled={comingSoon || undefined}
+      title={comingSoon ? "Coming soon" : undefined}
       className={cn(
         "press flex-1 rounded-xl px-3 py-2 text-[13px] font-semibold transition-[background-color,color,box-shadow] duration-fast ease-out",
-        active
-          ? "bg-background text-foreground shadow-sm"
-          : "text-text-tertiary hover:text-foreground"
+        comingSoon
+          ? "cursor-not-allowed text-text-tertiary/60"
+          : active
+            ? "bg-background text-foreground shadow-sm"
+            : "text-text-tertiary hover:text-foreground"
       )}
     >
-      {label}
+      <span className="inline-flex items-center justify-center gap-1.5">
+        {label}
+        {comingSoon && (
+          <span className="rounded-full border border-border/70 bg-elevated/80 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-text-tertiary">
+            Soon
+          </span>
+        )}
+      </span>
     </button>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState } from "react";
-import { ArrowUp, ChevronDown, Paperclip, Sparkles, X } from "lucide-react";
+import { ArrowUp, ChevronDown, ImageIcon, Paperclip, Sparkles, Square, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CHAT_STYLES, type ChatStyle } from "@/lib/system-prompt";
 import {
@@ -11,16 +11,28 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+export type ImageSize = "1024x1024" | "1024x1792" | "1792x1024";
+
+export const IMAGE_SIZES: { id: ImageSize; label: string; hint: string }[] = [
+  { id: "1024x1024", label: "Square", hint: "1:1" },
+  { id: "1024x1792", label: "Portrait", hint: "9:16" },
+  { id: "1792x1024", label: "Landscape", hint: "16:9" },
+];
+
 interface ChatInputProps {
   value: string;
   onChange: (value: string) => void;
   onSend: () => void;
   disabled?: boolean;
+  isStreaming?: boolean;
+  onStop?: () => void;
   attachments?: File[];
   onAttach?: (files: File[]) => void;
   onRemoveAttachment?: (index: number) => void;
   style?: ChatStyle;
   onStyleChange?: (style: ChatStyle) => void;
+  imageSize?: ImageSize;
+  onImageSizeChange?: (size: ImageSize) => void;
 }
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -37,13 +49,19 @@ export function ChatInput({
   onChange,
   onSend,
   disabled,
+  isStreaming,
+  onStop,
   attachments = [],
   onAttach,
   onRemoveAttachment,
   style = "default",
   onStyleChange,
+  imageSize = "1024x1024",
+  onImageSizeChange,
 }: ChatInputProps) {
   const currentStyle = CHAT_STYLES.find((s) => s.id === style) ?? CHAT_STYLES[0];
+  const currentImageSize =
+    IMAGE_SIZES.find((s) => s.id === imageSize) ?? IMAGE_SIZES[0];
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -184,52 +202,96 @@ export function ChatInput({
           }}
         />
 
-        <button
-          aria-label="Send message"
-          onClick={onSend}
-          disabled={!canSend}
-          className={cn(
-            "press shrink-0 flex h-9 w-9 items-center justify-center rounded-full transition-[background-color,opacity,transform,box-shadow] duration-fast ease-out",
-            canSend
-              ? "bg-accent text-white shadow-sm hover:bg-accent-hover hover:shadow-md"
-              : "bg-surface text-text-tertiary opacity-60"
-          )}
-        >
-          <ArrowUp className="h-[18px] w-[18px]" />
-        </button>
+        {isStreaming && onStop ? (
+          <button
+            aria-label="Stop generating"
+            onClick={onStop}
+            className="press shrink-0 flex h-9 w-9 items-center justify-center rounded-full bg-foreground text-background shadow-sm hover:opacity-90 transition-[opacity,box-shadow] duration-fast ease-out"
+          >
+            <Square className="h-[14px] w-[14px] fill-current" />
+          </button>
+        ) : (
+          <button
+            aria-label="Send message"
+            onClick={onSend}
+            disabled={!canSend}
+            className={cn(
+              "press shrink-0 flex h-9 w-9 items-center justify-center rounded-full transition-[background-color,opacity,transform,box-shadow] duration-fast ease-out",
+              canSend
+                ? "bg-accent text-white shadow-sm hover:bg-accent-hover hover:shadow-md"
+                : "bg-surface text-text-tertiary opacity-60"
+            )}
+          >
+            <ArrowUp className="h-[18px] w-[18px]" />
+          </button>
+        )}
       </div>
 
-      {onStyleChange && (
-        <div className="flex items-center px-3 pb-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                className="press inline-flex h-7 items-center gap-1 rounded-full px-2 text-[12px] font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
-                aria-label="Choose response style"
-              >
-                <Sparkles className="h-3 w-3" />
-                {currentStyle.label}
-                <ChevronDown className="h-3 w-3" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-56">
-              {CHAT_STYLES.map((s) => (
-                <DropdownMenuItem
-                  key={s.id}
-                  onClick={() => onStyleChange(s.id)}
-                  className="flex flex-col items-start gap-0.5 py-2"
+      {(onStyleChange || onImageSizeChange) && (
+        <div className="flex items-center gap-1 px-3 pb-2">
+          {onStyleChange && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="press inline-flex h-7 items-center gap-1 rounded-full px-2 text-[12px] font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
+                  aria-label="Choose response style"
                 >
-                  <span className="text-[13px] font-medium text-foreground">
-                    {s.label}
-                  </span>
-                  <span className="text-[11px] text-text-tertiary">
-                    {s.description}
-                  </span>
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+                  <Sparkles className="h-3 w-3" />
+                  {currentStyle.label}
+                  <ChevronDown className="h-3 w-3" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-56">
+                {CHAT_STYLES.map((s) => (
+                  <DropdownMenuItem
+                    key={s.id}
+                    onClick={() => onStyleChange(s.id)}
+                    className="flex flex-col items-start gap-0.5 py-2"
+                  >
+                    <span className="text-[13px] font-medium text-foreground">
+                      {s.label}
+                    </span>
+                    <span className="text-[11px] text-text-tertiary">
+                      {s.description}
+                    </span>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+          {onImageSizeChange && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="press inline-flex h-7 items-center gap-1 rounded-full px-2 text-[12px] font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
+                  aria-label="Choose image aspect ratio"
+                  title="Aspect ratio for /image"
+                >
+                  <ImageIcon className="h-3 w-3" />
+                  {currentImageSize.hint}
+                  <ChevronDown className="h-3 w-3" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-44">
+                {IMAGE_SIZES.map((s) => (
+                  <DropdownMenuItem
+                    key={s.id}
+                    onClick={() => onImageSizeChange(s.id)}
+                    className="flex items-center justify-between gap-2 py-2"
+                  >
+                    <span className="text-[13px] font-medium text-foreground">
+                      {s.label}
+                    </span>
+                    <span className="text-[11px] text-text-tertiary">
+                      {s.hint}
+                    </span>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       )}
     </div>

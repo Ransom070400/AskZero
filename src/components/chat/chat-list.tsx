@@ -8,6 +8,7 @@ interface ChatListProps {
   messages: Message[];
   isStreaming?: boolean;
   onRegenerate?: () => void;
+  onRegenerateImage?: (messageId: string) => void;
   onEdit?: (messageId: string, newContent: string) => void;
   onOpenArtifact?: (artifactId: string) => void;
   onOpenAsArtifact?: (
@@ -16,7 +17,7 @@ interface ChatListProps {
   ) => void;
 }
 
-export function ChatList({ messages, isStreaming, onRegenerate, onEdit, onOpenArtifact, onOpenAsArtifact }: ChatListProps) {
+export function ChatList({ messages, isStreaming, onRegenerate, onRegenerateImage, onEdit, onOpenArtifact, onOpenAsArtifact }: ChatListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -33,6 +34,7 @@ export function ChatList({ messages, isStreaming, onRegenerate, onEdit, onOpenAr
             isLast={i === messages.length - 1}
             isStreaming={isStreaming}
             onRegenerate={!isStreaming ? onRegenerate : undefined}
+            onRegenerateImage={!isStreaming ? onRegenerateImage : undefined}
             onEdit={!isStreaming ? onEdit : undefined}
             onOpenArtifact={onOpenArtifact}
             onOpenAsArtifact={onOpenAsArtifact}
