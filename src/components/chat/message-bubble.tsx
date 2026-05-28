@@ -6,7 +6,7 @@ import rehypeHighlight from "rehype-highlight";
 import rehypeKatex from "rehype-katex";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
-import { Copy, Check, Download, ExternalLink, FileText, FileCode, Pencil, RotateCw, X } from "lucide-react";
+import { Copy, Check, Download, ExternalLink, FileText, FileCode, History, Pencil, RotateCw, X } from "lucide-react";
 import { MermaidBlock } from "./mermaid-block";
 
 interface PreContextValue {
@@ -25,6 +25,7 @@ export interface Attachment {
   size: number;
   path: string;
   url: string;
+  extractedText?: string;
 }
 
 export interface ArtifactRef {
@@ -41,6 +42,9 @@ export interface Message {
   costCredits?: number | null;
   attachments?: Attachment[];
   artifacts?: ArtifactRef[];
+  // Set when this message was created by editing a previous user message.
+  // The "view previous version" button surfaces the superseded thread.
+  replacesId?: string;
 }
 
 function ActionButton({
@@ -207,6 +211,35 @@ export function MessageBubble({
   const isUser = message.role === "user";
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState("");
+  const [showPrev, setShowPrev] = useState(false);
+  const [prevMessages, setPrevMessages] = useState<
+    | {
+        id: string;
+        role: string;
+        content: string;
+        metadata?: { attachments?: Attachment[] };
+      }[]
+    | null
+  >(null);
+  const [loadingPrev, setLoadingPrev] = useState(false);
+
+  const fetchPrev = async () => {
+    if (!message.replacesId || prevMessages) {
+      setShowPrev((s) => !s);
+      return;
+    }
+    setLoadingPrev(true);
+    try {
+      const res = await fetch(`/api/messages/${message.replacesId}/history`);
+      if (res.ok) {
+        const data = await res.json();
+        setPrevMessages(data.messages || []);
+        setShowPrev(true);
+      }
+    } finally {
+      setLoadingPrev(false);
+    }
+  };
 
   if (isUser) {
     const images = message.attachments?.filter((a) => a.type.startsWith("image/")) || [];
@@ -260,7 +293,40 @@ export function MessageBubble({
     }
 
     return (
-      <div className="group/user flex flex-col items-end">
+      <div id={`msg-${message.id}`} className="group/user flex flex-col items-end scroll-mt-20">
+        {showPrev && prevMessages && prevMessages.length > 0 && (
+          <div className="mb-2 w-full max-w-[85%] md:max-w-[72%] space-y-2 rounded-2xl border border-dashed border-border/70 bg-surface/60 p-3">
+            <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.12em] text-text-tertiary">
+              <span className="flex items-center gap-1.5">
+                <History className="h-3 w-3" /> Previous version
+              </span>
+              <button
+                onClick={() => setShowPrev(false)}
+                aria-label="Hide previous version"
+                className="press inline-flex h-5 w-5 items-center justify-center rounded-md hover:bg-elevated hover:text-foreground transition-colors"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+            {prevMessages.map((pm) => (
+              <div
+                key={pm.id}
+                className={
+                  pm.role === "user"
+                    ? "rounded-xl bg-elevated/60 px-3 py-2 text-[13px] leading-relaxed text-text-secondary whitespace-pre-wrap"
+                    : "rounded-xl px-3 py-2 text-[13px] leading-relaxed text-text-secondary whitespace-pre-wrap"
+                }
+              >
+                {pm.role !== "user" && (
+                  <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
+                    Assistant
+                  </span>
+                )}
+                {pm.content || <em className="text-text-tertiary">(empty)</em>}
+              </div>
+            ))}
+          </div>
+        )}
         <div className="relative max-w-[85%] md:max-w-[72%] rounded-3xl rounded-br-lg bg-elevated border border-border/60 px-5 py-3 shadow-sm">
           {message.content && (
             <p className="text-[15px] leading-relaxed whitespace-pre-wrap text-foreground">
@@ -301,19 +367,32 @@ export function MessageBubble({
             </div>
           )}
         </div>
-        {onEdit && message.content && (
+        {(onEdit || message.replacesId) && message.content && (
           <div className="mt-1 flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover/user:opacity-100 transition-opacity duration-base ease-out">
-            <button
-              onClick={() => {
-                setEditValue(message.content);
-                setEditing(true);
-              }}
-              aria-label="Edit message"
-              className="press inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
-            >
-              <Pencil className="h-3.5 w-3.5" />
-              Edit
-            </button>
+            {onEdit && (
+              <button
+                onClick={() => {
+                  setEditValue(message.content);
+                  setEditing(true);
+                }}
+                aria-label="Edit message"
+                className="press inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                Edit
+              </button>
+            )}
+            {message.replacesId && (
+              <button
+                onClick={fetchPrev}
+                disabled={loadingPrev}
+                aria-label={showPrev ? "Hide previous version" : "View previous version"}
+                className="press inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out disabled:opacity-50"
+              >
+                <History className="h-3.5 w-3.5" />
+                {loadingPrev ? "Loading…" : showPrev ? "Hide previous" : "Previous version"}
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -325,7 +404,7 @@ export function MessageBubble({
     message.attachments?.filter((a) => a.type.startsWith("image/")) ?? [];
 
   return (
-    <div className="group">
+    <div id={`msg-${message.id}`} className="group scroll-mt-20">
       <div
         className="prose prose-sm dark:prose-invert max-w-none text-[15px] leading-[1.7] text-foreground
           [&_p]:my-3

@@ -96,16 +96,54 @@ function ChatDetailContent() {
       .catch(() => {});
   }, []);
 
-  // Load existing messages (last 100 for performance) + their artifacts
+  // The active model's vision capability — drives the input gate and the
+  // image-attachment cleanup when the user switches to a text-only model.
+  const activeModelSupportsImages = (() => {
+    if (!selectedModel) return true; // permissive until we know
+    const found = models.find(
+      (m) =>
+        m.provider === selectedModel.provider && m.model === selectedModel.model
+    );
+    return found?.supportsImages ?? false;
+  })();
+
+  // If the user picks a text-only model while images are queued, drop them
+  // — sending them would just trigger an upstream 400.
+  useEffect(() => {
+    if (activeModelSupportsImages) return;
+    setAttachments((prev) => {
+      const filtered = prev.filter((f) => !f.type.startsWith("image/"));
+      return filtered.length === prev.length ? prev : filtered;
+    });
+  }, [activeModelSupportsImages]);
+
+  // Load existing messages (last 100 for performance) + their artifacts.
+  // Hides soft-deleted rows (replaced via edit) — those are still in the DB
+  // and reachable via the "view previous version" UI. Falls back to the
+  // legacy schema (no deleted_at / replaces_id) when the edit-branches
+  // migration hasn't been applied yet.
   useEffect(() => {
     const supabase = createClient();
-    Promise.all([
-      supabase
+    const loadMessages = async () => {
+      const primary = await supabase
         .from("messages")
-        .select("id, role, content, token_count, cost_credits, metadata")
+        .select("id, role, content, token_count, cost_credits, metadata, replaces_id")
         .eq("chat_id", chatId)
+        .is("deleted_at", null)
         .order("created_at", { ascending: true })
-        .limit(100),
+        .limit(100);
+      if (primary.error?.code === "42703") {
+        return supabase
+          .from("messages")
+          .select("id, role, content, token_count, cost_credits, metadata")
+          .eq("chat_id", chatId)
+          .order("created_at", { ascending: true })
+          .limit(100);
+      }
+      return primary;
+    };
+    Promise.all([
+      loadMessages(),
       supabase
         .from("artifacts")
         .select("id, message_id, type, title")
@@ -119,6 +157,7 @@ function ChatDetailContent() {
             token_count: number | null;
             cost_credits: number | null;
             metadata?: { attachments?: Attachment[] };
+            replaces_id?: string | null;
           }[]
         | null;
       const arts = (artRes.data ?? []) as {
@@ -143,6 +182,7 @@ function ChatDetailContent() {
             costCredits: m.cost_credits,
             attachments: m.metadata?.attachments,
             artifacts: byMessage.get(m.id),
+            replacesId: m.replaces_id ?? undefined,
           }))
         );
       }
@@ -236,7 +276,7 @@ function ChatDetailContent() {
   );
 
   const sendMessage = useCallback(
-    async (text: string) => {
+    async (text: string, opts: { replacesId?: string } = {}) => {
       if ((!text.trim() && attachments.length === 0) || isStreaming || !selectedModel) return;
 
       // Slash command: /image <prompt> | /img <prompt>
@@ -274,6 +314,7 @@ function ChatDetailContent() {
         role: "user",
         content: text.trim(),
         attachments: uploadedAttachments.length > 0 ? uploadedAttachments : undefined,
+        replacesId: opts.replacesId,
       };
       setMessages((prev) => [...prev, userMsg]);
       setInput("");
@@ -299,16 +340,24 @@ function ChatDetailContent() {
             provider: selectedModel!.provider,
             attachments: uploadedAttachments,
             style,
+            replacesId: opts.replacesId,
           }),
           signal: controller.signal,
         });
 
         if (!res.ok) {
           const err = await res.json();
-          const errorContent =
-            err.error === "Insufficient credits"
-              ? "Insufficient credits. [Deposit funds](/deposit) to continue."
-              : `Error: ${err.error || "Something went wrong"}`;
+          const raw = String(err.error || "");
+          let errorContent: string;
+          if (raw === "Insufficient credits") {
+            errorContent =
+              "Insufficient credits. [Deposit funds](/deposit) to continue.";
+          } else if (/not a multimodal model/i.test(raw)) {
+            errorContent =
+              "This model can't read images — pick a multimodal model from the picker, or remove the image attachments.";
+          } else {
+            errorContent = `Error: ${raw || "Something went wrong"}`;
+          }
           setMessages((prev) =>
             prev.map((m) =>
               m.id === assistantId ? { ...m, content: errorContent } : m
@@ -435,21 +484,22 @@ function ChatDetailContent() {
       const idx = messages.findIndex((m) => m.id === messageId);
       if (idx < 0) return;
 
-      // Local ids and DB ids diverge: optimistic messages get a client UUID
-      // that never matches the row Supabase generates, so a delete-by-id only
-      // hits DB rows that were loaded from the server originally. That's fine
-      // for the common case (editing a message after reload). Stale orphan
-      // rows from the same session will surface on next page load.
-      const tailIds = messages.slice(idx).map((m) => m.id);
-
+      // Soft-delete the original user message and its downstream tail via
+      // RPC, then attach the new message to it via replaces_id. Old branches
+      // stay in the DB so the UI can offer "view previous version".
+      // Optimistic-only messages (client UUIDs never persisted) are dropped
+      // locally; nothing to soft-delete server-side for those.
       setMessages((prev) => prev.slice(0, idx));
 
       const supabase = createClient();
-      if (tailIds.length > 0) {
-        await supabase.from("messages").delete().in("id", tailIds);
+      const { error } = await supabase.rpc("supersede_message", {
+        p_message_id: messageId,
+      });
+      if (error) {
+        console.error("supersede_message failed:", error);
       }
 
-      sendMessage(newContent);
+      sendMessage(newContent, { replacesId: messageId });
     },
     [messages, isStreaming, sendMessage]
   );
@@ -518,6 +568,28 @@ function ChatDetailContent() {
     }
   }, [searchParams, sendMessage, selectedModel]);
 
+  // Deep-link from sidebar search: scroll the targeted message into view
+  // once it's actually rendered, then briefly flash it. We retry on a few
+  // frames because messages load async and the hash exists before the DOM.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const hash = window.location.hash;
+    if (!hash.startsWith("#msg-")) return;
+    if (messages.length === 0) return;
+    const id = hash.slice(1);
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.classList.add("ring-2", "ring-accent/60", "rounded-2xl");
+    // Drop the hash so subsequent renders don't keep suppressing
+    // the bottom-scroll behavior in <ChatList>.
+    history.replaceState(null, "", window.location.pathname + window.location.search);
+    const t = setTimeout(() => {
+      el.classList.remove("ring-2", "ring-accent/60", "rounded-2xl");
+    }, 1600);
+    return () => clearTimeout(t);
+  }, [messages.length]);
+
   return (
     <div className="flex h-full">
       <div
@@ -552,6 +624,7 @@ function ChatDetailContent() {
             onStyleChange={updateStyle}
             imageSize={imageSize}
             onImageSizeChange={updateImageSize}
+            allowImages={activeModelSupportsImages}
           />
 
           {/* Status row — model picker + helper text */}

@@ -42,6 +42,10 @@ export async function POST(req: NextRequest) {
   const provider = body.provider;
   const attachments = body.attachments || [];
   const style = (body.style as ChatStyle | undefined) ?? "default";
+  const replacesId =
+    typeof body.replacesId === "string" && body.replacesId.length > 0
+      ? body.replacesId
+      : null;
 
   const hasAttachments = attachments.length > 0;
   if (!hasAttachments) {
@@ -85,6 +89,7 @@ export async function POST(req: NextRequest) {
     content: message,
     token_count: estimateTokens(message),
     metadata,
+    ...(replacesId ? { replaces_id: replacesId } : {}),
   });
 
   if (insertError) {
@@ -94,25 +99,68 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Load conversation history
-  const { data: history } = await supabase
-    .from("messages")
-    .select("role, content, metadata")
-    .eq("chat_id", chatId)
-    .order("created_at", { ascending: true })
-    .limit(50);
+  // Load conversation history (active branch only — soft-deleted edit
+  // branches stay in the DB but are excluded from the model context).
+  // Falls back without the deleted_at filter if the column isn't there
+  // yet (i.e. the 20260520010000_message_edit_branches.sql migration
+  // hasn't been applied) — otherwise the silent failure would send the
+  // model an empty conversation and yield generic-looking replies.
+  let history: { role: string; content: string; metadata?: { attachments?: { name?: string; type: string; url: string; extractedText?: string }[] } }[] | null = null;
+  {
+    const primary = await supabase
+      .from("messages")
+      .select("role, content, metadata")
+      .eq("chat_id", chatId)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: true })
+      .limit(50);
+
+    if (primary.error?.code === "42703") {
+      const fallback = await supabase
+        .from("messages")
+        .select("role, content, metadata")
+        .eq("chat_id", chatId)
+        .order("created_at", { ascending: true })
+        .limit(50);
+      history = fallback.data;
+    } else {
+      history = primary.data;
+    }
+  }
 
   const historyMessages = (history || []).map(
-    (m: { role: string; content: string; metadata?: { attachments?: { type: string; url: string }[] } }) => {
-      const imgAtts = (m.metadata?.attachments || []).filter((a) =>
-        a.type.startsWith("image/")
+    (m: {
+      role: string;
+      content: string;
+      metadata?: {
+        attachments?: { name?: string; type: string; url: string; extractedText?: string }[];
+      };
+    }) => {
+      const atts = m.metadata?.attachments || [];
+      const imgAtts = atts.filter((a) => a.type.startsWith("image/"));
+      const pdfAtts = atts.filter(
+        (a) => a.type === "application/pdf" && a.extractedText
       );
+
+      // Inline PDF text into the user content so the model can read it.
+      let textContent = m.content;
+      if (pdfAtts.length > 0 && m.role === "user") {
+        const pdfBlocks = pdfAtts
+          .map(
+            (a) =>
+              `[Attached PDF: ${a.name || "document.pdf"}]\n${a.extractedText}`
+          )
+          .join("\n\n");
+        textContent = textContent
+          ? `${textContent}\n\n${pdfBlocks}`
+          : pdfBlocks;
+      }
 
       if (imgAtts.length > 0 && m.role === "user") {
         return {
           role: m.role as "user" | "assistant" | "system",
           content: [
-            { type: "text" as const, text: m.content },
+            { type: "text" as const, text: textContent },
             ...imgAtts.map((a) => ({
               type: "image_url" as const,
               image_url: { url: a.url },
@@ -123,7 +171,7 @@ export async function POST(req: NextRequest) {
 
       return {
         role: m.role as "user" | "assistant" | "system",
-        content: m.content,
+        content: textContent,
       };
     }
   );

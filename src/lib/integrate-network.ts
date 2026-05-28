@@ -10,6 +10,10 @@ export interface IntegrateModel {
   // On-chain wholesale rates from the provider's /v1/models listing,
   // in neuron-per-token. 1 0G = 1e18 neuron.
   wholesaleNeuron: { input: number; output: number };
+  // True only for vision-capable models. GLM 5.1 returns
+  // "not a multimodal model" (400) when sent image_url parts, so we
+  // gate image attachments client-side based on this flag.
+  supportsImages: boolean;
 }
 
 export const INTEGRATE_PREFIX = "integrate:";
@@ -22,6 +26,7 @@ function rawManifest(): Omit<IntegrateModel, "baseUrl" | "apiKey">[] {
       description: "Zhipu · 0G mainnet · TEE-verified",
       upstreamModel: "glm-5.1-fp8",
       wholesaleNeuron: { input: 934_000_000_000, output: 7_800_000_000_000 },
+      supportsImages: false,
     },
   ];
 }

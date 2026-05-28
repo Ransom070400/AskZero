@@ -21,6 +21,14 @@ export function ChatList({ messages, isStreaming, onRegenerate, onRegenerateImag
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Don't yank the viewport to the bottom on initial load when the user
+    // arrived via a deep-link to a specific message (sidebar search hit).
+    if (
+      typeof window !== "undefined" &&
+      window.location.hash.startsWith("#msg-")
+    ) {
+      return;
+    }
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isStreaming]);
 

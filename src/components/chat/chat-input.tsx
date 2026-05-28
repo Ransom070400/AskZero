@@ -33,16 +33,19 @@ interface ChatInputProps {
   onStyleChange?: (style: ChatStyle) => void;
   imageSize?: ImageSize;
   onImageSizeChange?: (size: ImageSize) => void;
+  // When false, images are filtered from attempted attachments and the
+  // UI hints that the active model is text-only.
+  allowImages?: boolean;
 }
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
-const ALLOWED_TYPES = [
+const IMAGE_TYPES = [
   "image/jpeg",
   "image/png",
   "image/gif",
   "image/webp",
-  "application/pdf",
 ];
+const ALL_ALLOWED_TYPES = [...IMAGE_TYPES, "application/pdf"];
 
 export function ChatInput({
   value,
@@ -58,6 +61,7 @@ export function ChatInput({
   onStyleChange,
   imageSize = "1024x1024",
   onImageSizeChange,
+  allowImages = true,
 }: ChatInputProps) {
   const currentStyle = CHAT_STYLES.find((s) => s.id === style) ?? CHAT_STYLES[0];
   const currentImageSize =
@@ -66,6 +70,14 @@ export function ChatInput({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const [focused, setFocused] = useState(false);
+  const [rejectedImage, setRejectedImage] = useState(false);
+
+  const allowedTypes = allowImages
+    ? ALL_ALLOWED_TYPES
+    : ALL_ALLOWED_TYPES.filter((t) => !t.startsWith("image/"));
+  const accept = allowImages
+    ? "image/jpeg,image/png,image/gif,image/webp,application/pdf"
+    : "application/pdf";
 
   useEffect(() => {
     const el = textareaRef.current;
@@ -85,9 +97,16 @@ export function ChatInput({
 
   const addFiles = (files: FileList | File[]) => {
     if (!onAttach) return;
-    const valid = Array.from(files).filter(
-      (f) => f.size <= MAX_FILE_SIZE && ALLOWED_TYPES.includes(f.type)
+    const all = Array.from(files);
+    const valid = all.filter(
+      (f) => f.size <= MAX_FILE_SIZE && allowedTypes.includes(f.type)
     );
+    const droppedImage =
+      !allowImages && all.some((f) => f.type.startsWith("image/"));
+    if (droppedImage) {
+      setRejectedImage(true);
+      setTimeout(() => setRejectedImage(false), 3200);
+    }
     if (valid.length > 0) onAttach(valid);
   };
 
@@ -194,7 +213,7 @@ export function ChatInput({
           ref={fileInputRef}
           type="file"
           className="hidden"
-          accept="image/jpeg,image/png,image/gif,image/webp,application/pdf"
+          accept={accept}
           multiple
           onChange={(e) => {
             if (e.target.files) addFiles(e.target.files);
@@ -226,6 +245,12 @@ export function ChatInput({
           </button>
         )}
       </div>
+
+      {rejectedImage && (
+        <div className="px-4 pb-2 text-[11.5px] font-medium text-warning">
+          This model doesn&apos;t support images — switch to a multimodal model to attach pictures.
+        </div>
+      )}
 
       {(onStyleChange || onImageSizeChange) && (
         <div className="flex items-center gap-1 px-3 pb-2">

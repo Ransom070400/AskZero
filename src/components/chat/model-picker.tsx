@@ -15,6 +15,7 @@ export interface ModelOption {
   model: string;
   label: string;
   description?: string;
+  supportsImages?: boolean;
 }
 
 interface ProviderGroup {

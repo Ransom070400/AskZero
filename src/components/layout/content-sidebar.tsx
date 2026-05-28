@@ -21,6 +21,15 @@ interface Chat {
   updated_at: string;
 }
 
+interface SearchHit {
+  message_id: string;
+  chat_id: string;
+  chat_title: string;
+  role: "user" | "assistant" | "system";
+  snippet: string;
+  created_at: string;
+}
+
 function groupChatsByDate(chats: Chat[]) {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -112,12 +121,85 @@ function FooterLink({
   );
 }
 
+// ts_headline produces <mark>…</mark> spans — render them as styled
+// highlights without using dangerouslySetInnerHTML by walking the string.
+function HighlightedSnippet({ html }: { html: string }) {
+  const parts = html.split(/(<mark>[\s\S]*?<\/mark>)/g);
+  return (
+    <span className="text-text-secondary">
+      {parts.map((p, i) => {
+        const m = p.match(/^<mark>([\s\S]*?)<\/mark>$/);
+        if (m) {
+          return (
+            <mark
+              key={i}
+              className="rounded-sm bg-accent-muted px-0.5 text-foreground"
+            >
+              {m[1]}
+            </mark>
+          );
+        }
+        return <span key={i}>{p}</span>;
+      })}
+    </span>
+  );
+}
+
+function MessageHits({
+  hits,
+  loading,
+  chatId,
+}: {
+  hits: SearchHit[];
+  loading: boolean;
+  chatId: string;
+}) {
+  if (loading && hits.length === 0) {
+    return (
+      <p className="px-3 py-2 text-[11px] uppercase tracking-[0.12em] text-text-tertiary">
+        Searching…
+      </p>
+    );
+  }
+  if (hits.length === 0) return null;
+  return (
+    <div className="border-b border-border/40 pb-3 mb-2">
+      <p className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-text-tertiary">
+        Messages · {hits.length}
+      </p>
+      <div className="space-y-px">
+        {hits.map((h) => (
+          <Link
+            key={h.message_id}
+            href={`/chat/${h.chat_id}#msg-${h.message_id}`}
+            className={cn(
+              "block rounded-lg px-3 py-1.5 text-[12px] transition-colors duration-fast ease-out hover:bg-elevated",
+              chatId === `/chat/${h.chat_id}`
+                ? "bg-accent-muted/60"
+                : ""
+            )}
+          >
+            <div className="truncate text-[12px] font-semibold text-foreground">
+              {h.chat_title || "Untitled chat"}
+            </div>
+            <div className="line-clamp-2 text-[11.5px] leading-snug">
+              <HighlightedSnippet html={h.snippet} />
+            </div>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function ContentSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [chats, setChats] = useState<Chat[]>([]);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [query, setQuery] = useState("");
+  const [hits, setHits] = useState<SearchHit[]>([]);
+  const [searching, setSearching] = useState(false);
 
   const fetchChats = useCallback(async () => {
     try {
@@ -134,6 +216,39 @@ export function ContentSidebar() {
   useEffect(() => {
     fetchChats();
   }, [fetchChats, pathname]);
+
+  // Debounced full-text search over message content. Title matching stays
+  // local (instant) while content matching hits the server.
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length < 2) {
+      setHits([]);
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
+    const controller = new AbortController();
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `/api/search?q=${encodeURIComponent(q)}`,
+          { signal: controller.signal }
+        );
+        if (res.ok) {
+          const data = await res.json();
+          setHits(data.results || []);
+        }
+      } catch {
+        // ignore aborts and transient errors
+      } finally {
+        setSearching(false);
+      }
+    }, 220);
+    return () => {
+      controller.abort();
+      clearTimeout(t);
+    };
+  }, [query]);
 
   const handleDelete = async (e: React.MouseEvent, chatId: string) => {
     e.preventDefault();
@@ -193,6 +308,9 @@ export function ContentSidebar() {
 
       {/* Chat list */}
       <div className="flex-1 overflow-y-auto px-2">
+        {query.trim().length >= 2 && (
+          <MessageHits hits={hits} loading={searching} chatId={pathname} />
+        )}
         <div className="space-y-5 py-1">
           {Object.entries(grouped).map(([label, dateChats]) => {
             const isCollapsed = collapsed[label];

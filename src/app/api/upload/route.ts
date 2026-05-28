@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
+export const runtime = "nodejs";
+
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_TYPES = [
   "image/jpeg",
@@ -9,6 +11,29 @@ const ALLOWED_TYPES = [
   "image/webp",
   "application/pdf",
 ];
+
+// Cap extracted PDF text to avoid blowing up the prompt — ~50k chars ≈ 12k tokens.
+const MAX_PDF_TEXT_CHARS = 50_000;
+
+async function extractPdfText(buffer: ArrayBuffer): Promise<string | null> {
+  try {
+    const { PDFParse } = await import("pdf-parse");
+    const parser = new PDFParse({ data: new Uint8Array(buffer) });
+    try {
+      const result = await parser.getText();
+      const text = (result.text || "").trim();
+      if (!text) return null;
+      return text.length > MAX_PDF_TEXT_CHARS
+        ? text.slice(0, MAX_PDF_TEXT_CHARS) + "\n\n[…truncated]"
+        : text;
+    } finally {
+      await parser.destroy().catch(() => {});
+    }
+  } catch (err) {
+    console.error("PDF extraction failed:", err);
+    return null;
+  }
+}
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -69,11 +94,17 @@ export async function POST(req: NextRequest) {
     data: { publicUrl },
   } = supabase.storage.from("chat-attachments").getPublicUrl(path);
 
+  let extractedText: string | null = null;
+  if (file.type === "application/pdf") {
+    extractedText = await extractPdfText(arrayBuffer);
+  }
+
   return NextResponse.json({
     url: publicUrl,
     path,
     name: file.name,
     type: file.type,
     size: file.size,
+    ...(extractedText ? { extractedText } : {}),
   });
 }
