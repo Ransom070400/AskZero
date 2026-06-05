@@ -279,6 +279,17 @@ function ChatDetailContent() {
     async (text: string, opts: { replacesId?: string } = {}) => {
       if ((!text.trim() && attachments.length === 0) || isStreaming || !selectedModel) return;
 
+      // Picker-selected image model: every plain prompt becomes an image
+      // generation request. Strip an optional /image prefix so the slash
+      // command still feels natural when this model is active.
+      if (selectedModel.provider.startsWith("image:")) {
+        const prompt = text.trim().replace(/^\/(?:image|img)\s+/i, "");
+        if (!prompt) return;
+        if (attachments.length > 0) setAttachments([]);
+        await runImageGeneration(prompt, `/image ${prompt}`);
+        return;
+      }
+
       // Slash command: /image <prompt> | /img <prompt>
       const imageMatch = text.trim().match(/^\/(?:image|img)\s+([\s\S]+)$/i);
       if (imageMatch) {

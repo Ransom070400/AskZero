@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ChevronDown, Sparkles } from "lucide-react";
+import { Check, ChevronDown, ImageIcon, Sparkles } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,39 +16,53 @@ export interface ModelOption {
   label: string;
   description?: string;
   supportsImages?: boolean;
+  kind?: "chat" | "image";
 }
 
+type GroupKey = "integrate" | "image" | "og";
+
 interface ProviderGroup {
-  key: "integrate" | "og";
+  key: GroupKey;
   label: string;
   hint: string;
   models: ModelOption[];
 }
 
-function providerKey(provider: string): "integrate" | "og" {
-  return provider.toLowerCase().startsWith("integrate") ? "integrate" : "og";
+function providerKey(provider: string): GroupKey {
+  const p = provider.toLowerCase();
+  if (p.startsWith("image")) return "image";
+  if (p.startsWith("integrate")) return "integrate";
+  return "og";
 }
 
+const GROUP_ORDER: GroupKey[] = ["integrate", "image", "og"];
+
 function groupModels(models: ModelOption[]): ProviderGroup[] {
-  const groups = new Map<ProviderGroup["key"], ProviderGroup>();
+  const groups = new Map<GroupKey, ProviderGroup>();
   for (const m of models) {
     const key = providerKey(m.provider);
     if (!groups.has(key)) {
       groups.set(key, {
         key,
-        label: key === "integrate" ? "Integrate Network" : "0G Compute",
+        label:
+          key === "integrate"
+            ? "Integrate Network"
+            : key === "image"
+              ? "Image generation"
+              : "0G Compute",
         hint:
           key === "integrate"
             ? "Mainnet · TEE-verified inference"
-            : "Decentralized providers",
+            : key === "image"
+              ? "Text-to-image · prompt becomes an image"
+              : "Decentralized providers",
         models: [],
       });
     }
     groups.get(key)!.models.push(m);
   }
-  // Stable, opinionated ordering: Integrate first (it's the curated tier).
-  return Array.from(groups.values()).sort((a, b) =>
-    a.key === "integrate" ? -1 : b.key === "integrate" ? 1 : 0
+  return Array.from(groups.values()).sort(
+    (a, b) => GROUP_ORDER.indexOf(a.key) - GROUP_ORDER.indexOf(b.key)
   );
 }
 
@@ -56,11 +70,11 @@ function avatarLetter(label: string): string {
   return (label.match(/[A-Za-z0-9]/)?.[0] ?? "?").toUpperCase();
 }
 
-function avatarClass(key: ProviderGroup["key"], active: boolean): string {
+function avatarClass(key: GroupKey, active: boolean): string {
   if (active) return "bg-accent text-white";
-  return key === "integrate"
-    ? "bg-accent-muted text-accent"
-    : "bg-elevated text-text-secondary";
+  if (key === "integrate") return "bg-accent-muted text-accent";
+  if (key === "image") return "bg-purple-500/15 text-purple-500";
+  return "bg-elevated text-text-secondary";
 }
 
 export function ModelPicker({
@@ -94,7 +108,11 @@ export function ModelPicker({
                 avatarClass(activeKey, false)
               )}
             >
-              {avatarLetter(active.label)}
+              {activeKey === "image" ? (
+                <ImageIcon className="h-3 w-3" />
+              ) : (
+                avatarLetter(active.label)
+              )}
             </span>
           ) : (
             <span className="ml-1 inline-flex h-6 w-6 items-center justify-center rounded-full bg-accent-muted text-accent">
@@ -140,7 +158,11 @@ export function ModelPicker({
                       avatarClass(group.key, isActive)
                     )}
                   >
-                    {avatarLetter(m.label)}
+                    {group.key === "image" ? (
+                      <ImageIcon className="h-3.5 w-3.5" />
+                    ) : (
+                      avatarLetter(m.label)
+                    )}
                   </span>
                   <div className="flex min-w-0 flex-1 flex-col items-start gap-0.5">
                     <span

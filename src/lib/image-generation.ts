@@ -17,6 +17,8 @@ export interface ImageGenResult {
 const DEFAULT_SIZE = "1024x1024";
 const DEFAULT_CONTENT_TYPE = "image/png";
 
+export const IMAGE_PREFIX = "image:";
+
 export function imageGenCostCredits(): number {
   const raw = process.env.Z_IMAGE_COST_CREDITS;
   const parsed = raw ? parseInt(raw, 10) : NaN;
@@ -27,6 +29,24 @@ export function isImageGenConfigured(): boolean {
   const url = process.env.Z_IMAGE_URL ?? process.env.INTEGRATE_NETWORK_URL;
   const key = process.env.Z_IMAGE_KEY ?? process.env.INTEGRATE_NETWORK_KEY;
   return Boolean(url && key);
+}
+
+export interface ImageModel {
+  id: string;
+  label: string;
+  description: string;
+}
+
+export function listImageModels(): ImageModel[] {
+  if (!isImageGenConfigured()) return [];
+  const model = process.env.Z_IMAGE_MODEL ?? "z-image-turbo";
+  return [
+    {
+      id: model,
+      label: "Z-Image Turbo",
+      description: "Z.AI text-to-image · square / portrait / landscape",
+    },
+  ];
 }
 
 export async function generateImage(input: ImageGenInput): Promise<ImageGenResult> {
