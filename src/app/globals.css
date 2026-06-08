@@ -133,7 +133,14 @@
   html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    scroll-behavior: smooth;
+  }
+  /* Lock the page itself so only inner scroll surfaces move — kills the
+     iOS rubber-band "bounce" of the whole app. scroll-behavior is NOT set
+     globally on purpose: smooth scrolling is opted into per-call (e.g. the
+     chat auto-scroll) so background scrolls don't glide and feel bouncy. */
+  html, body {
+    height: 100%;
+    overscroll-behavior: none;
   }
   body {
     @apply bg-background text-foreground;
@@ -142,6 +149,16 @@
     letter-spacing: -0.014em;
     font-weight: 400;
     text-rendering: optimizeLegibility;
+  }
+  /* Respect users who ask for less motion — disables entrance animations,
+     transitions, and smooth scrolling. */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;

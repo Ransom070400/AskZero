@@ -59,13 +59,13 @@ export function ChatList({ messages, isStreaming, onRegenerate, onRegenerateImag
         onScroll={updateAtBottom}
         className="h-full overflow-y-auto overscroll-contain"
       >
-        <div className="mx-auto max-w-chat space-y-4 md:space-y-6 px-3 md:px-4 py-4">
+        <div className="mx-auto max-w-chat space-y-4 md:space-y-6 px-4 py-4">
           {messages.map((msg, i) => {
             const isLast = i === messages.length - 1;
             return (
               <div
                 key={msg.id}
-                className={isLast ? "animate-in fade-in-0 slide-in-from-bottom-2 duration-300 ease-out" : undefined}
+                className={isLast ? "animate-in fade-in-0 duration-200 ease-out" : undefined}
               >
                 <MessageBubble
                   message={msg}
