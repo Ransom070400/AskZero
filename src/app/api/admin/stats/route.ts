@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { ethers } from "ethers";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 // Add admin emails here
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "").split(",").map((e) => e.trim()).filter(Boolean);
@@ -15,23 +16,37 @@ export async function GET() {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  // Fetch stats
+  // These are platform-wide aggregates, so they must run with the
+  // service-role client. The RLS policies scope every table to the caller's
+  // own rows (profiles: auth.uid() = id, transactions: auth.uid() = user_id,
+  // …), so querying with the user-context client above silently returns only
+  // the admin's own data — which is why the dashboard totals read as ~1 user
+  // / a handful of messages. The admin identity is already verified above.
+  const db = createAdminClient();
+
+  // Fetch stats. "Messages" counts user turns only (questions asked) rather
+  // than user + assistant rows, which would roughly double the figure.
+  // Revenue/Deposits count real paid deposits only — signup bonuses are
+  // recorded under the separate 'bonus' type so they never inflate revenue.
   const [usersRes, chatsRes, messagesRes, transactionsRes, revenueRes, usageRes] =
     await Promise.all([
-      supabase.from("profiles").select("id", { count: "exact", head: true }),
-      supabase.from("chats").select("id", { count: "exact", head: true }),
-      supabase.from("messages").select("id", { count: "exact", head: true }),
-      supabase
+      db.from("profiles").select("id", { count: "exact", head: true }),
+      db.from("chats").select("id", { count: "exact", head: true }),
+      db
+        .from("messages")
+        .select("id", { count: "exact", head: true })
+        .eq("role", "user"),
+      db
         .from("transactions")
         .select("id", { count: "exact", head: true })
         .eq("type", "deposit")
         .eq("status", "completed"),
-      supabase
+      db
         .from("transactions")
         .select("amount")
         .eq("type", "deposit")
         .eq("status", "completed"),
-      supabase
+      db
         .from("transactions")
         .select("amount")
         .eq("type", "usage")
@@ -45,8 +60,8 @@ export async function GET() {
   const totalUsageCredits =
     usageRes.data?.reduce((sum, t) => sum + Math.abs(Number(t.amount)), 0) || 0;
 
-  // Recent transactions
-  const { data: recentTx } = await supabase
+  // Recent transactions (all users — service-role client bypasses RLS)
+  const { data: recentTx } = await db
     .from("transactions")
     .select("id, user_id, type, amount, currency, status, created_at")
     .order("created_at", { ascending: false })

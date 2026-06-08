@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import {
   listIntegrateModels,
   wholesaleCostCredits,
@@ -135,7 +136,10 @@ export async function GET(req: Request) {
   );
   const since = new Date(Date.now() - days * 86400_000).toISOString();
 
-  const { data, error } = await supabase
+  // Platform-wide usage — must bypass RLS (which would scope this to the
+  // admin's own transactions). Admin identity is verified above.
+  const db = createAdminClient();
+  const { data, error } = await db
     .from("transactions")
     .select("amount, metadata, created_at")
     .eq("type", "usage")

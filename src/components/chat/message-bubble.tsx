@@ -415,7 +415,7 @@ export function MessageBubble({
           [&_a]:text-accent [&_a]:no-underline hover:[&_a]:underline
           [&_blockquote]:border-l-2 [&_blockquote]:border-accent/40 [&_blockquote]:pl-4 [&_blockquote]:text-text-secondary [&_blockquote]:italic
           [&_ul]:my-3 [&_ol]:my-3 [&_li]:my-1
-          [&_table]:border-collapse [&_th]:text-left [&_th]:p-2 [&_th]:border-b [&_th]:border-border [&_td]:p-2 [&_td]:border-b [&_td]:border-border/40"
+          [&_table]:block [&_table]:w-full [&_table]:overflow-x-auto [&_table]:border-collapse [&_th]:whitespace-nowrap [&_th]:text-left [&_th]:p-2 [&_th]:border-b [&_th]:border-border [&_td]:p-2 [&_td]:border-b [&_td]:border-border/40"
       >
         <PreContext.Provider
           value={

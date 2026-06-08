@@ -23,7 +23,7 @@ export function MobileBottomNav() {
             key={item.label}
             onClick={() => router.push(item.href)}
             className={cn(
-              "press flex flex-col items-center gap-1 rounded-2xl px-4 py-1.5 transition-colors duration-fast ease-out min-w-[68px]",
+              "press flex flex-1 flex-col items-center gap-1 rounded-2xl px-2 py-2 transition-colors duration-fast ease-out max-w-[120px]",
               isActive
                 ? "text-accent"
                 : "text-text-tertiary hover:text-foreground"

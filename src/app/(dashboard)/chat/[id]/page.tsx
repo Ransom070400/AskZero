@@ -9,6 +9,7 @@ import { ModelPicker, type ModelOption } from "@/components/chat/model-picker";
 import type { Message, Attachment, ArtifactRef } from "@/components/chat/message-bubble";
 import type { ChatStyle } from "@/lib/system-prompt";
 import { ArtifactPanel } from "@/components/artifact/artifact-panel";
+import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
 import { cn } from "@/lib/utils";
 
 // Detect natural-language image requests. Returns the cleaned prompt
@@ -52,6 +53,8 @@ function ChatDetailContent() {
   const [style, setStyle] = useState<ChatStyle>("default");
   const [imageSize, setImageSize] = useState<ImageSize>("1024x1024");
   const [openArtifactId, setOpenArtifactId] = useState<string | null>(null);
+  // Lifts the composer above the iOS software keyboard (see hook for why).
+  const keyboardInset = useKeyboardInset();
   const initialSent = useRef(false);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -619,7 +622,10 @@ function ChatDetailContent() {
         onOpenAsArtifact={handleOpenAsArtifact}
       />
 
-      <div className="px-3 pt-3 pb-3 md:px-6 md:pt-4 md:pb-5">
+      <div
+        className="px-3 pt-3 pb-3 md:px-6 md:pt-4 md:pb-5 transition-[margin] duration-base ease-out"
+        style={keyboardInset ? { marginBottom: keyboardInset } : undefined}
+      >
         <div className="mx-auto max-w-chat space-y-3">
           <ChatInput
             value={input}

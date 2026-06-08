@@ -9,6 +9,7 @@ import {
   INTEGRATE_PREFIX,
   findIntegrateModel,
   sendIntegratePrompt,
+  retailCostCredits,
 } from "@/lib/integrate-network";
 import { buildReceipt, makeNonce } from "@/lib/receipts";
 import { buildSystemPrompt, type ChatStyle } from "@/lib/system-prompt";
@@ -264,9 +265,20 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // Calculate cost and deduct
+      // Calculate cost and deduct. On-chain (Integrate Network) models are
+      // priced dynamically as wholesale × markup so the margin can't invert
+      // when the 0G token price moves; everything else falls back to the
+      // static MODEL_PRICING table.
       const outputTokens = estimateTokens(fullResponse);
-      const cost = calculateCost(model || "default", inputTokens, outputTokens);
+      const integrateId = provider.startsWith(INTEGRATE_PREFIX)
+        ? provider.slice(INTEGRATE_PREFIX.length)
+        : null;
+      const dynamicCost = integrateId
+        ? retailCostCredits(integrateId, inputTokens, outputTokens)
+        : null;
+      const cost =
+        dynamicCost ??
+        calculateCost(model || "default", inputTokens, outputTokens);
       const actualCost = Math.max(cost, 1);
 
       const LOW_BALANCE_THRESHOLD = 50;

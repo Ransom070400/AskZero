@@ -27,7 +27,7 @@ export default function DashboardLayout({
           <div className="hidden md:block">
             <TopNav />
           </div>
-          <main className="flex-1 overflow-y-auto pb-[72px] md:pb-0">
+          <main className="flex-1 overflow-y-auto pb-[calc(72px+env(safe-area-inset-bottom))] md:pb-0">
             {children}
           </main>
         </div>

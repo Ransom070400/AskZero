@@ -8,14 +8,13 @@ import { Logo } from "@/components/ui/logo";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { AlertCircle, MailCheck } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 
 export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const supabase = createClient();
@@ -49,8 +48,10 @@ export default function SignupPage() {
       setError(error.message);
       setLoading(false);
     } else {
-      setSuccess(true);
-      setLoading(false);
+      // Email confirmation is disabled, so signUp returns an active session —
+      // send the user straight into the app, same as login.
+      router.push("/chat");
+      router.refresh();
     }
   };
 
@@ -63,36 +64,6 @@ export default function SignupPage() {
     });
     if (error) setError(error.message);
   };
-
-  if (success) {
-    return (
-      <div className="w-full max-w-[400px] space-y-7 text-center">
-        <div className="flex flex-col items-center gap-5">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-accent-muted">
-            <MailCheck className="h-8 w-8 text-accent" />
-          </div>
-          <div className="space-y-2">
-            <h2 className="font-display text-2xl font-bold tracking-tight text-foreground">
-              check your inbox
-            </h2>
-            <p className="text-[14px] text-text-secondary leading-relaxed max-w-[320px] mx-auto">
-              we sent a confirmation link to{" "}
-              <span className="font-semibold text-foreground">{email}</span>.
-              click it to activate your account.
-            </p>
-          </div>
-        </div>
-        <Button
-          variant="outline"
-          size="lg"
-          className="w-full"
-          onClick={() => router.push("/login")}
-        >
-          Back to sign in
-        </Button>
-      </div>
-    );
-  }
 
   return (
     <div className="w-full max-w-[400px] space-y-9">

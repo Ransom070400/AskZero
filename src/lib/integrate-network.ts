@@ -46,6 +46,34 @@ export function wholesaleCostCredits(
   );
 }
 
+// Retail markups applied on top of the on-chain wholesale cost. These are
+// MULTIPLICATIVE, which is the whole point: because retail = wholesale ×
+// markup, the margin percentage is preserved even when the 0G token price
+// moves. A fixed credit table (the old MODEL_PRICING approach) is priced in
+// USD while wholesale floats with 0G — so a 0G price spike could silently
+// push wholesale above retail and make every message unprofitable. This
+// can't invert. Input is the cheap hook (kept ~3x); output carries a 2x
+// floor so reasoning-heavy replies stay comfortably profitable while still
+// landing well under GPT-4o.
+export const INPUT_MARKUP = 3.0;
+export const OUTPUT_MARKUP = 2.0;
+
+// Retail cost in credits = wholesale × markup, rounded up, min 1 credit.
+// Returns null if the model isn't an Integrate model (or the network env is
+// unset) so the caller can fall back to the static MODEL_PRICING table.
+export function retailCostCredits(
+  modelId: string,
+  inputTokens: number,
+  outputTokens: number
+): number | null {
+  const m = listIntegrateModels().find((x) => x.id === modelId);
+  if (!m) return null;
+  const retail =
+    neuronPriceToCredits(m.wholesaleNeuron.input, inputTokens) * INPUT_MARKUP +
+    neuronPriceToCredits(m.wholesaleNeuron.output, outputTokens) * OUTPUT_MARKUP;
+  return Math.max(Math.ceil(retail), 1);
+}
+
 export function listIntegrateModels(): IntegrateModel[] {
   const baseUrl = process.env.INTEGRATE_NETWORK_URL;
   const apiKey = process.env.INTEGRATE_NETWORK_KEY;

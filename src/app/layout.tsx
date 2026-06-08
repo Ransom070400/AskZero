@@ -22,7 +22,8 @@ const display = Bricolage_Grotesque({
 export const viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
+  // No maximumScale: pinch-zoom stays available for accessibility. The
+  // iOS focus-zoom is prevented by keeping input font-size >= 16px instead.
   viewportFit: "cover" as const,
 };
 

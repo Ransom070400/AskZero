@@ -13,11 +13,10 @@ export const MODEL_PRICING: Record<
   default: { input: 1, output: 2 },
   "glm-4": { input: 1, output: 2 },
   // GLM 5.1 via 0G Integrate Network (zai-org/GLM-5.1-FP8).
-  // On-chain wholesale: 9.34e-4 / 7.8e-3 0G per 1k tokens.
-  // At 0G ≈ $0.50 → ~$0.47 / $3.90 per 1M. Reasoning models burn output fast.
-  // Growth pricing: 1.5 / 6 credits per 1k = $1.50 / $6 per 1M.
-  // ~3x input / ~1.5x output margin at 0G=$0.50. Beats GPT-4o (40% cheaper) and
-  // Claude Haiku 4.5 on output. If 0G price spikes, revisit — output margin is thin.
+  // NOTE: live pricing for this model is computed dynamically as
+  // wholesale × markup in integrate-network.ts (retailCostCredits) so the
+  // margin can't invert when the 0G token price moves. These static numbers
+  // are only a fallback used when the Integrate Network env is unset.
   "glm-5.1": { input: 1.5, output: 6 },
 };
 

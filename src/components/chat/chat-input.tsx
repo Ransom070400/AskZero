@@ -206,7 +206,7 @@ export function ChatInput({
           placeholder="Message AskZero…"
           rows={1}
           disabled={disabled}
-          className="flex-1 resize-none bg-transparent px-2 py-2 text-[15px] leading-[1.5] text-foreground caret-accent outline-none placeholder:text-text-tertiary disabled:opacity-50 max-h-[200px]"
+          className="flex-1 resize-none bg-transparent px-2 py-2 text-[16px] leading-[1.5] text-foreground caret-accent outline-none placeholder:text-text-tertiary disabled:opacity-50 max-h-[200px]"
         />
 
         <input
@@ -259,7 +259,7 @@ export function ChatInput({
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="press inline-flex h-7 items-center gap-1 rounded-full px-2 text-[12px] font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
+                  className="press inline-flex h-8 items-center gap-1 rounded-full px-2.5 text-[12px] font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
                   aria-label="Choose response style"
                 >
                   <Sparkles className="h-3 w-3" />
@@ -290,7 +290,7 @@ export function ChatInput({
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="press inline-flex h-7 items-center gap-1 rounded-full px-2 text-[12px] font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
+                  className="press inline-flex h-8 items-center gap-1 rounded-full px-2.5 text-[12px] font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
                   aria-label="Choose image aspect ratio"
                   title="Aspect ratio for /image"
                 >
