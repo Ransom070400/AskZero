@@ -623,7 +623,7 @@ function ChatDetailContent() {
       />
 
       <div
-        className="px-3 pt-3 pb-3 md:px-6 md:pt-4 md:pb-5 transition-[margin] duration-base ease-out"
+        className="px-4 pt-3 pb-3 md:px-6 md:pt-4 md:pb-5 transition-[margin] duration-base ease-out"
         style={keyboardInset ? { marginBottom: keyboardInset } : undefined}
       >
         <div className="mx-auto max-w-chat space-y-3">
@@ -645,7 +645,7 @@ function ChatDetailContent() {
           />
 
           {/* Status row — model picker + helper text */}
-          <div className="flex items-center justify-between gap-3 px-1">
+          <div className="flex items-center justify-between gap-3 px-2">
             {models.length > 0 && selectedModel ? (
               <ModelPicker
                 models={models}
@@ -670,7 +670,7 @@ function ChatDetailContent() {
       </div>
       </div>
       {openArtifactId && (
-        <div className="fixed inset-0 z-50 bg-background md:relative md:z-auto md:flex-1 md:border-l md:border-border/60">
+        <div className="fixed inset-0 z-50 bg-background md:relative md:z-auto md:flex-1 md:border-l md:border-border/70">
           <ArtifactPanel
             artifactId={openArtifactId}
             onClose={() => setOpenArtifactId(null)}

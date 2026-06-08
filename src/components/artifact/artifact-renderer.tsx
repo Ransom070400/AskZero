@@ -49,7 +49,7 @@ function CodeView({
   return (
     <div
       className="prose prose-sm dark:prose-invert max-w-none p-4 text-[13px]
-        [&_pre]:rounded-lg [&_pre]:bg-surface [&_pre]:border [&_pre]:border-border/60 [&_pre]:p-4 [&_pre]:leading-relaxed [&_pre]:overflow-x-auto
+        [&_pre]:rounded-lg [&_pre]:bg-surface [&_pre]:border [&_pre]:border-border/70 [&_pre]:p-4 [&_pre]:leading-relaxed [&_pre]:overflow-x-auto
         [&_code]:font-normal"
     >
       <ReactMarkdown rehypePlugins={[rehypeHighlight]} remarkPlugins={[remarkGfm]}>

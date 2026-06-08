@@ -96,7 +96,7 @@ export function ArtifactPanel({
 
   return (
     <div className="flex h-full flex-col bg-background">
-      <header className="flex items-center justify-between gap-3 border-b border-border/60 px-4 py-3">
+      <header className="flex items-center justify-between gap-3 border-b border-border/70 px-4 py-3">
         <div className="flex min-w-0 items-center gap-2">
           <span className="rounded-md bg-elevated/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
             {artifact ? TYPE_BADGE[artifact.type] : "..."}
@@ -105,7 +105,7 @@ export function ArtifactPanel({
             {artifact?.title ?? "Loading..."}
           </h2>
           {artifact && versions.length > 1 && (
-            <div className="ml-1 inline-flex items-center gap-0.5 rounded-full border border-border/60 bg-elevated/40 px-0.5">
+            <div className="ml-1 inline-flex items-center gap-0.5 rounded-full border border-border/70 bg-elevated/40 px-0.5">
               <button
                 onClick={() =>
                   canPrev && setActiveId(versions[versionIndex - 1].id)

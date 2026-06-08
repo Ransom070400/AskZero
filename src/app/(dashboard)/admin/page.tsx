@@ -149,7 +149,7 @@ export default function AdminPage() {
               Address
             </p>
             <div className="flex items-stretch gap-2">
-              <code className="flex-1 rounded-xl border border-border/60 bg-background px-3 py-2 text-[12px] font-mono text-foreground break-all">
+              <code className="flex-1 rounded-xl border border-border/70 bg-background px-3 py-2 text-[12px] font-mono text-foreground break-all">
                 {treasury.address}
               </code>
               <button
@@ -264,7 +264,7 @@ function StatCard({
   return (
     <div className="rounded-2xl border border-border/70 bg-elevated/60 p-4 shadow-sm">
       <div className="flex items-center justify-between">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-text-tertiary">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
           {label}
         </p>
         <span className="text-text-tertiary">{icon}</span>

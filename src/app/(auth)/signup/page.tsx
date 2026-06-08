@@ -93,11 +93,11 @@ export default function SignupPage() {
 
       {/* Divider */}
       <div className="relative flex items-center">
-        <div className="flex-1 border-t border-border/60" />
+        <div className="flex-1 border-t border-border/70" />
         <span className="px-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
           or with email
         </span>
-        <div className="flex-1 border-t border-border/60" />
+        <div className="flex-1 border-t border-border/70" />
       </div>
 
       {/* Email form */}

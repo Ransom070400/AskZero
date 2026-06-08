@@ -81,7 +81,7 @@ export function Sidebar() {
   const grouped = groupChatsByDate(chats);
 
   return (
-    <div className="flex h-full w-[260px] flex-col bg-surface">
+    <div className="flex h-full w-[268px] flex-col bg-surface">
       {/* Brand */}
       <div className="flex items-center px-5 h-14">
         <Logo size={22} />
@@ -106,7 +106,7 @@ export function Sidebar() {
         <div className="space-y-5 py-1">
           {Object.entries(grouped).map(([date, dateChats]) => (
             <div key={date}>
-              <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-text-tertiary">
+              <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
                 {date}
               </p>
               <div className="space-y-px">
@@ -117,7 +117,7 @@ export function Sidebar() {
                       key={chat.id}
                       href={`/chat/${chat.id}`}
                       className={cn(
-                        "group/row relative flex items-center justify-between rounded-lg pl-3 pr-1.5 py-1.5 text-[13px] transition-colors duration-fast ease-out",
+                        "group/row relative flex items-center justify-between rounded-xl pl-3 pr-1.5 py-1.5 text-[13px] transition-colors duration-fast ease-out",
                         active
                           ? "bg-accent-muted text-foreground"
                           : "text-text-secondary hover:bg-elevated hover:text-foreground"
@@ -144,7 +144,7 @@ export function Sidebar() {
       </ScrollArea>
 
       {/* Footer nav */}
-      <div className="border-t border-border/60 p-2 space-y-px">
+      <div className="border-t border-border/70 p-2 space-y-px">
         <SidebarNavLink
           href="/deposit"
           icon={<CreditCard className="h-4 w-4" />}
@@ -177,7 +177,7 @@ function SidebarNavLink({
     <Link
       href={href}
       className={cn(
-        "relative flex items-center gap-2.5 rounded-lg pl-3 pr-3 py-2 text-[13px] font-medium transition-colors duration-fast ease-out",
+        "relative flex items-center gap-2.5 rounded-xl pl-3 pr-3 py-2 text-[13px] font-medium transition-colors duration-fast ease-out",
         active
           ? "bg-accent-muted text-foreground"
           : "text-text-secondary hover:bg-elevated hover:text-foreground"

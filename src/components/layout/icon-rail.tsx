@@ -15,7 +15,7 @@ export function MobileBottomNav() {
   const router = useRouter();
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 flex md:hidden items-center justify-around border-t border-border/60 bg-background/85 backdrop-blur-xl px-2 pb-[env(safe-area-inset-bottom,8px)] pt-2">
+    <div className="fixed bottom-0 left-0 right-0 z-50 flex md:hidden items-center justify-around border-t border-border/70 bg-background/85 backdrop-blur-xl px-2 pb-[env(safe-area-inset-bottom,8px)] pt-2">
       {items.map((item) => {
         const isActive = pathname.startsWith(item.href);
         return (

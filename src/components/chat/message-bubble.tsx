@@ -142,8 +142,8 @@ function PreBlock({ children }: { children?: React.ReactNode }) {
   };
 
   return (
-    <div className="my-4 overflow-hidden rounded-xl border border-border/60 bg-surface">
-      <div className="flex items-center justify-between border-b border-border/60 bg-elevated/40 px-3 py-1">
+    <div className="my-4 overflow-hidden rounded-xl border border-border/70 bg-surface">
+      <div className="flex items-center justify-between border-b border-border/70 bg-elevated/40 px-3 py-1">
         <span className="text-[11px] font-medium uppercase tracking-wider text-text-tertiary">
           {lang || "code"}
         </span>
@@ -296,7 +296,7 @@ export function MessageBubble({
       <div id={`msg-${message.id}`} className="group/user flex flex-col items-end scroll-mt-20">
         {showPrev && prevMessages && prevMessages.length > 0 && (
           <div className="mb-2 w-full max-w-[85%] md:max-w-[72%] space-y-2 rounded-2xl border border-dashed border-border/70 bg-surface/60 p-3">
-            <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.12em] text-text-tertiary">
+            <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
               <span className="flex items-center gap-1.5">
                 <History className="h-3 w-3" /> Previous version
               </span>
@@ -327,7 +327,7 @@ export function MessageBubble({
             ))}
           </div>
         )}
-        <div className="relative max-w-[85%] md:max-w-[72%] rounded-3xl rounded-br-lg bg-elevated border border-border/60 px-5 py-3 shadow-sm">
+        <div className="relative max-w-[85%] md:max-w-[72%] rounded-3xl rounded-br-lg bg-elevated border border-border/70 px-5 py-3 shadow-sm">
           {message.content && (
             <p className="text-[15px] leading-relaxed whitespace-pre-wrap text-foreground">
               {message.content}
@@ -341,7 +341,7 @@ export function MessageBubble({
                   <img
                     src={att.url}
                     alt={att.name}
-                    className="max-h-56 rounded-2xl object-contain border border-border/60"
+                    className="max-h-56 rounded-2xl object-contain border border-border/70"
                   />
                 </a>
               ))}
@@ -444,7 +444,7 @@ export function MessageBubble({
           {assistantImages.map((att) => (
             <div
               key={att.path}
-              className="group/img relative overflow-hidden rounded-2xl border border-border/60 bg-elevated/40"
+              className="group/img relative overflow-hidden rounded-2xl border border-border/70 bg-elevated/40"
             >
               <a href={att.url} target="_blank" rel="noopener noreferrer">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
