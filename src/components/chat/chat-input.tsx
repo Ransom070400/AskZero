@@ -275,7 +275,7 @@ export function ChatInput({
                   <ChevronDown className="h-3 w-3" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-56">
+              <DropdownMenuContent align="start" side="top" className="w-56">
                 {CHAT_STYLES.map((s) => (
                   <DropdownMenuItem
                     key={s.id}
@@ -307,7 +307,7 @@ export function ChatInput({
                   <ChevronDown className="h-3 w-3" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-44">
+              <DropdownMenuContent align="start" side="top" className="w-44">
                 {IMAGE_SIZES.map((s) => (
                   <DropdownMenuItem
                     key={s.id}

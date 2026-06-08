@@ -61,11 +61,16 @@ function DropdownMenuContent({
   children,
   className,
   align = "start",
+  side = "bottom",
   forceMount,
 }: {
   children: React.ReactNode;
   className?: string;
   align?: "start" | "end";
+  // "top" opens the menu upward (above the trigger) — use it for triggers
+  // near the bottom of the screen (e.g. the chat composer) so the menu
+  // doesn't open off the bottom edge.
+  side?: "top" | "bottom";
   forceMount?: boolean;
 }) {
   const { open } = React.useContext(DropdownMenuContext);
@@ -78,7 +83,7 @@ function DropdownMenuContent({
       className={cn(
         "absolute z-50 min-w-[10rem] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl border border-border/70 bg-popover p-1.5 text-popover-foreground shadow-lg animate-in fade-in-0 zoom-in-95",
         align === "end" ? "right-0" : "left-0",
-        "top-full mt-2",
+        side === "top" ? "bottom-full mb-2" : "top-full mt-2",
         className
       )}
       onClick={(e) => e.stopPropagation()}

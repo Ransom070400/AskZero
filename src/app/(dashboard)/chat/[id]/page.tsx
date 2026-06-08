@@ -623,7 +623,7 @@ function ChatDetailContent() {
       />
 
       <div
-        className="px-4 pt-3 pb-3 md:px-6 md:pt-4 md:pb-5 transition-[margin] duration-fast ease-out"
+        className="px-4 pt-3 pb-3 md:px-6 md:pt-4 md:pb-5"
         style={keyboardInset ? { marginBottom: keyboardInset } : undefined}
       >
         <div className="mx-auto max-w-chat space-y-3">
