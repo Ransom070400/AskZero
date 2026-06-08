@@ -1,4 +1,3 @@
-import { MobileBottomNav } from "@/components/layout/icon-rail";
 import { ContentSidebar } from "@/components/layout/content-sidebar";
 import { TopNav } from "@/components/layout/top-nav";
 import { MobileSidebar } from "@/components/layout/mobile-sidebar";
@@ -27,11 +26,10 @@ export default function DashboardLayout({
           <div className="hidden md:block">
             <TopNav />
           </div>
-          <main className="flex-1 overflow-y-auto pb-[calc(72px+env(safe-area-inset-bottom))] md:pb-0">
+          <main className="flex-1 overflow-y-auto pb-[env(safe-area-inset-bottom)] md:pb-0">
             {children}
           </main>
         </div>
-        <MobileBottomNav />
       </div>
     </CurrencyProvider>
   );
