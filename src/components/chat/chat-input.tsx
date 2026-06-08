@@ -88,10 +88,18 @@ export function ChatInput({
 
   const canSend = (value.trim() || attachments.length > 0) && !disabled;
 
+  // A light haptic on send — Android honors navigator.vibrate; iOS ignores it.
+  const triggerSend = () => {
+    if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+      navigator.vibrate(8);
+    }
+    onSend();
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      if (canSend) onSend();
+      if (canSend) triggerSend();
     }
   };
 
@@ -232,7 +240,7 @@ export function ChatInput({
         ) : (
           <button
             aria-label="Send message"
-            onClick={onSend}
+            onClick={triggerSend}
             disabled={!canSend}
             className={cn(
               "press shrink-0 flex h-9 w-9 items-center justify-center rounded-full transition-[background-color,opacity,transform,box-shadow] duration-fast ease-out",

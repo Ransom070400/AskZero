@@ -454,7 +454,7 @@ export function MessageBubble({
                   className="block max-h-[480px] w-auto object-contain"
                 />
               </a>
-              <div className="absolute right-2 top-2 flex items-center gap-1 opacity-0 group-hover/img:opacity-100 transition-opacity duration-fast">
+              <div className="absolute right-2 top-2 flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover/img:opacity-100 transition-opacity duration-fast">
                 <a
                   href={att.url}
                   download={att.name}
@@ -502,7 +502,7 @@ export function MessageBubble({
           ))}
         </div>
       )}
-      <div className="mt-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-base ease-out">
+      <div className="mt-2 flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-base ease-out">
         <CopyBtn text={message.content} />
         {isLast && onRegenerate && (
           <ActionButton label="Regenerate" onClick={onRegenerate}>
