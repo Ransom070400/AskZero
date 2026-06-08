@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState } from "react";
-import { ArrowUp, ChevronDown, ImageIcon, Paperclip, Sparkles, Square, X } from "lucide-react";
+import { ArrowUp, ChevronDown, ImageIcon, Loader2, Mic, Paperclip, Sparkles, Square, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CHAT_STYLES, type ChatStyle } from "@/lib/system-prompt";
 import {
@@ -71,6 +71,11 @@ export function ChatInput({
   const [dragOver, setDragOver] = useState(false);
   const [focused, setFocused] = useState(false);
   const [rejectedImage, setRejectedImage] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
+  const [recordError, setRecordError] = useState<string | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
   const allowedTypes = allowImages
     ? ALL_ALLOWED_TYPES
@@ -138,6 +143,85 @@ export function ChatInput({
       addFiles(e.dataTransfer.files);
     }
   };
+
+  // --- Voice input (speech-to-text via whisper-large-v3 on 0G) ---
+
+  const transcribe = async (blob: Blob, mime: string) => {
+    setTranscribing(true);
+    setRecordError(null);
+    try {
+      const ext = mime.includes("mp4")
+        ? "mp4"
+        : mime.includes("ogg")
+          ? "ogg"
+          : "webm";
+      const fd = new FormData();
+      fd.append("file", blob, `recording.${ext}`);
+      const res = await fetch("/api/transcribe", { method: "POST", body: fd });
+      const data = await res.json();
+      if (!res.ok) {
+        setRecordError(data?.error || "Could not transcribe audio");
+        return;
+      }
+      const text = (data?.text || "").trim();
+      if (text) {
+        onChange(value.trim() ? `${value.trimEnd()} ${text}` : text);
+        textareaRef.current?.focus();
+      } else {
+        setRecordError("Didn't catch that — try again");
+      }
+    } catch {
+      setRecordError("Could not transcribe audio");
+    } finally {
+      setTranscribing(false);
+    }
+  };
+
+  const startRecording = async () => {
+    if (disabled || transcribing || recording) return;
+    setRecordError(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mime = MediaRecorder.isTypeSupported("audio/webm")
+        ? "audio/webm"
+        : MediaRecorder.isTypeSupported("audio/mp4")
+          ? "audio/mp4"
+          : "";
+      const recorder = mime
+        ? new MediaRecorder(stream, { mimeType: mime })
+        : new MediaRecorder(stream);
+      audioChunksRef.current = [];
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+      recorder.onstop = () => {
+        stream.getTracks().forEach((t) => t.stop());
+        const type = recorder.mimeType || "audio/webm";
+        const blob = new Blob(audioChunksRef.current, { type });
+        audioChunksRef.current = [];
+        if (blob.size > 0) void transcribe(blob, type);
+      };
+      mediaRecorderRef.current = recorder;
+      recorder.start();
+      setRecording(true);
+    } catch {
+      setRecordError("Microphone access denied");
+    }
+  };
+
+  const stopRecording = () => {
+    const r = mediaRecorderRef.current;
+    if (r && r.state !== "inactive") r.stop();
+    setRecording(false);
+  };
+
+  // Stop any in-flight recording if the composer unmounts.
+  useEffect(() => {
+    return () => {
+      const r = mediaRecorderRef.current;
+      if (r && r.state !== "inactive") r.stop();
+    };
+  }, []);
 
   return (
     <div
@@ -229,6 +313,29 @@ export function ChatInput({
           }}
         />
 
+        <button
+          type="button"
+          onClick={recording ? stopRecording : startRecording}
+          disabled={disabled || transcribing}
+          aria-label={recording ? "Stop recording" : "Record voice message"}
+          title={recording ? "Stop recording" : "Voice input"}
+          className={cn(
+            "press shrink-0 flex h-9 w-9 items-center justify-center rounded-full transition-colors duration-fast",
+            recording
+              ? "bg-error/15 text-error animate-pulse"
+              : "text-text-tertiary hover:bg-surface hover:text-foreground",
+            transcribing && "opacity-60"
+          )}
+        >
+          {transcribing ? (
+            <Loader2 className="h-[18px] w-[18px] animate-spin" />
+          ) : recording ? (
+            <Square className="h-[14px] w-[14px] fill-current" />
+          ) : (
+            <Mic className="h-[18px] w-[18px]" />
+          )}
+        </button>
+
         {isStreaming && onStop ? (
           <button
             aria-label="Stop generating"
@@ -257,6 +364,18 @@ export function ChatInput({
       {rejectedImage && (
         <div className="px-4 pb-2 text-[11.5px] font-medium text-warning">
           This model doesn&apos;t support images — switch to a multimodal model to attach pictures.
+        </div>
+      )}
+
+      {(recording || transcribing || recordError) && (
+        <div className="px-4 pb-2 text-[11.5px] font-medium">
+          {recordError ? (
+            <span className="text-warning">{recordError}</span>
+          ) : transcribing ? (
+            <span className="text-text-tertiary">Transcribing…</span>
+          ) : (
+            <span className="text-error">Recording… tap the square to stop</span>
+          )}
         </div>
       )}
 
