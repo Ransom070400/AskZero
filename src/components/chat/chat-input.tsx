@@ -4,6 +4,7 @@ import { useRef, useEffect, useState } from "react";
 import { ArrowUp, ChevronDown, ImageIcon, Loader2, Mic, Paperclip, Sparkles, Square, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CHAT_STYLES, type ChatStyle } from "@/lib/system-prompt";
+import { blobToWav } from "@/lib/audio-wav";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -146,17 +147,15 @@ export function ChatInput({
 
   // --- Voice input (speech-to-text via whisper-large-v3 on 0G) ---
 
-  const transcribe = async (blob: Blob, mime: string) => {
+  const transcribe = async (blob: Blob) => {
     setTranscribing(true);
     setRecordError(null);
     try {
-      const ext = mime.includes("mp4")
-        ? "mp4"
-        : mime.includes("ogg")
-          ? "ogg"
-          : "webm";
+      // The provider only accepts WAV, so convert the recording (webm/mp4)
+      // to 16 kHz mono WAV in the browser before uploading.
+      const wav = await blobToWav(blob);
       const fd = new FormData();
-      fd.append("file", blob, `recording.${ext}`);
+      fd.append("file", wav, "recording.wav");
       const res = await fetch("/api/transcribe", { method: "POST", body: fd });
       const data = await res.json();
       if (!res.ok) {
@@ -199,7 +198,7 @@ export function ChatInput({
         const type = recorder.mimeType || "audio/webm";
         const blob = new Blob(audioChunksRef.current, { type });
         audioChunksRef.current = [];
-        if (blob.size > 0) void transcribe(blob, type);
+        if (blob.size > 0) void transcribe(blob);
       };
       mediaRecorderRef.current = recorder;
       recorder.start();
