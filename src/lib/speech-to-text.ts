@@ -16,7 +16,9 @@ function sttApiKey(): string | undefined {
 }
 
 export function sttModel(): string {
-  return process.env.WHISPER_MODEL ?? "whisper-large-v3";
+  // Default matches the id the 0G Integrate Network exposes for Whisper
+  // (verified via its /v1/models listing). Override with WHISPER_MODEL.
+  return process.env.WHISPER_MODEL ?? "openai/whisper-large-v3";
 }
 
 export function isSttConfigured(): boolean {
