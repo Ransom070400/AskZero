@@ -14,6 +14,11 @@ import {
 import { buildReceipt, makeNonce } from "@/lib/receipts";
 import { buildSystemPrompt, type ChatStyle } from "@/lib/system-prompt";
 import { detectArtifacts } from "@/lib/artifact-detect";
+import {
+  recallMemories,
+  formatMemoriesForPrompt,
+  commitMemory,
+} from "@/lib/memory";
 
 function estimateTokens(text: string): number {
   return Math.ceil(text.length / 4);
@@ -177,8 +182,17 @@ export async function POST(req: NextRequest) {
     }
   );
 
+  // Recall long-term memory and fold it into the system prompt. Best-effort
+  // and only when there's a text query to match on (skips attachment-only
+  // turns). Adds one embedding round-trip before inference.
+  let memoryBlock = "";
+  if (message.trim()) {
+    const recalled = await recallMemories(supabase, message, 6);
+    memoryBlock = formatMemoriesForPrompt(recalled);
+  }
+
   const messages = [
-    { role: "system" as const, content: buildSystemPrompt(style) },
+    { role: "system" as const, content: buildSystemPrompt(style) + memoryBlock },
     ...historyMessages,
   ];
 
@@ -421,6 +435,24 @@ export async function POST(req: NextRequest) {
         )
       );
       controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+
+      // Commit long-term memory: distill durable facts, archive to 0G Storage,
+      // mirror into the searchable index. Best-effort and awaited before close
+      // so the work completes within the request (serverless-safe); the client
+      // already has [DONE], so this doesn't affect perceived latency.
+      if (assistantMsg && fullResponse.trim()) {
+        try {
+          await commitMemory(supabase, {
+            chatId,
+            userMessage: message,
+            assistantResponse: fullResponse,
+            transcript: messages,
+          });
+        } catch (err) {
+          console.error("commitMemory failed", err);
+        }
+      }
+
       controller.close();
     },
   });
