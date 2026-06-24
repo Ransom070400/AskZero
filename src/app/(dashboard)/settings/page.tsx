@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useEffect, useState, useCallback } from "react";
 import type { User } from "@supabase/supabase-js";
 import { useTheme } from "next-themes";
-import { Sun, Moon, Monitor, LogOut, Copy, Check, Trash2, ChevronDown, AlertTriangle } from "lucide-react";
+import { Sun, Moon, Monitor, LogOut, Copy, Check, Trash2, ChevronDown, AlertTriangle, Sparkles, KeyRound, Boxes, ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCurrency, type DisplayCurrency } from "@/lib/currency";
 import { APAC_CURRENCIES, APAC_CODES, isApacCurrency } from "@/lib/pricing-apac";
@@ -185,6 +185,9 @@ export default function SettingsPage() {
         </Row>
       </Section>
 
+      {/* Premium / Pro upsell — Plan B preview, gated until launch */}
+      <PremiumCard />
+
       {/* Appearance section */}
       <Section title="Appearance">
         <Row title="Theme" subtitle="Light, dark, or follow system">
@@ -347,6 +350,77 @@ export default function SettingsPage() {
         </div>
       </section>
     </div>
+  );
+}
+
+function PremiumCard() {
+  const perks = [
+    {
+      icon: KeyRound,
+      title: "Your own inference API",
+      desc: "Prompt AskZero programmatically with a personal API key.",
+    },
+    {
+      icon: Boxes,
+      title: "Dedicated 0G compute",
+      desc: "Run inference from your own on-chain 0G ledger at wholesale rates.",
+    },
+    {
+      icon: ShieldCheck,
+      title: "Verifiable receipts",
+      desc: "Every inference signed by and paid from your own identity.",
+    },
+  ];
+
+  return (
+    <section className="space-y-2.5">
+      <h2 className="px-1 text-[12px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+        Plan
+      </h2>
+      <div className="overflow-hidden rounded-2xl border border-accent/30 bg-gradient-to-b from-accent-muted/40 to-elevated/40 p-5 space-y-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent-muted text-accent">
+              <Sparkles className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[15px] font-bold text-foreground">
+                AskZero Pro
+              </p>
+              <p className="text-[12px] text-text-secondary leading-relaxed">
+                Programmatic access on your own dedicated compute.
+              </p>
+            </div>
+          </div>
+          <span className="shrink-0 rounded-full bg-surface px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
+            Coming soon
+          </span>
+        </div>
+
+        <div className="space-y-2.5">
+          {perks.map((perk) => {
+            const Icon = perk.icon;
+            return (
+              <div key={perk.title} className="flex items-start gap-3">
+                <Icon className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
+                <div className="min-w-0">
+                  <p className="text-[13px] font-semibold text-foreground">
+                    {perk.title}
+                  </p>
+                  <p className="text-[12px] text-text-tertiary leading-relaxed">
+                    {perk.desc}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <Button size="sm" className="w-full" disabled>
+          Upgrade to Premium · Coming soon
+        </Button>
+      </div>
+    </section>
   );
 }
 
