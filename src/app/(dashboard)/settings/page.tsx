@@ -271,6 +271,9 @@ export default function SettingsPage() {
         </Row>
       </Section>
 
+      {/* Memory — what the assistant remembers across chats */}
+      <MemorySection />
+
       {/* Account section */}
       <Section title="Account">
         <Row title="Sign out" subtitle="Sign out on this device">
@@ -419,6 +422,106 @@ function PremiumCard() {
         <Button size="sm" className="w-full" disabled>
           Upgrade to Premium · Coming soon
         </Button>
+      </div>
+    </section>
+  );
+}
+
+interface Memory {
+  id: string;
+  content: string;
+  created_at: string;
+  og_root_hash: string | null;
+}
+
+function MemorySection() {
+  const supabase = createClient();
+  const [memories, setMemories] = useState<Memory[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const { data, error } = await supabase
+        .from("memories")
+        .select("id, content, created_at, og_root_hash")
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (!active) return;
+      if (!error && data) setMemories(data as Memory[]);
+      setLoading(false);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [supabase]);
+
+  const handleDelete = async (id: string) => {
+    // Optimistic — RLS lets a user delete only their own rows.
+    setMemories((prev) => prev.filter((m) => m.id !== id));
+    await supabase.from("memories").delete().eq("id", id);
+  };
+
+  return (
+    <section className="space-y-2.5">
+      <div className="flex items-baseline justify-between px-1">
+        <h2 className="text-[12px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+          Memory
+        </h2>
+        {!loading && memories.length > 0 && (
+          <span className="text-[11px] text-text-tertiary tabular-nums">
+            {memories.length} {memories.length === 1 ? "memory" : "memories"}
+          </span>
+        )}
+      </div>
+      <p className="px-1 text-[12px] text-text-secondary leading-relaxed">
+        What AskZero remembers about you across chats. Anchored on 0G — delete
+        anything you don&apos;t want kept.
+      </p>
+
+      <div className="overflow-hidden rounded-2xl border border-border/70 bg-elevated/40 divide-y divide-border/50">
+        {loading ? (
+          <div className="px-5 py-4 text-[13px] text-text-tertiary">Loading…</div>
+        ) : memories.length === 0 ? (
+          <div className="px-5 py-5 text-[13px] text-text-tertiary leading-relaxed">
+            Nothing remembered yet. As you chat, AskZero notes durable facts —
+            preferences, projects, recurring goals — and they&apos;ll show up here.
+          </div>
+        ) : (
+          memories.map((m) => (
+            <div
+              key={m.id}
+              className="group flex items-start justify-between gap-3 px-5 py-3.5"
+            >
+              <div className="min-w-0 space-y-1.5">
+                <p className="text-[13px] text-foreground leading-relaxed">
+                  {m.content}
+                </p>
+                <div className="flex items-center gap-2.5">
+                  {m.og_root_hash && (
+                    <span
+                      className="inline-flex items-center gap-1 text-[10px] font-medium text-text-tertiary"
+                      title={`Anchored on 0G Storage · ${m.og_root_hash.slice(0, 10)}…`}
+                    >
+                      <ShieldCheck className="h-3 w-3 text-success" />
+                      On 0G
+                    </span>
+                  )}
+                  <span className="text-[10px] text-text-tertiary tabular-nums">
+                    {new Date(m.created_at).toLocaleDateString()}
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => handleDelete(m.id)}
+                aria-label="Forget this memory"
+                className="press shrink-0 rounded-lg p-1.5 text-text-tertiary transition-colors duration-fast hover:bg-surface hover:text-error"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ))
+        )}
       </div>
     </section>
   );
