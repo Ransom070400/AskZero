@@ -42,6 +42,7 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/api/deposit/webhook") ||
     request.nextUrl.pathname.startsWith("/api/deposit/stripe-webhook") ||
     request.nextUrl.pathname.startsWith("/api/deposit/price") ||
+    request.nextUrl.pathname.startsWith("/api/cron") ||
     request.nextUrl.pathname.startsWith("/auth");
 
   // If not logged in and trying to access protected routes, redirect to login
