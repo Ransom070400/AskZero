@@ -49,7 +49,7 @@ export async function putBlob(data: Uint8Array): Promise<PutResult | null> {
 
   try {
     // Dynamic import keeps the Node-only SDK out of any accidental edge bundle.
-    const { Indexer, MemData } = await import("@0glabs/0g-ts-sdk");
+    const { Indexer, MemData } = await import("@0gfoundation/0g-storage-ts-sdk");
 
     const provider = new ethers.JsonRpcProvider(STORAGE_RPC_URL);
     const signer = new ethers.Wallet(key, provider);
@@ -65,7 +65,14 @@ export async function putBlob(data: Uint8Array): Promise<PutResult | null> {
       console.error("0G Storage upload failed:", err);
       return null;
     }
-    return { rootHash: res.rootHash, txHash: res.txHash ?? null };
+    // upload() returns a union: a single-blob result ({ rootHash, txHash }) or a
+    // multi-fragment one ({ rootHashes[], txHashes[] }). A single MemData always
+    // takes the single-blob branch; narrow on that and fall back to the first
+    // fragment defensively.
+    if ("rootHash" in res) {
+      return { rootHash: res.rootHash, txHash: res.txHash ?? null };
+    }
+    return { rootHash: res.rootHashes[0], txHash: res.txHashes[0] ?? null };
   } catch (err) {
     console.error("0G Storage upload threw:", err);
     return null;
@@ -81,7 +88,7 @@ export async function putJSON(obj: unknown): Promise<PutResult | null> {
 // temp file and read it back. Returns null on failure.
 export async function getBlob(rootHash: string): Promise<Uint8Array | null> {
   try {
-    const { Indexer } = await import("@0glabs/0g-ts-sdk");
+    const { Indexer } = await import("@0gfoundation/0g-storage-ts-sdk");
     const indexer = new Indexer(INDEXER_URL);
 
     const outPath = join(tmpdir(), `0g-${randomUUID()}`);
