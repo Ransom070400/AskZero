@@ -37,12 +37,15 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/login") ||
     request.nextUrl.pathname.startsWith("/signup");
 
+  // Never redirect API routes to /login. They authenticate themselves (cookie
+  // OR `Authorization: Bearer` token, via getAuthedUser) and must return proper
+  // JSON/401 — not an HTML redirect. This is essential for the mobile app, which
+  // has no session cookie and would otherwise be 307'd on every request.
+  const isApi = request.nextUrl.pathname.startsWith("/api/");
+
   const isPublic =
+    isApi ||
     request.nextUrl.pathname === "/" ||
-    request.nextUrl.pathname.startsWith("/api/deposit/webhook") ||
-    request.nextUrl.pathname.startsWith("/api/deposit/stripe-webhook") ||
-    request.nextUrl.pathname.startsWith("/api/deposit/price") ||
-    request.nextUrl.pathname.startsWith("/api/cron") ||
     request.nextUrl.pathname.startsWith("/auth");
 
   // If not logged in and trying to access protected routes, redirect to login

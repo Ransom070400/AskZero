@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthedUser } from "@/lib/supabase/api-auth";
 import { checkBalance, deductCredits } from "@/lib/credits";
 import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import {
@@ -18,10 +18,7 @@ function json(body: unknown, status: number) {
 }
 
 export async function POST(req: NextRequest) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { user } = await getAuthedUser();
 
   if (!user) return json({ error: "Unauthorized" }, 401);
 

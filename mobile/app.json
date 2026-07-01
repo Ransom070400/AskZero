@@ -1,0 +1,33 @@
+{
+  "expo": {
+    "name": "AskZero",
+    "slug": "askzero",
+    "version": "1.0.0",
+    "scheme": "askzero",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "ai.askzero.app",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "AskZero uses the microphone for voice input.",
+        "NSPhotoLibraryUsageDescription": "AskZero lets you attach photos to your chats."
+      }
+    },
+    "android": {
+      "package": "ai.askzero.app",
+      "permissions": ["RECORD_AUDIO"]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-asset",
+      "expo-font",
+      "expo-audio"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthedUser } from "@/lib/supabase/api-auth";
 import { deductCredits, checkBalance } from "@/lib/credits";
 import { calculateCost } from "@/lib/pricing";
 import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
@@ -27,10 +27,7 @@ function estimateTokens(text: string): number {
 const MIN_CREDITS = 5;
 
 export async function POST(req: NextRequest) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, user } = await getAuthedUser();
 
   if (!user) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -72,7 +69,7 @@ export async function POST(req: NextRequest) {
 
   // Check balance
   try {
-    const balance = await checkBalance(user.id);
+    const balance = await checkBalance(user.id, supabase);
     if (balance < MIN_CREDITS) {
       return new Response(
         JSON.stringify({
@@ -297,12 +294,17 @@ export async function POST(req: NextRequest) {
 
       const LOW_BALANCE_THRESHOLD = 50;
       try {
-        const newBalance = await deductCredits(user.id, actualCost, {
-          chat_id: chatId,
-          model: model || "unknown",
-          input_tokens: inputTokens,
-          output_tokens: outputTokens,
-        });
+        const newBalance = await deductCredits(
+          user.id,
+          actualCost,
+          {
+            chat_id: chatId,
+            model: model || "unknown",
+            input_tokens: inputTokens,
+            output_tokens: outputTokens,
+          },
+          supabase
+        );
 
         if (newBalance < LOW_BALANCE_THRESHOLD && user.email) {
           sendLowBalanceWarning(user.email, newBalance);
