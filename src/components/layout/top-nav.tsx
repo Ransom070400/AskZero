@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Logo } from "@/components/ui/logo";
@@ -25,6 +25,7 @@ export function TopNav() {
   const { formatBalance } = useCurrency();
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [balance, setBalance] = useState<number | null>(null);
+  const [avatarError, setAvatarError] = useState(false);
 
   const fetchBalance = useCallback(async () => {
     try {
@@ -61,6 +62,12 @@ export function TopNav() {
     ? user.email.substring(0, 2).toUpperCase()
     : "AZ";
 
+  // OAuth (Google) profile photo from user metadata, if present.
+  const avatarUrl =
+    (user?.user_metadata?.avatar_url as string | undefined) ||
+    (user?.user_metadata?.picture as string | undefined) ||
+    undefined;
+
   return (
     <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b border-border/70 glass-nav px-3 md:px-6">
       <Link href="/chat" className="hidden md:flex items-center">
@@ -88,9 +95,19 @@ export function TopNav() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="rounded-full">
               <Avatar className="h-8 w-8">
-                <AvatarFallback className="bg-elevated text-text-secondary text-[11px] font-semibold">
-                  {initials}
-                </AvatarFallback>
+                {avatarUrl && !avatarError ? (
+                  <AvatarImage
+                    src={avatarUrl}
+                    alt={user?.email ?? "Profile"}
+                    referrerPolicy="no-referrer"
+                    className="object-cover"
+                    onError={() => setAvatarError(true)}
+                  />
+                ) : (
+                  <AvatarFallback className="bg-elevated text-text-secondary text-[11px] font-semibold">
+                    {initials}
+                  </AvatarFallback>
+                )}
               </Avatar>
             </Button>
           </DropdownMenuTrigger>

@@ -38,6 +38,7 @@ export default function SettingsPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [avatarError, setAvatarError] = useState(false);
   const { currency: displayCurrency, setCurrency: setDisplayCurrency, formatBalance } = useCurrency();
 
   useEffect(() => setMounted(true), []);
@@ -110,6 +111,14 @@ export default function SettingsPage() {
     ? profile.display_name.substring(0, 2).toUpperCase()
     : user?.email?.substring(0, 2).toUpperCase() || "AZ";
 
+  // Prefer a stored avatar, then the OAuth (Google) photo from user metadata,
+  // then fall back to initials.
+  const avatarUrl =
+    profile?.avatar_url ||
+    (user?.user_metadata?.avatar_url as string | undefined) ||
+    (user?.user_metadata?.picture as string | undefined) ||
+    null;
+
   return (
     <div className="mx-auto w-full max-w-form px-5 md:px-6 py-8 md:py-12 space-y-9">
       {/* Header */}
@@ -124,9 +133,20 @@ export default function SettingsPage() {
 
       {/* Profile hero */}
       <div className="flex items-center gap-4 rounded-2xl border border-border/70 bg-elevated/60 p-5">
-        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-accent-muted text-[16px] font-bold text-accent">
-          {initials}
-        </div>
+        {avatarUrl && !avatarError ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={avatarUrl}
+            alt={profile?.display_name || "Profile"}
+            referrerPolicy="no-referrer"
+            onError={() => setAvatarError(true)}
+            className="h-14 w-14 shrink-0 rounded-full object-cover"
+          />
+        ) : (
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-accent-muted text-[16px] font-bold text-accent">
+            {initials}
+          </div>
+        )}
         <div className="min-w-0">
           <p className="truncate text-[16px] font-semibold text-foreground">
             {profile?.display_name || user?.email?.split("@")[0] || "—"}
