@@ -15,6 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, Redirect } from "expo-router";
 import { ChevronLeft, Search, Check, ExternalLink } from "lucide-react-native";
 import { useAuth } from "@/lib/auth";
+import { AppMarkdown } from "@/components/Markdown";
 import {
   streamResearch,
   RESEARCH_COST,
@@ -178,7 +179,7 @@ export default function Research() {
 
           {report ? (
             <View style={styles.reportCard}>
-              <Text style={styles.report}>{report}</Text>
+              <AppMarkdown>{report}</AppMarkdown>
             </View>
           ) : null}
 

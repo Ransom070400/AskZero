@@ -12,7 +12,6 @@ import {
   Modal,
   Image,
   Alert,
-  Animated,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Redirect, useRouter } from "expo-router";
@@ -40,6 +39,7 @@ import { useAuth } from "@/lib/auth";
 import { AppHeader } from "@/components/AppHeader";
 import { getChatStyle } from "@/lib/prefs";
 import { colors } from "@/lib/theme";
+import { AppMarkdown } from "@/components/Markdown";
 import {
   createChat,
   getBalance,
@@ -348,7 +348,7 @@ export default function Chat() {
                       )
                     ) : (
                       <View style={[styles.bubble, styles.aiBubble]}>
-                        <StreamingText content={item.content} />
+                        <AppMarkdown>{item.content}</AppMarkdown>
                       </View>
                     )}
                   </View>
@@ -434,31 +434,6 @@ export default function Chat() {
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
-  );
-}
-
-// Renders answer text one paragraph per block; each new paragraph fades in as
-// it arrives. The last (growing) paragraph keeps its identity so it doesn't
-// re-fade token by token.
-function FadeInParagraph({ text }: { text: string }) {
-  // Fades in once when this paragraph first appears; the component persists
-  // (keyed by index) as its text grows, so it doesn't re-fade token by token.
-  const op = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    Animated.timing(op, { toValue: 1, duration: 420, useNativeDriver: true }).start();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  return <Animated.Text style={[styles.aiText, styles.para, { opacity: op }]}>{text}</Animated.Text>;
-}
-
-function StreamingText({ content }: { content: string }) {
-  const paras = content.split(/\n\n+/);
-  return (
-    <View>
-      {paras.map((p, i) => (
-        <FadeInParagraph key={i} text={p} />
-      ))}
-    </View>
   );
 }
 
@@ -650,7 +625,6 @@ const styles = StyleSheet.create({
   aiBubble: { alignSelf: "flex-start", backgroundColor: "#161616" },
   userText: { color: "#000", fontSize: 15.5, lineHeight: 22 },
   aiText: { color: "#ededed", fontSize: 15.5, lineHeight: 22 },
-  para: { marginBottom: 8 },
   imageBubble: { padding: 4, maxWidth: "80%" },
   genImage: { width: 240, height: 240, borderRadius: 14, backgroundColor: "#0d0d0d" },
   assistantRow: { alignSelf: "flex-start", maxWidth: "92%", gap: 6 },
