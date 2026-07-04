@@ -13,6 +13,7 @@ import {
 } from "@/lib/integrate-network";
 import { buildReceipt, makeNonce } from "@/lib/receipts";
 import { buildSystemPrompt, type ChatStyle } from "@/lib/system-prompt";
+import { gatherToolContext } from "@/lib/tools";
 import { detectArtifacts } from "@/lib/artifact-detect";
 import {
   recallMemories,
@@ -179,17 +180,26 @@ export async function POST(req: NextRequest) {
     }
   );
 
-  // Recall long-term memory and fold it into the system prompt. Best-effort
-  // and only when there's a text query to match on (skips attachment-only
-  // turns). Adds one embedding round-trip before inference.
+  // Recall long-term memory AND gather tool results (web search, date/time,
+  // calculator, url fetch) in parallel, then fold both into the system prompt.
+  // Best-effort; only when there's a text query. Tools let the model look
+  // things up instead of guessing (see lib/tools.ts + the system prompt).
   let memoryBlock = "";
+  let toolBlock = "";
   if (message.trim()) {
-    const recalled = await recallMemories(supabase, message, 6);
+    const [recalled, tools] = await Promise.all([
+      recallMemories(supabase, message, 6),
+      gatherToolContext(message).catch(() => ""),
+    ]);
     memoryBlock = formatMemoriesForPrompt(recalled);
+    toolBlock = tools;
   }
 
   const messages = [
-    { role: "system" as const, content: buildSystemPrompt(style) + memoryBlock },
+    {
+      role: "system" as const,
+      content: buildSystemPrompt(style) + memoryBlock + toolBlock,
+    },
     ...historyMessages,
   ];
 
