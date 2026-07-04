@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import rehypeKatex from "rehype-katex";
@@ -8,6 +8,23 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import { Copy, Check, Download, ExternalLink, FileText, FileCode, History, Pencil, RotateCw, X, Search, Calculator, Globe, Loader2 } from "lucide-react";
 import { MermaidBlock } from "./mermaid-block";
+
+// Markdown paragraph that fades in when it first appears. As the last paragraph
+// grows during streaming its element persists (same position), so it fades once
+// rather than flickering per token.
+function FadeP(props: React.HTMLAttributes<HTMLParagraphElement>) {
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    const r = requestAnimationFrame(() => setShown(true));
+    return () => cancelAnimationFrame(r);
+  }, []);
+  return (
+    <p
+      {...props}
+      style={{ opacity: shown ? 1 : 0, transition: "opacity 0.4s ease" }}
+    />
+  );
+}
 
 // Live agent "thinking" trace — reasoning + tool steps shown above the answer.
 function StepsTrace({ steps, active }: { steps: AgentStep[]; active: boolean }) {
@@ -481,7 +498,7 @@ export function MessageBubble({
           <ReactMarkdown
             rehypePlugins={[rehypeHighlight, rehypeKatex]}
             remarkPlugins={[remarkGfm, remarkMath]}
-            components={{ pre: PreBlock as never }}
+            components={{ pre: PreBlock as never, p: FadeP as never }}
           >
             {message.content}
           </ReactMarkdown>
