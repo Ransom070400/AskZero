@@ -312,19 +312,28 @@ export interface StreamFinal {
   artifacts?: unknown[];
 }
 
+// A live "thinking" step from the agent loop (shown before the answer).
+export interface AgentStep {
+  type: "thinking" | "tool" | "tool_result";
+  text?: string;
+  tool?: string;
+  input?: string;
+}
+
 /**
- * Stream a chat completion. Yields incremental text; the returned promise
- * resolves with the final usage/messageId frame once the stream ends.
+ * Stream a chat completion. Delivers agent steps (thinking/tool) via onStep,
+ * answer text via onChunk, and resolves with the final usage frame.
  *
- * Uses expo/fetch, which (unlike RN's built-in fetch) supports streaming
- * response bodies — matching the backend's SSE format:
- *   data: {"content":"..."}      ← incremental
- *   data: {"usage":...,"messageId":...}  ← final frame
+ * Backend SSE format:
+ *   data: {"type":"thinking"|"tool"|"tool_result", ...}  ← live agent steps
+ *   data: {"content":"..."}                              ← answer delta
+ *   data: {"usage":...,"messageId":...}                  ← final frame
  *   data: [DONE]
  */
 export async function streamChat(
   params: StreamChatParams,
-  onChunk: (text: string) => void
+  onChunk: (text: string) => void,
+  onStep?: (step: AgentStep) => void
 ): Promise<StreamFinal> {
   const res = await expoFetch(`${API_URL}/api/chat`, {
     method: "POST",
@@ -360,7 +369,13 @@ export async function streamChat(
       if (data === "[DONE]" || data === "") continue;
       try {
         const parsed = JSON.parse(data);
-        if (typeof parsed.content === "string") {
+        if (
+          parsed.type === "thinking" ||
+          parsed.type === "tool" ||
+          parsed.type === "tool_result"
+        ) {
+          onStep?.(parsed as AgentStep);
+        } else if (typeof parsed.content === "string") {
           onChunk(parsed.content);
         } else if (parsed.usage || parsed.messageId !== undefined) {
           final = parsed as StreamFinal;

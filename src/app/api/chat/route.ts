@@ -13,7 +13,7 @@ import {
 } from "@/lib/integrate-network";
 import { buildReceipt, makeNonce } from "@/lib/receipts";
 import { buildSystemPrompt, type ChatStyle } from "@/lib/system-prompt";
-import { gatherToolContext } from "@/lib/tools";
+import { runAgentLoop } from "@/lib/agent";
 import { detectArtifacts } from "@/lib/artifact-detect";
 import {
   recallMemories,
@@ -180,70 +180,81 @@ export async function POST(req: NextRequest) {
     }
   );
 
-  // Recall long-term memory AND gather tool results (web search, date/time,
-  // calculator, url fetch) in parallel, then fold both into the system prompt.
-  // Best-effort; only when there's a text query. Tools let the model look
-  // things up instead of guessing (see lib/tools.ts + the system prompt).
+  // Recall long-term memory (best-effort) and build the base system prompt. The
+  // agent/tool loop runs INSIDE the stream so its thinking + tool steps stream
+  // live to the UI before the answer.
   let memoryBlock = "";
-  let toolBlock = "";
   if (message.trim()) {
-    const [recalled, tools] = await Promise.all([
-      recallMemories(supabase, message, 6),
-      gatherToolContext(message).catch(() => ""),
-    ]);
+    const recalled = await recallMemories(supabase, message, 6);
     memoryBlock = formatMemoriesForPrompt(recalled);
-    toolBlock = tools;
   }
-
-  const messages = [
-    {
-      role: "system" as const,
-      content: buildSystemPrompt(style) + memoryBlock + toolBlock,
-    },
-    ...historyMessages,
-  ];
-
-  // Send to 0G Compute (broker SDK) or Integrate Network proxy
-  let ogResponse: Response;
-  try {
-    if (provider.startsWith(INTEGRATE_PREFIX)) {
-      const integrateModel = findIntegrateModel(provider);
-      if (!integrateModel) {
-        return new Response(
-          JSON.stringify({ error: "Unknown integrate model" }),
-          { status: 400 }
-        );
-      }
-      ogResponse = await sendIntegratePrompt(integrateModel, messages, {
-        stream: true,
-      });
-    } else {
-      const { sendPrompt } = await import("@/lib/og-compute");
-      ogResponse = await sendPrompt(provider, messages, { stream: true });
-    }
-  } catch (err) {
-    const errMsg =
-      err instanceof Error ? err.message : "0G Compute unavailable";
-    return new Response(JSON.stringify({ error: errMsg }), { status: 502 });
-  }
-
-  let fullResponse = "";
-  const inputTokens = estimateTokens(
-    messages
-      .map((m) =>
-        typeof m.content === "string"
-          ? m.content
-          : m.content
-              .filter((p): p is { type: "text"; text: string } => p.type === "text")
-              .map((p) => p.text)
-              .join(" ")
-      )
-      .join(" ")
-  ) + (attachments.length * 85); // ~85 tokens per image
+  const baseSystem = buildSystemPrompt(style) + memoryBlock;
 
   const stream = new ReadableStream({
     async start(controller) {
       const encoder = new TextEncoder();
+      const send = (obj: unknown) =>
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(obj)}\n\n`));
+
+      // 1) Agentic reasoning loop — emit each thinking/tool step live.
+      let observations = "";
+      if (message.trim()) {
+        try {
+          observations = await runAgentLoop(message, (s) => send(s));
+        } catch {
+          observations = "";
+        }
+      }
+
+      // 2) Final messages, with tool observations folded into the system prompt.
+      const messages = [
+        { role: "system" as const, content: baseSystem + observations },
+        ...historyMessages,
+      ];
+      const inputTokens =
+        estimateTokens(
+          messages
+            .map((m) =>
+              typeof m.content === "string"
+                ? m.content
+                : m.content
+                    .filter(
+                      (p): p is { type: "text"; text: string } => p.type === "text"
+                    )
+                    .map((p) => p.text)
+                    .join(" ")
+            )
+            .join(" ")
+        ) + attachments.length * 85; // ~85 tokens per image
+
+      // 3) Call the model for the final answer (streamed).
+      let ogResponse: Response;
+      try {
+        if (provider.startsWith(INTEGRATE_PREFIX)) {
+          const integrateModel = findIntegrateModel(provider);
+          if (!integrateModel) {
+            send({ content: "[Error: unknown model]" });
+            controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+            controller.close();
+            return;
+          }
+          ogResponse = await sendIntegratePrompt(integrateModel, messages, {
+            stream: true,
+          });
+        } else {
+          const { sendPrompt } = await import("@/lib/og-compute");
+          ogResponse = await sendPrompt(provider, messages, { stream: true });
+        }
+      } catch (err) {
+        const errMsg =
+          err instanceof Error ? err.message : "0G Compute unavailable";
+        send({ content: `[Error: ${errMsg}]` });
+        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+        controller.close();
+        return;
+      }
+
+      let fullResponse = "";
       const reader = ogResponse.body!.getReader();
       const decoder = new TextDecoder();
       let buffer = "";

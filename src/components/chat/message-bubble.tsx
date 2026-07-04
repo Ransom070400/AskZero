@@ -6,8 +6,50 @@ import rehypeHighlight from "rehype-highlight";
 import rehypeKatex from "rehype-katex";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
-import { Copy, Check, Download, ExternalLink, FileText, FileCode, History, Pencil, RotateCw, X } from "lucide-react";
+import { Copy, Check, Download, ExternalLink, FileText, FileCode, History, Pencil, RotateCw, X, Search, Calculator, Globe, Loader2 } from "lucide-react";
 import { MermaidBlock } from "./mermaid-block";
+
+// Live agent "thinking" trace — reasoning + tool steps shown above the answer.
+function StepsTrace({ steps, active }: { steps: AgentStep[]; active: boolean }) {
+  const toolLabel = (tool?: string) =>
+    tool === "web_search"
+      ? "Searching the web"
+      : tool === "calculate"
+        ? "Calculating"
+        : "Reading page";
+  const ToolIcon = ({ tool }: { tool?: string }) => {
+    const cls = "h-3.5 w-3.5 text-accent shrink-0";
+    if (tool === "calculate") return <Calculator className={cls} />;
+    if (tool === "fetch_url") return <Globe className={cls} />;
+    return <Search className={cls} />;
+  };
+  return (
+    <div className="mb-2 space-y-1.5 border-l-2 border-accent/25 pl-3">
+      {steps.map((s, i) => {
+        if (s.type === "thinking") {
+          return (
+            <p key={i} className="text-[13px] italic leading-snug text-text-tertiary">
+              {s.text}
+            </p>
+          );
+        }
+        if (s.type === "tool") {
+          return (
+            <div key={i} className="flex items-center gap-1.5 text-[13px] text-text-secondary">
+              <ToolIcon tool={s.tool} />
+              <span>
+                {toolLabel(s.tool)}
+                {s.input ? <span className="text-accent"> · {s.input}</span> : null}
+              </span>
+            </div>
+          );
+        }
+        return null;
+      })}
+      {active && <Loader2 className="h-3.5 w-3.5 animate-spin text-accent" />}
+    </div>
+  );
+}
 
 interface PreContextValue {
   messageId: string;
@@ -34,6 +76,13 @@ export interface ArtifactRef {
   title: string;
 }
 
+export interface AgentStep {
+  type: "thinking" | "tool" | "tool_result";
+  text?: string;
+  tool?: string;
+  input?: string;
+}
+
 export interface Message {
   id: string;
   role: "user" | "assistant" | "system";
@@ -42,6 +91,8 @@ export interface Message {
   costCredits?: number | null;
   attachments?: Attachment[];
   artifacts?: ArtifactRef[];
+  // Live agent "thinking" trace (search/reason steps) shown above the answer.
+  steps?: AgentStep[];
   // Set when this message was created by editing a previous user message.
   // The "view previous version" button surfaces the superseded thread.
   replacesId?: string;
@@ -405,6 +456,9 @@ export function MessageBubble({
 
   return (
     <div id={`msg-${message.id}`} className="group scroll-mt-20">
+      {message.steps && message.steps.length > 0 && (
+        <StepsTrace steps={message.steps} active={!message.content} />
+      )}
       <div
         className="prose prose-sm dark:prose-invert max-w-none text-[15px] leading-[1.7] text-foreground
           [&_p]:my-3

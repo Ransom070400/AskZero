@@ -15,7 +15,18 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Redirect, useRouter } from "expo-router";
-import { Plus, X, MessageSquare, Paperclip, Mic, Square, Sparkles } from "lucide-react-native";
+import {
+  Plus,
+  X,
+  MessageSquare,
+  Paperclip,
+  Mic,
+  Square,
+  Sparkles,
+  Search,
+  Calculator,
+  Globe,
+} from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 import {
@@ -41,6 +52,7 @@ import {
   detectImageIntent,
   type ChatSummary,
   type Attachment,
+  type AgentStep,
 } from "@/lib/api";
 
 interface Msg {
@@ -48,6 +60,7 @@ interface Msg {
   role: "user" | "assistant";
   content: string;
   imageUrl?: string;
+  steps?: AgentStep[];
 }
 
 let idCounter = 0;
@@ -240,6 +253,14 @@ export default function Chat() {
             prev.map((m) =>
               m.id === assistantMsg.id ? { ...m, content: m.content + chunk } : m
             )
+          ),
+        (step) =>
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantMsg.id
+                ? { ...m, steps: [...(m.steps ?? []), step] }
+                : m
+            )
           )
       );
     } catch (e) {
@@ -300,22 +321,30 @@ export default function Chat() {
                   </View>
                 );
               }
+              if (item.role === "assistant") {
+                const thinking = item.content === "";
+                return (
+                  <View style={styles.assistantRow}>
+                    {item.steps && item.steps.length > 0 && (
+                      <StepsTrace steps={item.steps} active={thinking} />
+                    )}
+                    {thinking ? (
+                      item.steps && item.steps.length > 0 ? null : (
+                        <View style={[styles.bubble, styles.aiBubble]}>
+                          <ActivityIndicator color="#CB8AFF" />
+                        </View>
+                      )
+                    ) : (
+                      <View style={[styles.bubble, styles.aiBubble]}>
+                        <Text style={styles.aiText}>{item.content}</Text>
+                      </View>
+                    )}
+                  </View>
+                );
+              }
               return (
-                <View
-                  style={[
-                    styles.bubble,
-                    item.role === "user" ? styles.userBubble : styles.aiBubble,
-                  ]}
-                >
-                  {item.content === "" ? (
-                    <ActivityIndicator color="#CB8AFF" />
-                  ) : (
-                    <Text
-                      style={item.role === "user" ? styles.userText : styles.aiText}
-                    >
-                      {item.content}
-                    </Text>
-                  )}
+                <View style={[styles.bubble, styles.userBubble]}>
+                  <Text style={styles.userText}>{item.content}</Text>
                 </View>
               );
             }}
@@ -393,6 +422,59 @@ export default function Chat() {
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
+  );
+}
+
+function StepsTrace({ steps, active }: { steps: AgentStep[]; active: boolean }) {
+  const toolLabel = (tool?: string) =>
+    tool === "web_search"
+      ? "Searching the web"
+      : tool === "calculate"
+        ? "Calculating"
+        : "Reading page";
+  const ToolIcon = ({ tool }: { tool?: string }) =>
+    tool === "calculate" ? (
+      <Calculator size={13} color={colors.accentBright} />
+    ) : tool === "fetch_url" ? (
+      <Globe size={13} color={colors.accentBright} />
+    ) : (
+      <Search size={13} color={colors.accentBright} />
+    );
+
+  return (
+    <View style={styles.trace}>
+      {steps.map((s, i) => {
+        if (s.type === "thinking") {
+          return (
+            <View key={i} style={styles.traceRow}>
+              <View style={styles.thinkDot} />
+              <Text style={styles.thinkText}>{s.text}</Text>
+            </View>
+          );
+        }
+        if (s.type === "tool") {
+          return (
+            <View key={i} style={styles.traceRow}>
+              <ToolIcon tool={s.tool} />
+              <Text style={styles.toolText}>
+                {toolLabel(s.tool)}
+                {s.input ? (
+                  <Text style={styles.toolArg}> · {s.input}</Text>
+                ) : null}
+              </Text>
+            </View>
+          );
+        }
+        return null; // tool_result kept out of the trace for cleanliness
+      })}
+      {active && (
+        <ActivityIndicator
+          size="small"
+          color={colors.accentBright}
+          style={{ alignSelf: "flex-start", marginTop: 2 }}
+        />
+      )}
+    </View>
   );
 }
 
@@ -533,6 +615,32 @@ const styles = StyleSheet.create({
   aiText: { color: "#ededed", fontSize: 15.5, lineHeight: 22 },
   imageBubble: { padding: 4, maxWidth: "80%" },
   genImage: { width: 240, height: 240, borderRadius: 14, backgroundColor: "#0d0d0d" },
+  assistantRow: { alignSelf: "flex-start", maxWidth: "92%", gap: 6 },
+  trace: {
+    gap: 6,
+    borderLeftWidth: 2,
+    borderLeftColor: "#2a2140",
+    paddingLeft: 12,
+    paddingVertical: 4,
+    marginBottom: 2,
+  },
+  traceRow: { flexDirection: "row", alignItems: "flex-start", gap: 7 },
+  thinkDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: "#6b6b6b",
+    marginTop: 6,
+  },
+  thinkText: {
+    color: "rgba(255,255,255,0.5)",
+    fontSize: 13,
+    lineHeight: 18,
+    fontStyle: "italic",
+    flex: 1,
+  },
+  toolText: { color: "rgba(255,255,255,0.72)", fontSize: 13, lineHeight: 18, flex: 1 },
+  toolArg: { color: "#CB8AFF" },
   chips: {
     flexDirection: "row",
     flexWrap: "wrap",

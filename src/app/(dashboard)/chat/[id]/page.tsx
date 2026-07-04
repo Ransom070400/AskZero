@@ -400,6 +400,19 @@ function ChatDetailContent() {
 
             try {
               const parsed = JSON.parse(trimmed);
+              if (
+                parsed.type === "thinking" ||
+                parsed.type === "tool" ||
+                parsed.type === "tool_result"
+              ) {
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === assistantId
+                      ? { ...m, steps: [...(m.steps ?? []), parsed] }
+                      : m
+                  )
+                );
+              }
               if (parsed.content) {
                 setMessages((prev) =>
                   prev.map((m) =>
