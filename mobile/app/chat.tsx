@@ -14,8 +14,8 @@ import {
   Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Redirect } from "expo-router";
-import { Plus, X, MessageSquare, Paperclip, Mic, Square } from "lucide-react-native";
+import { Redirect, useRouter } from "expo-router";
+import { Plus, X, MessageSquare, Paperclip, Mic, Square, Sparkles } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 import {
@@ -54,6 +54,7 @@ let idCounter = 0;
 const nextId = () => `m${++idCounter}`;
 
 export default function Chat() {
+  const router = useRouter();
   const { session, loading } = useAuth();
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
@@ -263,6 +264,10 @@ export default function Chat() {
         onClose={() => setHistoryOpen(false)}
         onNew={newChat}
         onSelect={selectChat}
+        onResearch={() => {
+          setHistoryOpen(false);
+          router.push("/research");
+        }}
       />
 
       <KeyboardAvoidingView
@@ -398,6 +403,7 @@ function HistoryDrawer({
   onClose,
   onNew,
   onSelect,
+  onResearch,
 }: {
   visible: boolean;
   chats: ChatSummary[];
@@ -405,6 +411,7 @@ function HistoryDrawer({
   onClose: () => void;
   onNew: () => void;
   onSelect: (id: string) => void;
+  onResearch: () => void;
 }) {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -420,6 +427,11 @@ function HistoryDrawer({
         <Pressable style={drawer.newBtn} onPress={onNew}>
           <Plus size={18} color={colors.text} />
           <Text style={drawer.newText}>New chat</Text>
+        </Pressable>
+
+        <Pressable style={drawer.newBtn} onPress={onResearch}>
+          <Sparkles size={18} color={colors.accentBright} />
+          <Text style={drawer.newText}>Research</Text>
         </Pressable>
 
         <FlatList

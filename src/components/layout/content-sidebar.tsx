@@ -11,6 +11,7 @@ import {
   ChevronDown,
   CreditCard,
   Settings,
+  Sparkles,
 } from "lucide-react";
 import { Logo } from "@/components/ui/logo";
 
@@ -356,6 +357,12 @@ export function ContentSidebar() {
 
       {/* Footer */}
       <div className="border-t border-border/70 p-2 space-y-px">
+        <FooterLink
+          href="/research"
+          icon={<Sparkles className="h-4 w-4" />}
+          active={pathname === "/research"}
+          label="Research"
+        />
         <FooterLink
           href="/deposit"
           icon={<CreditCard className="h-4 w-4" />}

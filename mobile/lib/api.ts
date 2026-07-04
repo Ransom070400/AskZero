@@ -219,6 +219,77 @@ export async function generateImage(
   return { imageUrl: att?.url ?? "", cost: d.assistantMessage?.cost_credits ?? 0 };
 }
 
+// --- Autonomous research ---
+export type ResearchDepth = "quick" | "standard";
+
+export interface ResearchSource {
+  n: number;
+  title: string;
+  url: string;
+}
+
+export interface ResearchEvent {
+  phase: string;
+  message?: string;
+  queries?: string[];
+  sourcesFound?: number;
+  read?: number;
+  total?: number;
+  sourceTitle?: string;
+  report?: string;
+  sources?: ResearchSource[];
+  error?: string;
+}
+
+export const RESEARCH_COST: Record<ResearchDepth, number> = {
+  quick: 50,
+  standard: 200,
+};
+
+// Stream a research run; each progress event is delivered via onEvent.
+export async function streamResearch(
+  query: string,
+  depth: ResearchDepth,
+  onEvent: (e: ResearchEvent) => void
+): Promise<void> {
+  const res = await expoFetch(`${API_URL}/api/research`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...(await authHeaders()) },
+    body: JSON.stringify({ query, depth }),
+  });
+  if (!res.ok) {
+    const t = await res.text().catch(() => "");
+    let msg = `research → ${res.status}`;
+    try {
+      msg = JSON.parse(t).error || msg;
+    } catch {
+      // keep default
+    }
+    throw new Error(msg);
+  }
+  const reader = res.body!.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+    for (const line of lines) {
+      const t = line.trim();
+      if (!t.startsWith("data:")) continue;
+      const data = t.slice("data:".length).trim();
+      if (data === "[DONE]" || !data) continue;
+      try {
+        onEvent(JSON.parse(data));
+      } catch {
+        // ignore malformed frame
+      }
+    }
+  }
+}
+
 // Heuristic "make me an image" detector (mirrors the web detectImageIntent).
 export function detectImageIntent(text: string): boolean {
   return /\b(draw|generate|create|make|design|paint|render|sketch)\b[^.?!]*\b(image|picture|photo|logo|art|drawing|illustration|wallpaper|icon|avatar)\b/i.test(
