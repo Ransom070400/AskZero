@@ -1,61 +1,62 @@
-import { Text, View, StyleSheet } from "react-native";
-import Svg, { Path } from "react-native-svg";
+import { useMemo } from "react";
+import { View } from "react-native";
+import { WebView } from "react-native-webview";
 import { useTheme } from "@/lib/theme-context";
 
 interface LogoProps {
   size?: number;
-  color?: string;
 }
 
-// Static AskZero wordmark: "ask" + two-arc "0" (foreground + purple accent) +
-// "ero". For the animated splash version see LogoIntro.
-export function Logo({ size = 28, color }: LogoProps) {
-  const { colors } = useTheme();
-  const textColor = color ?? colors.text;
-  const zero = size * 0.78;
-  const stroke = 9; // viewBox units (padded viewBox so the round stroke isn't clipped)
+// Static "askzero" wordmark rendered via a transparent WebView — the same exact
+// mark as askzero_logo_animation_preview.html (two arcs, stroke 9, viewBox 52
+// with overflow visible), but with no animation. Uses the browser engine so the
+// "0" arcs render exactly and never clip (react-native-svg mangled them).
+export function Logo({ size = 20 }: LogoProps) {
+  const { scheme } = useTheme();
+  const fg = scheme === "light" ? "#0a0a0a" : "#FFFFFF";
+  const purple = scheme === "light" ? "#8B3FD6" : "#CB8AFF";
+
+  const html = useMemo(() => {
+    const fs = size;
+    const zero = (fs * 52) / 72;
+    return `<!DOCTYPE html><html><head>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{background:transparent;height:100%;overflow:visible;}
+.wrap{display:flex;align-items:center;justify-content:flex-start;height:100vh;overflow:visible;}
+.mark{display:flex;align-items:center;gap:0;}
+.ask,.ero{font-family:-apple-system,system-ui,Roboto,sans-serif;font-size:${fs}px;font-weight:600;letter-spacing:${-fs * 0.04}px;color:${fg};line-height:1;}
+.ero{margin-left:-2px;}
+.zero-wrap{width:${zero}px;height:${fs}px;display:flex;align-items:center;justify-content:center;}
+.zero-wrap svg{overflow:visible;}
+</style></head>
+<body><div class="wrap"><div class="mark">
+<span class="ask">ask</span>
+<span class="zero-wrap"><svg width="${zero}" height="${zero}" viewBox="-26 -26 52 52">
+<path d="M 0,-22 A 22,22 0 1 1 15,-15" fill="none" stroke="${fg}" stroke-width="9" stroke-linecap="round"/>
+<path d="M 15,-15 A 22,22 0 1 1 0,-22" fill="none" stroke="${purple}" stroke-width="9" stroke-linecap="round"/>
+</svg></span>
+<span class="ero">ero</span>
+</div></div></body></html>`;
+  }, [size, fg, purple]);
 
   return (
-    <View style={styles.row} accessibilityLabel="askzero">
-      {word("ask", size, textColor)}
-      <View style={[styles.zeroBox, { width: zero, height: size }]}>
-        <Svg width={zero} height={zero} viewBox="-28 -28 56 56">
-          <Path
-            d="M 0,-22 A 22,22 0 1 1 15,-15"
-            fill="none"
-            stroke={textColor}
-            strokeWidth={stroke}
-            strokeLinecap="round"
-          />
-          <Path
-            d="M 15,-15 A 22,22 0 1 1 0,-22"
-            fill="none"
-            stroke={colors.accent}
-            strokeWidth={stroke}
-            strokeLinecap="round"
-          />
-        </Svg>
-      </View>
-      {word("ero", size, textColor, -2)}
+    <View
+      style={{ width: size * 4.4, height: size * 1.7 }}
+      pointerEvents="none"
+      accessibilityLabel="askzero"
+    >
+      <WebView
+        originWhitelist={["*"]}
+        source={{ html }}
+        style={{ backgroundColor: "transparent" }}
+        scrollEnabled={false}
+        showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}
+        opaque={false}
+        backgroundColor="transparent"
+      />
     </View>
   );
 }
-
-function word(text: string, size: number, color: string, marginLeft = 0) {
-  return (
-    <Text
-      style={[
-        styles.word,
-        { fontSize: size, color, letterSpacing: -size * 0.042, lineHeight: size * 1.05, marginLeft },
-      ]}
-    >
-      {text}
-    </Text>
-  );
-}
-
-const styles = StyleSheet.create({
-  row: { flexDirection: "row", alignItems: "center" },
-  word: { fontWeight: "500" },
-  zeroBox: { alignItems: "center", justifyContent: "center" },
-});
