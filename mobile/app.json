@@ -6,10 +6,12 @@
     "scheme": "askzero",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
+    "icon": "./assets/icon.png",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "ai.askzero.app",
+      "icon": "./assets/icon.png",
       "infoPlist": {
         "NSMicrophoneUsageDescription": "AskZero uses the microphone for voice input.",
         "NSPhotoLibraryUsageDescription": "AskZero lets you attach photos to your chats."
@@ -17,7 +19,11 @@
     },
     "android": {
       "package": "ai.askzero.app",
-      "permissions": ["RECORD_AUDIO"]
+      "permissions": ["RECORD_AUDIO"],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FFFFFF"
+      }
     },
     "plugins": [
       "expo-router",

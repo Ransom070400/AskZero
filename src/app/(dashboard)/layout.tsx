@@ -1,6 +1,7 @@
 import { ContentSidebar } from "@/components/layout/content-sidebar";
 import { TopNav } from "@/components/layout/top-nav";
 import { MobileSidebar } from "@/components/layout/mobile-sidebar";
+import { WhatsNew } from "@/components/whats-new";
 import { CurrencyProvider } from "@/lib/currency";
 
 export default function DashboardLayout({
@@ -10,6 +11,7 @@ export default function DashboardLayout({
 }) {
   return (
     <CurrencyProvider>
+      <WhatsNew />
       <div className="flex h-[100dvh] overflow-hidden">
         <ContentSidebar />
 
