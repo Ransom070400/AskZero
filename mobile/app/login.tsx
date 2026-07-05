@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -15,11 +15,15 @@ import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import * as Linking from "expo-linking";
 import { supabase } from "@/lib/supabase";
+import { type Palette } from "@/lib/theme";
+import { useTheme } from "@/lib/theme-context";
 
 WebBrowser.maybeCompleteAuthSession();
 
 export default function Login() {
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -107,7 +111,7 @@ export default function Login() {
           <TextInput
             style={styles.input}
             placeholder="Email"
-            placeholderTextColor="#666"
+            placeholderTextColor={colors.textTertiary}
             autoCapitalize="none"
             keyboardType="email-address"
             autoComplete="email"
@@ -117,7 +121,7 @@ export default function Login() {
           <TextInput
             style={styles.input}
             placeholder="Password"
-            placeholderTextColor="#666"
+            placeholderTextColor={colors.textTertiary}
             secureTextEntry
             value={password}
             onChangeText={setPassword}
@@ -129,7 +133,7 @@ export default function Login() {
             disabled={busy}
           >
             {busy ? (
-              <ActivityIndicator color="#000" />
+              <ActivityIndicator color={colors.bg} />
             ) : (
               <Text style={styles.primaryBtnText}>
                 {mode === "signin" ? "Sign in" : "Create account"}
@@ -156,41 +160,41 @@ export default function Login() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#000" },
+const makeStyles = (colors: Palette) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.bg },
   container: { flex: 1, justifyContent: "center", paddingHorizontal: 28 },
   header: { alignItems: "center", marginBottom: 40 },
-  brand: { color: "#fff", fontSize: 34, fontWeight: "800", letterSpacing: -1 },
-  tagline: { color: "rgba(255,255,255,0.5)", fontSize: 15, marginTop: 8 },
+  brand: { color: colors.text, fontSize: 34, fontWeight: "800", letterSpacing: -1 },
+  tagline: { color: colors.textSecondary, fontSize: 15, marginTop: 8 },
   form: { gap: 12 },
   input: {
-    backgroundColor: "#141414",
+    backgroundColor: colors.elevated,
     borderWidth: 1,
-    borderColor: "#262626",
+    borderColor: colors.border,
     borderRadius: 14,
     paddingHorizontal: 16,
     paddingVertical: 14,
-    color: "#fff",
+    color: colors.text,
     fontSize: 16,
   },
   primaryBtn: {
-    backgroundColor: "#fff",
+    backgroundColor: colors.text,
     borderRadius: 999,
     paddingVertical: 15,
     alignItems: "center",
     marginTop: 4,
   },
-  primaryBtnText: { color: "#000", fontSize: 16, fontWeight: "700" },
+  primaryBtnText: { color: colors.bg, fontSize: 16, fontWeight: "700" },
   googleBtn: {
     borderWidth: 1,
-    borderColor: "#262626",
+    borderColor: colors.border,
     borderRadius: 999,
     paddingVertical: 15,
     alignItems: "center",
   },
-  googleBtnText: { color: "#fff", fontSize: 15, fontWeight: "600" },
+  googleBtnText: { color: colors.text, fontSize: 15, fontWeight: "600" },
   switch: {
-    color: "rgba(255,255,255,0.5)",
+    color: colors.textSecondary,
     textAlign: "center",
     marginTop: 8,
     fontSize: 13,

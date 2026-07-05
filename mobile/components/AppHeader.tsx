@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { View, Text, Pressable, Image, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { Menu } from "lucide-react-native";
 import { Logo } from "./Logo";
-import { colors, radius } from "@/lib/theme";
+import { radius, type Palette } from "@/lib/theme";
+import { useTheme } from "@/lib/theme-context";
 import { useAuth } from "@/lib/auth";
 import { useCurrency } from "@/lib/currency";
 import { getBalance } from "@/lib/api";
@@ -18,6 +19,8 @@ export function AppHeader({
   onMenu?: () => void;
 }) {
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { session } = useAuth();
   const { formatBalance } = useCurrency();
   const [localBalance, setLocalBalance] = useState<number | null>(
@@ -77,7 +80,7 @@ export function AppHeader({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -38,7 +38,8 @@ import {
 import { useAuth } from "@/lib/auth";
 import { AppHeader } from "@/components/AppHeader";
 import { getChatStyle } from "@/lib/prefs";
-import { colors } from "@/lib/theme";
+import { type Palette } from "@/lib/theme";
+import { useTheme } from "@/lib/theme-context";
 import { AppMarkdown } from "@/components/Markdown";
 import {
   createChat,
@@ -69,6 +70,8 @@ const nextId = () => `m${++idCounter}`;
 
 export default function Chat() {
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { session, loading } = useAuth();
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
@@ -343,7 +346,7 @@ export default function Chat() {
                     {thinking ? (
                       item.steps && item.steps.length > 0 ? null : (
                         <View style={[styles.bubble, styles.aiBubble]}>
-                          <ActivityIndicator color="#CB8AFF" />
+                          <ActivityIndicator color={colors.accentBright} />
                         </View>
                       )
                     ) : (
@@ -409,7 +412,7 @@ export default function Chat() {
           <TextInput
             style={styles.input}
             placeholder={recording ? "Recording…" : "Message AskZero…"}
-            placeholderTextColor="#666"
+            placeholderTextColor={colors.textTertiary}
             value={input}
             onChangeText={setInput}
             multiline
@@ -426,7 +429,7 @@ export default function Chat() {
             disabled={(!input.trim() && attachments.length === 0) || sending}
           >
             {busyAttach ? (
-              <ActivityIndicator color="#000" size="small" />
+              <ActivityIndicator color={colors.onAccent} size="small" />
             ) : (
               <Text style={styles.sendBtnText}>{sending ? "…" : "↑"}</Text>
             )}
@@ -438,6 +441,8 @@ export default function Chat() {
 }
 
 function StepsTrace({ steps, active }: { steps: AgentStep[]; active: boolean }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const toolLabel = (tool?: string) =>
     tool === "web_search"
       ? "Searching the web"
@@ -507,6 +512,8 @@ function HistoryDrawer({
   onSelect: (id: string) => void;
   onResearch: () => void;
 }) {
+  const { colors } = useTheme();
+  const drawer = useMemo(() => makeDrawerStyles(colors), [colors]);
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={drawer.backdrop} onPress={onClose} />
@@ -552,7 +559,7 @@ function HistoryDrawer({
   );
 }
 
-const drawer = StyleSheet.create({
+const makeDrawerStyles = (colors: Palette) => StyleSheet.create({
   backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.5)" },
   panel: {
     position: "absolute",
@@ -601,8 +608,8 @@ const drawer = StyleSheet.create({
   empty: { color: colors.textTertiary, fontSize: 13, textAlign: "center", marginTop: 24 },
 });
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#000" },
+const makeStyles = (colors: Palette) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.bg },
   flex: { flex: 1 },
   header: {
     flexDirection: "row",
@@ -611,27 +618,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#1a1a1a",
+    borderBottomColor: colors.borderSoft,
   },
-  brand: { color: "#fff", fontSize: 18, fontWeight: "800", letterSpacing: -0.5 },
+  brand: { color: colors.text, fontSize: 18, fontWeight: "800", letterSpacing: -0.5 },
   headerRight: { flexDirection: "row", alignItems: "center", gap: 14 },
-  balance: { color: "rgba(255,255,255,0.6)", fontSize: 13, fontWeight: "600" },
-  signOut: { color: "#CB8AFF", fontSize: 13, fontWeight: "600" },
+  balance: { color: colors.textSecondary, fontSize: 13, fontWeight: "600" },
+  signOut: { color: colors.accentBright, fontSize: 13, fontWeight: "600" },
   empty: { flex: 1, justifyContent: "center", alignItems: "center" },
-  emptyText: { color: "rgba(255,255,255,0.35)", fontSize: 17 },
+  emptyText: { color: colors.textTertiary, fontSize: 17 },
   list: { padding: 16, gap: 10 },
   bubble: { maxWidth: "88%", borderRadius: 18, paddingHorizontal: 15, paddingVertical: 11 },
-  userBubble: { alignSelf: "flex-end", backgroundColor: "#fff" },
-  aiBubble: { alignSelf: "flex-start", backgroundColor: "#161616" },
-  userText: { color: "#000", fontSize: 15.5, lineHeight: 22 },
-  aiText: { color: "#ededed", fontSize: 15.5, lineHeight: 22 },
+  userBubble: { alignSelf: "flex-end", backgroundColor: colors.userBubble },
+  aiBubble: { alignSelf: "flex-start", backgroundColor: colors.aiBubble },
+  userText: { color: colors.onUserBubble, fontSize: 15.5, lineHeight: 22 },
+  aiText: { color: colors.aiText, fontSize: 15.5, lineHeight: 22 },
   imageBubble: { padding: 4, maxWidth: "80%" },
-  genImage: { width: 240, height: 240, borderRadius: 14, backgroundColor: "#0d0d0d" },
+  genImage: { width: 240, height: 240, borderRadius: 14, backgroundColor: colors.surface },
   assistantRow: { alignSelf: "flex-start", maxWidth: "92%", gap: 6 },
   trace: {
     gap: 6,
     borderLeftWidth: 2,
-    borderLeftColor: "#2a2140",
+    borderLeftColor: colors.border,
     paddingLeft: 12,
     paddingVertical: 4,
     marginBottom: 2,
@@ -641,18 +648,18 @@ const styles = StyleSheet.create({
     width: 5,
     height: 5,
     borderRadius: 3,
-    backgroundColor: "#6b6b6b",
+    backgroundColor: colors.textTertiary,
     marginTop: 6,
   },
   thinkText: {
-    color: "rgba(255,255,255,0.5)",
+    color: colors.textTertiary,
     fontSize: 13,
     lineHeight: 18,
     fontStyle: "italic",
     flex: 1,
   },
-  toolText: { color: "rgba(255,255,255,0.72)", fontSize: 13, lineHeight: 18, flex: 1 },
-  toolArg: { color: "#CB8AFF" },
+  toolText: { color: colors.textSecondary, fontSize: 13, lineHeight: 18, flex: 1 },
+  toolArg: { color: colors.accentBright },
   chips: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -665,15 +672,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
     maxWidth: 180,
-    backgroundColor: "#141414",
+    backgroundColor: colors.elevated,
     borderWidth: 1,
-    borderColor: "#262626",
+    borderColor: colors.border,
     borderRadius: 999,
     paddingLeft: 12,
     paddingRight: 8,
     paddingVertical: 6,
   },
-  chipText: { color: "#ededed", fontSize: 12, flexShrink: 1 },
+  chipText: { color: colors.aiText, fontSize: 12, flexShrink: 1 },
   iconBtn: {
     width: 38,
     height: 38,
@@ -687,29 +694,29 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderTopWidth: 1,
-    borderTopColor: "#1a1a1a",
+    borderTopColor: colors.borderSoft,
   },
   input: {
     flex: 1,
     maxHeight: 120,
-    backgroundColor: "#141414",
+    backgroundColor: colors.elevated,
     borderWidth: 1,
-    borderColor: "#262626",
+    borderColor: colors.border,
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingTop: 11,
     paddingBottom: 11,
-    color: "#fff",
+    color: colors.text,
     fontSize: 16,
   },
   sendBtn: {
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: "#CB8AFF",
+    backgroundColor: colors.accentBright,
     alignItems: "center",
     justifyContent: "center",
   },
-  sendBtnText: { color: "#000", fontSize: 20, fontWeight: "800" },
+  sendBtnText: { color: colors.onAccent, fontSize: 20, fontWeight: "800" },
   disabled: { opacity: 0.4 },
 });

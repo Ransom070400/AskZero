@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -23,7 +23,8 @@ import {
   type ResearchEvent,
   type ResearchSource,
 } from "@/lib/api";
-import { colors, radius } from "@/lib/theme";
+import { radius, type Palette } from "@/lib/theme";
+import { useTheme } from "@/lib/theme-context";
 
 const STEPS = [
   { key: "planning", label: "Planning" },
@@ -34,6 +35,8 @@ const STEPS = [
 
 export default function Research() {
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { session, loading } = useAuth();
   const [query, setQuery] = useState("");
   const [depth, setDepth] = useState<ResearchDepth>("quick");
@@ -207,7 +210,7 @@ export default function Research() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
   flex: { flex: 1 },
   header: {

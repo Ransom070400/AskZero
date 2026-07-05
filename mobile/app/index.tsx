@@ -3,7 +3,7 @@ import { Animated, View, StyleSheet, Easing } from "react-native";
 import { Redirect } from "expo-router";
 import { useAuth } from "@/lib/auth";
 import { LogoIntro } from "@/components/LogoIntro";
-import { colors } from "@/lib/theme";
+import { useTheme } from "@/lib/theme-context";
 
 // The intro animation finishes drawing the arcs at ~1.5s; hold a touch longer
 // so the completed mark rests briefly before routing.
@@ -11,6 +11,7 @@ const MIN_SPLASH_MS = 2100;
 
 export default function Splash() {
   const { session, loading } = useAuth();
+  const { colors } = useTheme();
   const [minElapsed, setMinElapsed] = useState(false);
 
   const tagline = useRef(new Animated.Value(0)).current;
@@ -35,9 +36,11 @@ export default function Splash() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.bg }]}>
       <LogoIntro size={56} />
-      <Animated.Text style={[styles.tagline, { opacity: tagline }]}>
+      <Animated.Text
+        style={[styles.tagline, { color: colors.textSecondary, opacity: tagline }]}
+      >
         private, verifiable AI.
       </Animated.Text>
     </View>
@@ -47,13 +50,11 @@ export default function Splash() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.bg,
     alignItems: "center",
     justifyContent: "center",
     gap: 22,
   },
   tagline: {
-    color: colors.textSecondary,
     fontSize: 14.5,
     letterSpacing: 0.2,
   },

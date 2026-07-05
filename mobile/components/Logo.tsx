@@ -1,6 +1,6 @@
 import { Text, View, StyleSheet } from "react-native";
 import Svg, { Path } from "react-native-svg";
-import { colors } from "@/lib/theme";
+import { useTheme } from "@/lib/theme-context";
 
 interface LogoProps {
   size?: number;
@@ -9,19 +9,21 @@ interface LogoProps {
 
 // Static AskZero wordmark: "ask" + two-arc "0" (foreground + purple accent) +
 // "ero". For the animated splash version see LogoIntro.
-export function Logo({ size = 28, color = colors.text }: LogoProps) {
+export function Logo({ size = 28, color }: LogoProps) {
+  const { colors } = useTheme();
+  const textColor = color ?? colors.text;
   const zero = size * 0.78;
   const stroke = 9; // viewBox units (padded viewBox so the round stroke isn't clipped)
 
   return (
     <View style={styles.row} accessibilityLabel="askzero">
-      {word("ask", size, color)}
+      {word("ask", size, textColor)}
       <View style={[styles.zeroBox, { width: zero, height: size }]}>
         <Svg width={zero} height={zero} viewBox="-28 -28 56 56">
           <Path
             d="M 0,-22 A 22,22 0 1 1 15,-15"
             fill="none"
-            stroke={color}
+            stroke={textColor}
             strokeWidth={stroke}
             strokeLinecap="round"
           />
@@ -34,7 +36,7 @@ export function Logo({ size = 28, color = colors.text }: LogoProps) {
           />
         </Svg>
       </View>
-      {word("ero", size, color, -2)}
+      {word("ero", size, textColor, -2)}
     </View>
   );
 }

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Animated, Easing, StyleSheet, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
-import { colors } from "@/lib/theme";
+import { useTheme } from "@/lib/theme-context";
 
 // Intro animation for the splash:
 //  · "ask" slides in from the left, "ero" from the right (fade + translate)
@@ -24,6 +24,7 @@ export function LogoIntro({
   size?: number;
   onDone?: () => void;
 }) {
+  const { colors } = useTheme();
   const svg = size * 0.78;
   const stroke = 9; // viewBox units (viewBox padded so the round cap isn't clipped)
 

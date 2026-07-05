@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -17,7 +17,8 @@ import { useAuth } from "@/lib/auth";
 import { useCurrency, type DisplayCurrency } from "@/lib/currency";
 import { supabase } from "@/lib/supabase";
 import { getBalance, initializeDeposit, verifyDeposit } from "@/lib/api";
-import { colors, radius } from "@/lib/theme";
+import { radius, type Palette } from "@/lib/theme";
+import { useTheme } from "@/lib/theme-context";
 
 interface Tx {
   id: string;
@@ -35,6 +36,8 @@ const PRESETS: Record<DisplayCurrency, number[]> = {
 
 export default function Deposit() {
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { session, loading } = useAuth();
   const { currency, setCurrency, formatBalance, ngnPerUsd } = useCurrency();
 
@@ -228,7 +231,7 @@ export default function Deposit() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
   header: {
     flexDirection: "row",

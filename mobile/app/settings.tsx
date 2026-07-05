@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -17,7 +17,8 @@ import { useCurrency, type DisplayCurrency } from "@/lib/currency";
 import { supabase } from "@/lib/supabase";
 import { getBalance, deleteAccount } from "@/lib/api";
 import { CHAT_STYLES, getChatStyle, setChatStyle, type ChatStyle } from "@/lib/prefs";
-import { colors, radius } from "@/lib/theme";
+import { radius, type Palette } from "@/lib/theme";
+import { useTheme, type ThemePref } from "@/lib/theme-context";
 
 interface Memory {
   id: string;
@@ -28,6 +29,8 @@ interface Memory {
 
 export default function Settings() {
   const router = useRouter();
+  const { colors, preference, setPreference } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { session, loading, signOut } = useAuth();
   const { currency, setCurrency, formatBalance } = useCurrency();
 
@@ -157,6 +160,20 @@ export default function Settings() {
         </Section>
 
         {/* Currency */}
+        <Section title="Appearance">
+          <Row title="Theme" subtitle="Light, dark, or match your device">
+            <Segmented<ThemePref>
+              value={preference}
+              options={[
+                { value: "light", label: "Light" },
+                { value: "dark", label: "Dark" },
+                { value: "system", label: "Auto" },
+              ]}
+              onChange={setPreference}
+            />
+          </Row>
+        </Section>
+
         <Section title="Preferences">
           <Row title="Display currency" subtitle="How balances are shown">
             <Segmented<DisplayCurrency>
@@ -229,6 +246,8 @@ export default function Settings() {
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   return (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>{title}</Text>
@@ -246,6 +265,8 @@ function Row({
   subtitle?: string;
   children?: React.ReactNode;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   return (
     <View style={styles.rowInner}>
       <View style={{ flex: 1 }}>
@@ -266,6 +287,8 @@ function Segmented<T extends string>({
   options: { value: T; label: string }[];
   onChange: (v: T) => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   return (
     <View style={styles.segmented}>
       {options.map((o) => {
@@ -284,7 +307,7 @@ function Segmented<T extends string>({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
   header: {
     flexDirection: "row",
