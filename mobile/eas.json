@@ -1,0 +1,33 @@
+{
+  "cli": {
+    "version": ">= 20.5.1",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://askzerochat.xyz",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://cocozqaswhyugfbilbxk.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_5d_OPhpNmxst0GaTEAO6vw_F1qkyAhj"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://askzerochat.xyz",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://cocozqaswhyugfbilbxk.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_5d_OPhpNmxst0GaTEAO6vw_F1qkyAhj"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}
