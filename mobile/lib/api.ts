@@ -122,6 +122,34 @@ export async function verifyDeposit(
   return res.json();
 }
 
+// Stripe (card / USD): create a Checkout session → hosted URL, verify by session.
+export async function initializeStripe(
+  amount: number,
+  currency: string
+): Promise<{ url: string; sessionId: string }> {
+  const res = await fetch(`${API_URL}/api/deposit/stripe`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...(await authHeaders()) },
+    body: JSON.stringify({ amount, currency }),
+  });
+  if (!res.ok) {
+    const { error } = await res.json().catch(() => ({ error: "stripe init failed" }));
+    throw new Error(error || `stripe → ${res.status}`);
+  }
+  const d = await res.json();
+  return { url: d.url, sessionId: d.sessionId };
+}
+
+export async function verifyStripe(
+  sessionId: string
+): Promise<{ status: string; message?: string }> {
+  const res = await fetch(
+    `${API_URL}/api/deposit/stripe/verify?session_id=${encodeURIComponent(sessionId)}`,
+    { headers: await authHeaders() }
+  );
+  return res.json();
+}
+
 export async function deleteAccount(): Promise<void> {
   const res = await fetch(`${API_URL}/api/account/delete`, {
     method: "DELETE",

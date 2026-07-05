@@ -8,12 +8,14 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
+  Modal,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, Redirect } from "expo-router";
 import { ChevronLeft, ShieldCheck, Trash2 } from "lucide-react-native";
 import { useAuth } from "@/lib/auth";
 import { useCurrency, type DisplayCurrency } from "@/lib/currency";
+import { APAC_CURRENCIES, APAC_CODES, isApacCurrency } from "@/lib/pricing-apac";
 import { supabase } from "@/lib/supabase";
 import { getBalance, deleteAccount } from "@/lib/api";
 import { CHAT_STYLES, getChatStyle, setChatStyle, type ChatStyle } from "@/lib/prefs";
@@ -40,6 +42,7 @@ export default function Settings() {
   const [style, setStyle] = useState<ChatStyle>("default");
   const [memories, setMemories] = useState<Memory[]>([]);
   const [deleting, setDeleting] = useState(false);
+  const [apacOpen, setApacOpen] = useState(false);
 
   const user = session?.user;
   const meta = user?.user_metadata as { avatar_url?: string; picture?: string } | undefined;
@@ -176,14 +179,26 @@ export default function Settings() {
 
         <Section title="Preferences">
           <Row title="Display currency" subtitle="How balances are shown">
-            <Segmented<DisplayCurrency>
-              value={currency}
-              options={[
-                { value: "USD", label: "$" },
-                { value: "NGN", label: "₦" },
-              ]}
-              onChange={setCurrency}
-            />
+            <View style={styles.currencyRow}>
+              <CurrencyChip
+                label="$"
+                on={currency === "USD"}
+                onPress={() => setCurrency("USD")}
+                colors={colors}
+              />
+              <CurrencyChip
+                label="₦"
+                on={currency === "NGN"}
+                onPress={() => setCurrency("NGN")}
+                colors={colors}
+              />
+              <CurrencyChip
+                label={isApacCurrency(currency) ? currency : "APAC"}
+                on={isApacCurrency(currency)}
+                onPress={() => setApacOpen(true)}
+                colors={colors}
+              />
+            </View>
           </Row>
         </Section>
 
@@ -241,6 +256,43 @@ export default function Settings() {
           )}
         </Pressable>
       </ScrollView>
+
+      {/* APAC currency picker */}
+      <Modal
+        visible={apacOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setApacOpen(false)}
+      >
+        <Pressable style={styles.apacBackdrop} onPress={() => setApacOpen(false)} />
+        <SafeAreaView style={styles.apacSheet} edges={["bottom"]}>
+          <Text style={styles.apacTitle}>Display currency</Text>
+          <ScrollView style={{ maxHeight: 360 }}>
+            {APAC_CODES.map((code) => {
+              const m = APAC_CURRENCIES[code];
+              const on = currency === code;
+              return (
+                <Pressable
+                  key={code}
+                  style={styles.apacItem}
+                  onPress={() => {
+                    setCurrency(code);
+                    setApacOpen(false);
+                  }}
+                >
+                  <Text style={styles.apacSymbol}>{m.symbol}</Text>
+                  <Text style={[styles.apacCode, on && { color: colors.accentBright }]}>
+                    {m.code}
+                  </Text>
+                  <Text style={styles.apacLabel} numberOfLines={1}>
+                    {m.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -307,7 +359,82 @@ function Segmented<T extends string>({
   );
 }
 
+function CurrencyChip({
+  label,
+  on,
+  onPress,
+  colors,
+}: {
+  label: string;
+  on: boolean;
+  onPress: () => void;
+  colors: Palette;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={{
+        paddingHorizontal: 12,
+        paddingVertical: 5,
+        borderRadius: 8,
+        backgroundColor: on ? colors.card : "transparent",
+      }}
+    >
+      <Text
+        style={{
+          color: on ? colors.text : colors.textTertiary,
+          fontSize: 13,
+          fontWeight: "700",
+        }}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
 const makeStyles = (colors: Palette) => StyleSheet.create({
+  currencyRow: {
+    flexDirection: "row",
+    backgroundColor: colors.surface,
+    borderRadius: radius.sm,
+    padding: 2,
+  },
+  apacBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.5)" },
+  apacSheet: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: colors.elevated,
+    borderTopLeftRadius: radius.lg,
+    borderTopRightRadius: radius.lg,
+    borderTopWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: 8,
+    paddingTop: 8,
+  },
+  apacTitle: {
+    color: colors.textTertiary,
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  apacItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.borderSoft,
+  },
+  apacSymbol: { color: colors.textSecondary, fontSize: 15, width: 34 },
+  apacCode: { color: colors.text, fontSize: 15, fontWeight: "700", width: 48 },
+  apacLabel: { color: colors.textSecondary, fontSize: 14, flex: 1 },
   safe: { flex: 1, backgroundColor: colors.bg },
   header: {
     flexDirection: "row",

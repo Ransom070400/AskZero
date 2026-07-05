@@ -8,6 +8,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
+  Modal,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, Redirect } from "expo-router";
@@ -16,9 +17,20 @@ import { ChevronLeft } from "lucide-react-native";
 import { useAuth } from "@/lib/auth";
 import { useCurrency, type DisplayCurrency } from "@/lib/currency";
 import { supabase } from "@/lib/supabase";
-import { getBalance, initializeDeposit, verifyDeposit } from "@/lib/api";
+import {
+  getBalance,
+  initializeDeposit,
+  verifyDeposit,
+  initializeStripe,
+  verifyStripe,
+} from "@/lib/api";
 import { radius, type Palette } from "@/lib/theme";
 import { useTheme } from "@/lib/theme-context";
+import {
+  APAC_CURRENCIES,
+  APAC_CODES,
+  isApacCurrency,
+} from "@/lib/pricing-apac";
 
 interface Tx {
   id: string;
@@ -29,10 +41,17 @@ interface Tx {
   type: string;
 }
 
-const PRESETS: Record<DisplayCurrency, number[]> = {
-  USD: [1, 5, 10, 25],
-  NGN: [500, 1000, 2000, 5000],
-};
+function presetsFor(c: DisplayCurrency): number[] {
+  if (c === "USD") return [1, 5, 10, 25];
+  if (c === "NGN") return [500, 1000, 2000, 5000];
+  return APAC_CURRENCIES[c].presets;
+}
+
+function symbolFor(c: DisplayCurrency): string {
+  if (c === "USD") return "$";
+  if (c === "NGN") return "₦";
+  return APAC_CURRENCIES[c].symbol;
+}
 
 export default function Deposit() {
   const router = useRouter();
@@ -46,9 +65,11 @@ export default function Deposit() {
   const [balance, setBalance] = useState<number | null>(null);
   const [txs, setTxs] = useState<Tx[]>([]);
   const [busy, setBusy] = useState(false);
+  const [apacOpen, setApacOpen] = useState(false);
 
-  const payCurrency: DisplayCurrency = currency === "NGN" ? "NGN" : "USD";
-  const symbol = payCurrency === "NGN" ? "₦" : "$";
+  const payCurrency: DisplayCurrency = currency;
+  const symbol = symbolFor(payCurrency);
+  const presets = presetsFor(payCurrency);
 
   const refresh = useCallback(async () => {
     getBalance().then(setBalance).catch(() => {});
@@ -66,29 +87,32 @@ export default function Deposit() {
   }, [refresh]);
 
   const chosen = amount ?? (custom ? Number(custom) : 0);
-  const creditsEstimate =
+  const perUsd =
     payCurrency === "USD"
-      ? Math.round(chosen * 1000)
-      : Math.round((chosen / ngnPerUsd) * 1000);
+      ? 1
+      : payCurrency === "NGN"
+        ? ngnPerUsd
+        : APAC_CURRENCIES[payCurrency].perUsd;
+  const creditsEstimate = Math.round((chosen / perUsd) * 1000);
 
   const pay = async () => {
     if (!chosen || chosen <= 0) return;
     setBusy(true);
     try {
-      const { authorization_url, reference } = await initializeDeposit(
-        chosen,
-        payCurrency
-      );
-      await WebBrowser.openBrowserAsync(authorization_url);
-      // On return, verify (webhook is canonical; this is the sync fallback).
-      const result = await verifyDeposit(reference);
-      if (result.status === "completed") {
-        Alert.alert("Success", "Your credits have been added.");
-      } else {
-        Alert.alert(
-          "Payment pending",
-          "If you completed payment, your balance will update shortly."
+      // NGN → Paystack; USD + APAC → Stripe (cards).
+      if (payCurrency === "NGN") {
+        const { authorization_url, reference } = await initializeDeposit(
+          chosen,
+          "NGN"
         );
+        await WebBrowser.openBrowserAsync(authorization_url);
+        const result = await verifyDeposit(reference);
+        notifyResult(result.status === "completed");
+      } else {
+        const { url, sessionId } = await initializeStripe(chosen, payCurrency);
+        await WebBrowser.openBrowserAsync(url);
+        const result = await verifyStripe(sessionId);
+        notifyResult(result.status === "completed");
       }
       setAmount(null);
       setCustom("");
@@ -97,6 +121,17 @@ export default function Deposit() {
       Alert.alert("Deposit failed", (e as Error).message);
     } finally {
       setBusy(false);
+    }
+  };
+
+  const notifyResult = (done: boolean) => {
+    if (done) {
+      Alert.alert("Success", "Your credits have been added.");
+    } else {
+      Alert.alert(
+        "Payment pending",
+        "If you completed payment, your balance will update shortly."
+      );
     }
   };
 
@@ -128,25 +163,39 @@ export default function Deposit() {
 
         {/* Currency */}
         <View style={styles.segmented}>
-          {(["USD", "NGN"] as DisplayCurrency[]).map((c) => {
-            const on = payCurrency === c;
-            return (
-              <Pressable
-                key={c}
-                onPress={() => setCurrency(c)}
-                style={[styles.segItem, on && styles.segItemOn]}
-              >
-                <Text style={[styles.segText, on && styles.segTextOn]}>
-                  {c === "NGN" ? "₦ NGN" : "$ USD"}
-                </Text>
-              </Pressable>
-            );
-          })}
+          <Pressable
+            onPress={() => setCurrency("USD")}
+            style={[styles.segItem, payCurrency === "USD" && styles.segItemOn]}
+          >
+            <Text style={[styles.segText, payCurrency === "USD" && styles.segTextOn]}>
+              $ USD
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setCurrency("NGN")}
+            style={[styles.segItem, payCurrency === "NGN" && styles.segItemOn]}
+          >
+            <Text style={[styles.segText, payCurrency === "NGN" && styles.segTextOn]}>
+              ₦ NGN
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setApacOpen(true)}
+            style={[styles.segItem, isApacCurrency(payCurrency) && styles.segItemOn]}
+          >
+            <Text
+              style={[styles.segText, isApacCurrency(payCurrency) && styles.segTextOn]}
+            >
+              {isApacCurrency(payCurrency)
+                ? `${APAC_CURRENCIES[payCurrency].symbol} ${payCurrency}`
+                : "APAC ▾"}
+            </Text>
+          </Pressable>
         </View>
 
         {/* Presets */}
         <View style={styles.presets}>
-          {PRESETS[payCurrency].map((p) => {
+          {presets.map((p) => {
             const on = amount === p && !custom;
             return (
               <Pressable
@@ -193,7 +242,8 @@ export default function Deposit() {
           ) : (
             <Text style={styles.payText}>
               Pay {symbol}
-              {chosen ? chosen.toLocaleString() : ""} with Paystack
+              {chosen ? chosen.toLocaleString() : ""} with{" "}
+              {payCurrency === "USD" ? "Stripe" : "Paystack"}
             </Text>
           )}
         </Pressable>
@@ -206,7 +256,11 @@ export default function Deposit() {
               <View key={t.id} style={styles.txRow}>
                 <View>
                   <Text style={styles.txAmount}>
-                    {t.currency === "NGN" ? "₦" : "$"}
+                    {isApacCurrency(t.currency)
+                      ? APAC_CURRENCIES[t.currency].symbol
+                      : t.currency === "NGN"
+                        ? "₦"
+                        : "$"}
                     {Number(t.original_amount).toLocaleString()} · {t.type}
                   </Text>
                   <Text style={styles.txDate}>
@@ -227,11 +281,85 @@ export default function Deposit() {
           </View>
         )}
       </ScrollView>
+
+      {/* APAC currency picker */}
+      <Modal
+        visible={apacOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setApacOpen(false)}
+      >
+        <Pressable style={styles.apacBackdrop} onPress={() => setApacOpen(false)} />
+        <SafeAreaView style={styles.apacSheet} edges={["bottom"]}>
+          <Text style={styles.apacTitle}>Choose currency</Text>
+          <ScrollView style={{ maxHeight: 360 }}>
+            {APAC_CODES.map((code) => {
+              const m = APAC_CURRENCIES[code];
+              const on = payCurrency === code;
+              return (
+                <Pressable
+                  key={code}
+                  style={styles.apacRow}
+                  onPress={() => {
+                    setCurrency(code);
+                    setAmount(null);
+                    setCustom("");
+                    setApacOpen(false);
+                  }}
+                >
+                  <Text style={styles.apacSymbol}>{m.symbol}</Text>
+                  <Text style={[styles.apacCode, on && { color: colors.accentBright }]}>
+                    {m.code}
+                  </Text>
+                  <Text style={styles.apacLabel} numberOfLines={1}>
+                    {m.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
 
 const makeStyles = (colors: Palette) => StyleSheet.create({
+  apacBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.5)" },
+  apacSheet: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: colors.elevated,
+    borderTopLeftRadius: radius.lg,
+    borderTopRightRadius: radius.lg,
+    borderTopWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: 8,
+    paddingTop: 8,
+  },
+  apacTitle: {
+    color: colors.textTertiary,
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  apacRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.borderSoft,
+  },
+  apacSymbol: { color: colors.textSecondary, fontSize: 15, width: 34 },
+  apacCode: { color: colors.text, fontSize: 15, fontWeight: "700", width: 48 },
+  apacLabel: { color: colors.textSecondary, fontSize: 14, flex: 1 },
   safe: { flex: 1, backgroundColor: colors.bg },
   header: {
     flexDirection: "row",

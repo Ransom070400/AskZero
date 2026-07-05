@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthedUser } from "@/lib/supabase/api-auth";
 import { getStripe } from "@/lib/stripe";
 import { sendDepositConfirmation } from "@/lib/email";
 
@@ -18,10 +18,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Missing session_id" }, { status: 400 });
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, user } = await getAuthedUser();
 
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

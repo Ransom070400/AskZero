@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthedUser } from "@/lib/supabase/api-auth";
 import { getStripe } from "@/lib/stripe";
 import { convertToCredits } from "@/lib/pricing";
 import {
@@ -10,10 +10,7 @@ import {
 } from "@/lib/pricing-apac";
 
 export async function POST(req: NextRequest) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, user } = await getAuthedUser();
 
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -103,5 +100,6 @@ export async function POST(req: NextRequest) {
     customer_email: user.email!,
   });
 
-  return NextResponse.json({ url: session.url });
+  // sessionId lets non-web clients (mobile) verify on return.
+  return NextResponse.json({ url: session.url, sessionId: session.id, reference });
 }

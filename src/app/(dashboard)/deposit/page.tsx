@@ -276,14 +276,18 @@ function DepositContent() {
           <CurrencyTab
             label="$ USD"
             active={currency === "USD"}
-            comingSoon
-            onClick={() => {}}
+            onClick={() => {
+              setCurrency("USD");
+              setAmount("");
+            }}
           />
           <CurrencyTab
             label="APAC"
             active={isApac(currency)}
-            comingSoon
-            onClick={() => {}}
+            onClick={() => {
+              if (!isApac(currency)) setCurrency("JPY");
+              setAmount("");
+            }}
           />
         </div>
 
