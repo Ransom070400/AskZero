@@ -1,40 +1,39 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { ethers } from "ethers";
+import {
+  useAppKit,
+  useAppKitAccount,
+  useAppKitProvider,
+} from "@reown/appkit/react";
+import type { Eip1193Provider } from "ethers";
 import { Wallet, Loader2, Check, ShieldCheck, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { DEPOSIT_ADDRESS } from "@/lib/og-token";
-import { connectWallet, sendOG, signDepositProof } from "@/lib/wallet";
+import { DEPOSIT_ADDRESS, depositMessage } from "@/lib/og-token";
+import { APPKIT_READY } from "@/lib/appkit";
 
 type Phase = "idle" | "sending" | "verifying" | "pending" | "done" | "error";
 
 export function ZeroGPay({ onCredited }: { onCredited?: () => void }) {
-  const [address, setAddress] = useState<string | null>(null);
+  const { open } = useAppKit();
+  const { address, isConnected } = useAppKitAccount();
+  const { walletProvider } = useAppKitProvider("eip155");
+
+  const [mounted, setMounted] = useState(false);
   const [amount, setAmount] = useState("");
   const [phase, setPhase] = useState<Phase>("idle");
-  const [msg, setMsg] = useState<string>("");
+  const [msg, setMsg] = useState("");
   const [credits, setCredits] = useState<number | null>(null);
+
+  useEffect(() => setMounted(true), []);
 
   const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
   const amountNum = parseFloat(amount) || 0;
+  const busy = phase === "sending" || phase === "verifying" || phase === "pending";
 
-  const connect = async () => {
-    try {
-      const { address } = await connectWallet();
-      setAddress(address);
-      setMsg("");
-    } catch (e) {
-      setMsg((e as Error).message);
-    }
-  };
-
-  const verifyLoop = async (
-    txHash: string,
-    addr: string,
-    signature: string
-  ) => {
-    // Poll until confirmed (server requires N confirmations).
+  const verifyLoop = async (txHash: string, addr: string, signature: string) => {
     for (let i = 0; i < 30; i++) {
       const res = await fetch("/api/deposit/crypto", {
         method: "POST",
@@ -59,46 +58,50 @@ export function ZeroGPay({ onCredited }: { onCredited?: () => void }) {
       return;
     }
     setPhase("error");
-    setMsg("Timed out waiting for confirmations. Your tx is safe — try verifying again shortly.");
+    setMsg("Timed out waiting for confirmations — your tx is safe, try again shortly.");
   };
 
   const pay = async () => {
     if (!DEPOSIT_ADDRESS) return;
+    if (!isConnected || !walletProvider) {
+      open();
+      return;
+    }
     setMsg("");
     setCredits(null);
     try {
-      // 1) connect (also switches to the 0G network)
-      const { signer, address: addr } = await connectWallet();
-      setAddress(addr);
+      const provider = new ethers.BrowserProvider(
+        walletProvider as Eip1193Provider
+      );
+      const signer = await provider.getSigner();
 
-      // 2) send 0G to the deposit wallet
       setPhase("sending");
       setMsg("Confirm the transaction in your wallet…");
-      const txHash = await sendOG(signer, DEPOSIT_ADDRESS, String(amountNum));
+      const tx = await signer.sendTransaction({
+        to: DEPOSIT_ADDRESS,
+        value: ethers.parseEther(String(amountNum)),
+      });
+      await tx.wait(1);
 
-      // 3) prove ownership of the sending wallet
       setPhase("verifying");
       setMsg("Sign to confirm the deposit…");
-      const signature = await signDepositProof(signer, txHash);
+      const signature = await signer.signMessage(depositMessage(tx.hash));
 
-      // 4) verify on-chain + credit
-      setPhase("verifying");
       setMsg("Verifying on 0G…");
-      await verifyLoop(txHash, addr, signature);
+      await verifyLoop(tx.hash, await signer.getAddress(), signature);
     } catch (e) {
       setPhase("error");
       setMsg((e as Error).message);
     }
   };
 
-  const busy = phase === "sending" || phase === "verifying" || phase === "pending";
-
-  if (!DEPOSIT_ADDRESS) {
+  if (!APPKIT_READY || !DEPOSIT_ADDRESS) {
     return (
       <div className="rounded-xl border border-border bg-background p-4 text-[13px] text-text-secondary">
-        Pay with 0G isn&apos;t configured yet — set{" "}
-        <code className="text-foreground">NEXT_PUBLIC_DEPOSIT_WALLET_ADDRESS</code> and{" "}
-        <code className="text-foreground">DEPOSIT_WALLET_ADDRESS</code>.
+        Pay with 0G isn&apos;t fully configured yet. Set{" "}
+        <code className="text-foreground">NEXT_PUBLIC_REOWN_PROJECT_ID</code>,{" "}
+        <code className="text-foreground">DEPOSIT_WALLET_ADDRESS</code> and{" "}
+        <code className="text-foreground">NEXT_PUBLIC_DEPOSIT_WALLET_ADDRESS</code>.
       </div>
     );
   }
@@ -124,15 +127,18 @@ export function ZeroGPay({ onCredited }: { onCredited?: () => void }) {
       <div className="rounded-xl border border-border bg-background p-4">
         <div className="flex items-center justify-between">
           <span className="text-[13px] text-text-secondary">Wallet</span>
-          {address ? (
-            <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-foreground">
+          {mounted && isConnected && address ? (
+            <button
+              onClick={() => open({ view: "Account" })}
+              className="press inline-flex items-center gap-1.5 text-[13px] font-medium text-foreground"
+            >
               <span className="h-1.5 w-1.5 rounded-full bg-success" />
               {short(address)}
-            </span>
+            </button>
           ) : (
-            <Button variant="outline" size="sm" onClick={connect}>
+            <Button variant="outline" size="sm" onClick={() => open()}>
               <Wallet className="mr-1.5 h-3.5 w-3.5" />
-              Connect
+              Connect wallet
             </Button>
           )}
         </div>
@@ -161,11 +167,7 @@ export function ZeroGPay({ onCredited }: { onCredited?: () => void }) {
         </p>
       </div>
 
-      <Button
-        className="w-full"
-        onClick={pay}
-        disabled={amountNum <= 0 || busy}
-      >
+      <Button className="w-full" onClick={pay} disabled={amountNum <= 0 || busy}>
         {busy ? (
           <>
             <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
@@ -175,10 +177,15 @@ export function ZeroGPay({ onCredited }: { onCredited?: () => void }) {
                 ? "Confirming…"
                 : "Verifying…"}
           </>
-        ) : (
+        ) : mounted && isConnected ? (
           <>
             <ShieldCheck className="mr-1.5 h-4 w-4" />
             Pay {amountNum > 0 ? amountNum : ""} 0G
+          </>
+        ) : (
+          <>
+            <Wallet className="mr-1.5 h-4 w-4" />
+            Connect wallet to pay
           </>
         )}
       </Button>
