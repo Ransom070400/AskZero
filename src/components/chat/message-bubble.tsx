@@ -8,6 +8,7 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import { Copy, Check, Download, ExternalLink, FileText, FileCode, History, Pencil, RotateCw, X, Search, Calculator, Globe, Loader2 } from "lucide-react";
 import { MermaidBlock } from "./mermaid-block";
+import { ReceiptBadge } from "./receipt-badge";
 
 // Markdown paragraph that fades in when it first appears. As the last paragraph
 // grows during streaming its element persists (same position), so it fades once
@@ -581,6 +582,7 @@ export function MessageBubble({
             Retry
           </ActionButton>
         )}
+        {message.content && <ReceiptBadge messageId={message.id} />}
         {message.tokenCount != null && (
           <span className="ml-1 text-[11px] font-medium text-text-tertiary tabular-nums">
             {message.tokenCount} tokens

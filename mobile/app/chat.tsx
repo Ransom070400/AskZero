@@ -41,6 +41,7 @@ import { getChatStyle } from "@/lib/prefs";
 import { type Palette } from "@/lib/theme";
 import { useTheme } from "@/lib/theme-context";
 import { AppMarkdown } from "@/components/Markdown";
+import { ReceiptBadge } from "@/components/ReceiptBadge";
 import {
   createChat,
   getBalance,
@@ -244,7 +245,7 @@ export default function Chat() {
       const model = modelRef.current ?? (await getDefaultChatModel());
       const style = await getChatStyle();
 
-      await streamChat(
+      const final = await streamChat(
         {
           chatId,
           message: text,
@@ -268,6 +269,8 @@ export default function Chat() {
             )
           )
       );
+      // Adopt the persisted DB id so the on-chain receipt lookup resolves.
+      if (final?.messageId) setAssistant({ id: final.messageId });
     } catch (e) {
       setAssistant({ content: `⚠️ ${(e as Error).message}` });
     } finally {
@@ -350,9 +353,12 @@ export default function Chat() {
                         </View>
                       )
                     ) : (
-                      <View style={[styles.bubble, styles.aiBubble]}>
-                        <AppMarkdown>{item.content}</AppMarkdown>
-                      </View>
+                      <>
+                        <View style={[styles.bubble, styles.aiBubble]}>
+                          <AppMarkdown>{item.content}</AppMarkdown>
+                        </View>
+                        <ReceiptBadge messageId={item.id} />
+                      </>
                     )}
                   </View>
                 );

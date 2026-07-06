@@ -428,6 +428,8 @@ function ChatDetailContent() {
                     m.id === assistantId
                       ? {
                           ...m,
+                          // adopt the persisted DB id so the receipt lookup works
+                          id: parsed.messageId ?? m.id,
                           tokenCount: parsed.usage.output_tokens,
                           costCredits: parsed.usage.cost,
                           artifacts: parsed.artifacts ?? m.artifacts,

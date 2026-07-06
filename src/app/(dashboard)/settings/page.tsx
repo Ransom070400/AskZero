@@ -4,8 +4,9 @@ import { createClient } from "@/lib/supabase/client";
 import { useEffect, useState, useCallback } from "react";
 import type { User } from "@supabase/supabase-js";
 import { useTheme } from "next-themes";
-import { Sun, Moon, Monitor, LogOut, Copy, Check, Trash2, ChevronDown, AlertTriangle, Sparkles, KeyRound, Boxes, ShieldCheck } from "lucide-react";
+import { Sun, Moon, Monitor, LogOut, Copy, Check, Trash2, ChevronDown, AlertTriangle, Sparkles, KeyRound, Boxes, ShieldCheck, ArrowUpRight } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useCurrency, type DisplayCurrency } from "@/lib/currency";
 import { APAC_CURRENCIES, APAC_CODES, isApacCurrency } from "@/lib/pricing-apac";
 import { Input } from "@/components/ui/input";
@@ -293,6 +294,22 @@ export default function SettingsPage() {
 
       {/* Memory — what the assistant remembers across chats */}
       <MemorySection />
+
+      {/* Security & Privacy */}
+      <Section title="Security & Privacy">
+        <Row
+          title="Security policy"
+          subtitle="How we protect your data & report a vulnerability"
+        >
+          <Link
+            href="/security"
+            className="press inline-flex items-center gap-1.5 rounded-lg border border-border/70 bg-elevated px-3 py-1.5 text-[13px] font-medium text-foreground transition-[border-color,background-color] duration-fast ease-out hover:border-border-strong"
+          >
+            View
+            <ArrowUpRight className="h-3.5 w-3.5 text-text-tertiary" />
+          </Link>
+        </Row>
+      </Section>
 
       {/* Account section */}
       <Section title="Account">

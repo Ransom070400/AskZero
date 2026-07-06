@@ -358,6 +358,43 @@ export interface AgentStep {
  *   data: {"usage":...,"messageId":...}                  ← final frame
  *   data: [DONE]
  */
+export interface ReceiptData {
+  receipt: {
+    provider: string;
+    model: string;
+    input_hash: string;
+    output_hash: string;
+    input_tokens: number;
+    output_tokens: number;
+    cost_credits: number;
+    tee_attestation: string | null;
+    receipt_hash: string;
+    status: string;
+    leaf_index: number | null;
+    created_at: string;
+  };
+  batch: {
+    merkle_root: string;
+    chain_id: number;
+    contract_addr: string;
+    tx_hash: string | null;
+    block_number: number | null;
+    status: string;
+  } | null;
+  explorerUrl: string | null;
+}
+
+// Fetch the on-chain inference receipt for an assistant message. null = none yet.
+export async function getReceipt(messageId: string): Promise<ReceiptData | null> {
+  const res = await fetch(
+    `${API_URL}/api/receipts/${encodeURIComponent(messageId)}`,
+    { headers: await authHeaders() }
+  );
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`receipt → ${res.status}`);
+  return res.json();
+}
+
 export async function streamChat(
   params: StreamChatParams,
   onChunk: (text: string) => void,

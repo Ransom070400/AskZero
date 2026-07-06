@@ -9,10 +9,11 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
+  Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, Redirect } from "expo-router";
-import { ChevronLeft, ShieldCheck, Trash2 } from "lucide-react-native";
+import { ChevronLeft, ShieldCheck, Trash2, ExternalLink } from "lucide-react-native";
 import { useAuth } from "@/lib/auth";
 import { useCurrency, type DisplayCurrency } from "@/lib/currency";
 import { APAC_CURRENCIES, APAC_CODES, isApacCurrency } from "@/lib/pricing-apac";
@@ -241,6 +242,21 @@ export default function Settings() {
               </View>
             ))
           )}
+        </Section>
+
+        <Section title="Security & Privacy">
+          <Pressable
+            style={styles.rowInner}
+            onPress={() => Linking.openURL("https://askzerochat.xyz/security")}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={styles.rowTitle}>Security policy</Text>
+              <Text style={styles.subtitle}>
+                How we protect your data & report a vulnerability
+              </Text>
+            </View>
+            <ExternalLink size={16} color={colors.textTertiary} />
+          </Pressable>
         </Section>
 
         {/* Actions */}
