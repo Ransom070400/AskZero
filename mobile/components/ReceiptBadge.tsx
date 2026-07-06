@@ -11,10 +11,8 @@ import {
 } from "react-native";
 import { ShieldCheck, X, ExternalLink, Check } from "lucide-react-native";
 import { useTheme } from "@/lib/theme-context";
-import { getReceipt, type ReceiptData } from "@/lib/api";
+import { getReceipt, verifyReceipt, type ReceiptData, type VerifyResult } from "@/lib/api";
 import { radius, type Palette } from "@/lib/theme";
-
-const DEFAULT_EXPLORER = "https://chainscan.0g.ai";
 
 const short = (v: string) =>
   v && v.length > 18 ? `${v.slice(0, 10)}…${v.slice(-8)}` : v;
@@ -25,6 +23,19 @@ export function ReceiptBadge({ messageId }: { messageId: string }) {
   const [open, setOpen] = useState(false);
   const [data, setData] = useState<ReceiptData | null>(null);
   const [state, setState] = useState<"idle" | "loading" | "none" | "error">("idle");
+  const [verify, setVerify] = useState<VerifyResult | null>(null);
+  const [verifying, setVerifying] = useState(false);
+
+  const runVerify = async () => {
+    setVerifying(true);
+    try {
+      setVerify(await verifyReceipt(messageId));
+    } catch {
+      setVerify({ status: "error" });
+    } finally {
+      setVerifying(false);
+    }
+  };
 
   const load = async () => {
     setOpen(true);
@@ -41,9 +52,7 @@ export function ReceiptBadge({ messageId }: { messageId: string }) {
   };
 
   const anchored = !!data?.batch?.tx_hash;
-  const txUrl = data?.batch?.tx_hash
-    ? data.explorerUrl || `${DEFAULT_EXPLORER}/tx/${data.batch.tx_hash}`
-    : null;
+  const txUrl = data?.explorerUrl ?? null;
 
   return (
     <>
@@ -153,19 +162,90 @@ export function ReceiptBadge({ messageId }: { messageId: string }) {
 
                   {data.batch && (
                     <Group label="On-chain" styles={styles}>
-                      <KV k="Chain" v={`${data.batch.chain_id} (0G)`} styles={styles} />
+                      <KV
+                        k="Network"
+                        v={data.chainName || `chain ${data.batch.chain_id}`}
+                        styles={styles}
+                      />
                       <KV k="Registry" v={short(data.batch.contract_addr)} mono styles={styles} />
                       {data.batch.tx_hash && (
                         <KV k="Anchor tx" v={short(data.batch.tx_hash)} mono styles={styles} />
                       )}
+                      <Text style={styles.note}>
+                        Only the batch&apos;s Merkle root is stored on-chain —
+                        individual receipts aren&apos;t, so you won&apos;t find this
+                        receipt on the explorer directly. Verify it&apos;s part of the
+                        anchored batch below.
+                      </Text>
                     </Group>
                   )}
 
                   {txUrl && (
                     <Pressable style={styles.link} onPress={() => Linking.openURL(txUrl)}>
                       <ExternalLink size={14} color={colors.accentBright} />
-                      <Text style={styles.linkText}>View transaction on 0G explorer</Text>
+                      <Text style={styles.linkText}>View anchoring transaction</Text>
                     </Pressable>
+                  )}
+
+                  {data.batch && (
+                    <View style={styles.verifyCard}>
+                      <View style={styles.verifyHeader}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.verifyTitle}>
+                            Prove it hasn&apos;t been tampered with
+                          </Text>
+                          <Text style={styles.verifySub}>
+                            Re-derives the Merkle root and checks it live on 0G.
+                          </Text>
+                        </View>
+                        <Pressable
+                          style={[styles.verifyBtn, verifying && { opacity: 0.6 }]}
+                          onPress={runVerify}
+                          disabled={verifying}
+                        >
+                          {verifying ? (
+                            <ActivityIndicator size="small" color={colors.onAccent} />
+                          ) : (
+                            <ShieldCheck size={13} color={colors.onAccent} />
+                          )}
+                          <Text style={styles.verifyBtnText}>Verify</Text>
+                        </Pressable>
+                      </View>
+
+                      {verify?.status === "anchored" && (
+                        <View style={styles.verifyResults}>
+                          <StatusRow
+                            ok={verify.rootMatches}
+                            label="Receipt + proof re-derive the anchored root"
+                            note={`${verify.proofLength} steps`}
+                            styles={styles}
+                            colors={colors}
+                          />
+                          <StatusRow
+                            ok={!!verify.onChain}
+                            label="Root confirmed on the live 0G chain"
+                            note={verify.onChain ? "isAnchored() = true" : "not found"}
+                            styles={styles}
+                            colors={colors}
+                          />
+                          <Text style={styles.verifyConclusion}>
+                            {verify.rootMatches && verify.onChain
+                              ? "✓ Tamper-proof — altering one character of this answer would change its hash, break the proof, and no longer match the on-chain root."
+                              : "This receipt could not be fully verified."}
+                          </Text>
+                        </View>
+                      )}
+                      {verify?.status === "pending" && (
+                        <Text style={styles.verifyPending}>
+                          Not anchored yet — receipts are batched hourly.
+                        </Text>
+                      )}
+                      {verify?.status === "error" && (
+                        <Text style={[styles.verifyPending, { color: colors.error }]}>
+                          Verification failed. Please try again.
+                        </Text>
+                      )}
+                    </View>
                   )}
                 </>
               )}
@@ -300,4 +380,42 @@ const makeStyles = (colors: Palette) =>
       paddingVertical: 9,
     },
     linkText: { color: colors.accentBright, fontSize: 13, fontWeight: "700" },
+    note: { color: colors.textTertiary, fontSize: 11, lineHeight: 16, paddingTop: 2 },
+    verifyCard: {
+      borderWidth: 1,
+      borderColor: colors.borderSoft,
+      borderRadius: radius.sm,
+      backgroundColor: colors.surface,
+      padding: 12,
+      gap: 4,
+    },
+    verifyHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
+    verifyTitle: { color: colors.text, fontSize: 13, fontWeight: "700" },
+    verifySub: { color: colors.textTertiary, fontSize: 11, lineHeight: 15, marginTop: 1 },
+    verifyBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 5,
+      backgroundColor: colors.accent,
+      borderRadius: 8,
+      paddingHorizontal: 11,
+      paddingVertical: 7,
+    },
+    verifyBtnText: { color: colors.onAccent, fontSize: 12, fontWeight: "700" },
+    verifyResults: {
+      gap: 8,
+      marginTop: 10,
+      paddingTop: 10,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.borderSoft,
+    },
+    verifyConclusion: { color: colors.textSecondary, fontSize: 12, lineHeight: 17, paddingTop: 2 },
+    verifyPending: {
+      color: colors.textTertiary,
+      fontSize: 12,
+      marginTop: 10,
+      paddingTop: 10,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.borderSoft,
+    },
   });

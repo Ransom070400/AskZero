@@ -4,10 +4,6 @@ import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ShieldCheck, Loader2, X, Copy, Check, ExternalLink } from "lucide-react";
 
-// Fallback 0G mainnet explorer if NEXT_PUBLIC_ZERO_G_EXPLORER_URL isn't wired
-// into the API response.
-const DEFAULT_EXPLORER = "https://chainscan.0g.ai";
-
 interface ReceiptResponse {
   receipt: {
     provider: string;
@@ -34,12 +30,37 @@ interface ReceiptResponse {
     confirmed_at: string | null;
   } | null;
   explorerUrl: string | null;
+  chainName: string | null;
+}
+
+interface VerifyResult {
+  status: string;
+  computedRoot?: string;
+  merkleRoot?: string;
+  rootMatches?: boolean;
+  onChain?: boolean | null;
+  proofLength?: number;
+  contractUrl?: string;
 }
 
 export function ReceiptBadge({ messageId }: { messageId: string }) {
   const [open, setOpen] = useState(false);
   const [data, setData] = useState<ReceiptResponse | null>(null);
   const [state, setState] = useState<"idle" | "loading" | "none" | "error">("idle");
+  const [verify, setVerify] = useState<VerifyResult | null>(null);
+  const [verifying, setVerifying] = useState(false);
+
+  const runVerify = async () => {
+    setVerifying(true);
+    try {
+      const res = await fetch(`/api/receipts/${messageId}/verify`);
+      setVerify((await res.json()) as VerifyResult);
+    } catch {
+      setVerify({ status: "error" });
+    } finally {
+      setVerifying(false);
+    }
+  };
 
   const load = async () => {
     setOpen(true);
@@ -194,26 +215,99 @@ export function ReceiptBadge({ messageId }: { messageId: string }) {
 
                     {data.batch && (
                       <Group label="On-chain">
-                        <KV k="Chain" v={`${data.batch.chain_id} (0G)`} />
+                        <KV k="Network" v={data.chainName || `chain ${data.batch.chain_id}`} />
                         <Hash k="Registry" v={data.batch.contract_addr} />
                         {data.batch.tx_hash && (
                           <Hash k="Anchor tx" v={data.batch.tx_hash} />
                         )}
-                        {data.batch.tx_hash && (
+                        <p className="pt-1 text-[11px] leading-relaxed text-text-tertiary">
+                          Only the batch&apos;s Merkle root is stored on-chain —
+                          individual receipts aren&apos;t, so you won&apos;t find
+                          this receipt on the explorer directly. Instead, verify
+                          it&apos;s part of the anchored batch below.
+                        </p>
+                        {data.explorerUrl && (
                           <a
-                            href={
-                              data.explorerUrl ||
-                              `${DEFAULT_EXPLORER}/tx/${data.batch.tx_hash}`
-                            }
+                            href={data.explorerUrl}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="press mt-1 inline-flex items-center gap-1.5 rounded-lg bg-accent/12 px-3 py-1.5 text-[12px] font-semibold text-accent transition hover:bg-accent/20"
                           >
                             <ExternalLink className="h-3.5 w-3.5" />
-                            View transaction on 0G explorer
+                            View anchoring transaction
                           </a>
                         )}
                       </Group>
+                    )}
+
+                    {data.batch && (
+                      <div className="rounded-xl border border-border/60 bg-background/40 p-3.5">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-[13px] font-semibold text-foreground">
+                              Prove it hasn&apos;t been tampered with
+                            </p>
+                            <p className="mt-0.5 text-[12px] leading-snug text-text-tertiary">
+                              Re-derives this answer&apos;s Merkle root and checks
+                              it live against 0G.
+                            </p>
+                          </div>
+                          <button
+                            onClick={runVerify}
+                            disabled={verifying}
+                            className="press shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-[12px] font-semibold text-primary-foreground shadow-sm transition hover:brightness-110 disabled:opacity-50"
+                          >
+                            {verifying ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <ShieldCheck className="h-3.5 w-3.5" />
+                            )}
+                            Verify
+                          </button>
+                        </div>
+
+                        {verify && verify.status === "anchored" && (
+                          <div className="mt-3 space-y-2 border-t border-border/60 pt-3">
+                            <StatusRow
+                              ok={verify.rootMatches}
+                              label="Receipt + proof re-derive the anchored root"
+                              note={`${verify.proofLength} proof steps`}
+                            />
+                            <StatusRow
+                              ok={!!verify.onChain}
+                              label="Root confirmed on the live 0G chain"
+                              note={verify.onChain ? "isAnchored() = true" : "not found"}
+                            />
+                            <p className="pt-1 text-[12px] leading-relaxed text-text-secondary">
+                              {verify.rootMatches && verify.onChain
+                                ? "✓ Tamper-proof — altering a single character of this answer would change its hash, break the proof, and no longer match the root anchored on-chain."
+                                : "This receipt could not be fully verified."}
+                            </p>
+                            {verify.contractUrl && (
+                              <a
+                                href={verify.contractUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="press inline-flex items-center gap-1.5 text-[12px] font-semibold text-accent hover:underline"
+                              >
+                                <ExternalLink className="h-3.5 w-3.5" />
+                                View registry contract on 0G
+                              </a>
+                            )}
+                          </div>
+                        )}
+                        {verify && verify.status === "pending" && (
+                          <p className="mt-3 border-t border-border/60 pt-3 text-[12px] text-text-tertiary">
+                            Not anchored on-chain yet — receipts are batched hourly.
+                            Check back shortly.
+                          </p>
+                        )}
+                        {verify && verify.status === "error" && (
+                          <p className="mt-3 border-t border-border/60 pt-3 text-[12px] text-error">
+                            Verification failed to run. Please try again.
+                          </p>
+                        )}
+                      </div>
                     )}
                   </div>
                 )}

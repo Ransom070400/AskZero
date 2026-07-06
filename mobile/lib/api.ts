@@ -382,6 +382,7 @@ export interface ReceiptData {
     status: string;
   } | null;
   explorerUrl: string | null;
+  chainName: string | null;
 }
 
 // Fetch the on-chain inference receipt for an assistant message. null = none yet.
@@ -392,6 +393,25 @@ export async function getReceipt(messageId: string): Promise<ReceiptData | null>
   );
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`receipt → ${res.status}`);
+  return res.json();
+}
+
+export interface VerifyResult {
+  status: string;
+  computedRoot?: string;
+  merkleRoot?: string;
+  rootMatches?: boolean;
+  onChain?: boolean | null;
+  proofLength?: number;
+  contractUrl?: string;
+}
+
+// Re-derives the Merkle root from the receipt + proof and checks it live on 0G.
+export async function verifyReceipt(messageId: string): Promise<VerifyResult> {
+  const res = await fetch(
+    `${API_URL}/api/receipts/${encodeURIComponent(messageId)}/verify`,
+    { headers: await authHeaders() }
+  );
   return res.json();
 }
 

@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { getAuthedUser } from "@/lib/supabase/api-auth";
+import { txUrl, zerogChain } from "@/lib/zerog-chains";
 
 export async function GET(
   _req: NextRequest,
@@ -33,6 +34,7 @@ export async function GET(
 
   let batch: unknown = null;
   let explorerUrl: string | null = null;
+  let chainName: string | null = null;
   if (receipt.batch_id) {
     const { data: b } = await supabase
       .from("receipt_batches")
@@ -43,11 +45,14 @@ export async function GET(
       .maybeSingle();
     batch = b;
 
-    const explorerBase = process.env.NEXT_PUBLIC_ZERO_G_EXPLORER_URL;
-    if (b?.tx_hash && explorerBase) {
-      explorerUrl = `${explorerBase.replace(/\/+$/, "")}/tx/${b.tx_hash}`;
+    // Explorer must match the chain the batch was actually anchored on.
+    if (b?.tx_hash) {
+      explorerUrl = txUrl(b.chain_id, b.tx_hash);
+    }
+    if (b?.chain_id != null) {
+      chainName = zerogChain(b.chain_id).name;
     }
   }
 
-  return Response.json({ receipt, batch, explorerUrl });
+  return Response.json({ receipt, batch, explorerUrl, chainName });
 }

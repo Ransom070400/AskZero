@@ -151,16 +151,22 @@ export function merkleProof(leaves: string[], index: number): string[] {
   return proof;
 }
 
+// Recompute the Merkle root a leaf + its proof imply. Lets us prove a single
+// receipt is included in an anchored batch without trusting the stored root.
+export function rootFromProof(leaf: string, proof: string[]): string {
+  let h = leaf;
+  for (const sibling of proof) {
+    h = hashPair(h, sibling);
+  }
+  return h;
+}
+
 export function verifyProof(
   leaf: string,
   proof: string[],
   root: string
 ): boolean {
-  let h = leaf;
-  for (const sibling of proof) {
-    h = hashPair(h, sibling);
-  }
-  return h.toLowerCase() === root.toLowerCase();
+  return rootFromProof(leaf, proof).toLowerCase() === root.toLowerCase();
 }
 
 function hashPair(a: string, b: string): string {
