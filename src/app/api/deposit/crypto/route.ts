@@ -7,6 +7,7 @@ import {
   REQUIRED_CONFIRMATIONS,
   depositMessage,
 } from "@/lib/og-token";
+import { zerogChain } from "@/lib/zerog-chains";
 
 export async function POST(req: NextRequest) {
   const { supabase, user } = await getAuthedUser();
@@ -51,7 +52,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ status: "completed", message: "Already credited" });
   }
 
-  const rpcUrl = process.env.ZERO_G_CHAIN_RPC_URL || "https://evmrpc.0g.ai";
+  // Verify on the SAME chain the client (AppKit) pays on — both derive from
+  // NEXT_PUBLIC_ZERO_G_CHAIN_ID — so we never look for a mainnet tx on testnet.
+  const depositChainId = Number(process.env.NEXT_PUBLIC_ZERO_G_CHAIN_ID ?? "16661");
+  const rpcUrl = zerogChain(depositChainId).rpc;
   const depositAddress = process.env.DEPOSIT_WALLET_ADDRESS;
   if (!depositAddress) {
     return NextResponse.json(
@@ -64,9 +68,11 @@ export async function POST(req: NextRequest) {
 
   const receipt = await provider.getTransactionReceipt(txHash).catch(() => null);
   if (!receipt) {
+    // Not visible yet on our RPC (propagation lag) — tell the client to keep
+    // polling rather than hard-failing.
     return NextResponse.json(
-      { error: "Transaction not found or pending" },
-      { status: 400 }
+      { status: "pending", message: "Transaction not visible on-chain yet — waiting…" },
+      { status: 202 }
     );
   }
   if (receipt.status !== 1) {
