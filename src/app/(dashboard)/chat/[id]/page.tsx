@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useSearchParams } from "next/navigation";
+import { EyeOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { ChatList } from "@/components/chat/chat-list";
 import { ChatInput, type ImageSize } from "@/components/chat/chat-input";
@@ -40,6 +41,9 @@ export default function ChatDetailPage() {
 
 function ChatDetailContent() {
   const { id: chatId } = useParams<{ id: string }>();
+  // Ephemeral incognito session — the reserved id "incognito" never maps to a
+  // real chat row, so nothing loads, persists, or shows in history.
+  const isIncognito = chatId === "incognito";
   const searchParams = useSearchParams();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -57,6 +61,9 @@ function ChatDetailContent() {
   const keyboardInset = useKeyboardInset();
   const initialSent = useRef(false);
   const abortRef = useRef<AbortController | null>(null);
+  // Always-current transcript for the incognito history payload (sendMessage's
+  // deps intentionally exclude `messages`, so read the latest via this ref).
+  const messagesRef = useRef<Message[]>([]);
 
   useEffect(() => {
     const saved = localStorage.getItem("askzero:chat-style");
@@ -126,6 +133,11 @@ function ChatDetailContent() {
   // legacy schema (no deleted_at / replaces_id) when the edit-branches
   // migration hasn't been applied yet.
   useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  useEffect(() => {
+    if (isIncognito) return; // nothing to load — ephemeral session
     const supabase = createClient();
     const loadMessages = async () => {
       const primary = await supabase
@@ -355,6 +367,19 @@ function ChatDetailContent() {
             attachments: uploadedAttachments,
             style,
             replacesId: opts.replacesId,
+            incognito: isIncognito,
+            // Ephemeral: the server has nothing to load, so we send the
+            // in-memory transcript (prior turns + this message).
+            ...(isIncognito
+              ? {
+                  history: [
+                    ...messagesRef.current
+                      .filter((m) => m.content && m.role !== "system")
+                      .map((m) => ({ role: m.role, content: m.content })),
+                    { role: "user", content: text.trim() },
+                  ],
+                }
+              : {}),
           }),
           signal: controller.signal,
         });
@@ -627,6 +652,16 @@ function ChatDetailContent() {
           openArtifactId ? "hidden md:flex md:w-[60%]" : "w-full"
         )}
       >
+      {isIncognito && (
+        <div className="flex items-center justify-center gap-2 border-b border-border/60 bg-surface/60 px-4 py-2 text-center text-[12px] text-text-secondary">
+          <EyeOff className="h-3.5 w-3.5 shrink-0 text-text-tertiary" />
+          <span>
+            <b className="font-semibold text-foreground">Incognito</b> — this chat
+            isn&apos;t saved and won&apos;t be remembered. You&apos;re still charged
+            per message, and the model still processes your prompt (in a TEE).
+          </span>
+        </div>
+      )}
       <ChatList
         messages={messages}
         isStreaming={isStreaming}
@@ -635,6 +670,7 @@ function ChatDetailContent() {
         onEdit={handleEdit}
         onOpenArtifact={setOpenArtifactId}
         onOpenAsArtifact={handleOpenAsArtifact}
+        hideReceipts={isIncognito}
       />
 
       <div

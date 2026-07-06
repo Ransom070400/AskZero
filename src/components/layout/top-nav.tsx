@@ -14,7 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, Settings, CreditCard, Plus } from "lucide-react";
+import { LogOut, Settings, CreditCard, Plus, EyeOff } from "lucide-react";
 import { useCurrency } from "@/lib/currency";
 import { useEffect, useState, useCallback } from "react";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
@@ -75,6 +75,16 @@ export function TopNav() {
       </Link>
 
       <div className="ml-auto flex items-center gap-1.5 md:gap-2">
+        {/* Incognito — start an ephemeral chat (not saved, not remembered) */}
+        <button
+          onClick={() => router.push("/chat/incognito")}
+          title="Incognito chat — not saved, not remembered"
+          aria-label="Start incognito chat"
+          className="press flex h-8 w-8 items-center justify-center rounded-full border border-border/70 bg-elevated/80 text-text-tertiary transition-[color,border-color] duration-fast ease-out hover:border-border-strong hover:text-foreground"
+        >
+          <EyeOff className="h-4 w-4" />
+        </button>
+
         {/* Balance pill — refined affordance, hover lifts subtly */}
         <button
           onClick={() => router.push("/deposit")}

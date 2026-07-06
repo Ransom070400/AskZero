@@ -50,6 +50,11 @@ export async function POST(req: NextRequest) {
     typeof body.replacesId === "string" && body.replacesId.length > 0
       ? body.replacesId
       : null;
+  // Incognito (Phase 1 — ephemeral): nothing is persisted (no chat/message
+  // rows), memory is neither recalled nor written, and no receipt is anchored.
+  // The client sends the full session transcript in `body.history` since there
+  // is nothing to load from the DB. Credits are still charged for the inference.
+  const incognito = body.incognito === true;
 
   const hasAttachments = attachments.length > 0;
   if (!hasAttachments) {
@@ -85,22 +90,24 @@ export async function POST(req: NextRequest) {
     // proceed
   }
 
-  // Save user message
+  // Save user message (skipped entirely in incognito — nothing is persisted).
   const metadata = attachments.length > 0 ? { attachments } : {};
-  const { error: insertError } = await supabase.from("messages").insert({
-    chat_id: chatId,
-    role: "user",
-    content: message,
-    token_count: estimateTokens(message),
-    metadata,
-    ...(replacesId ? { replaces_id: replacesId } : {}),
-  });
+  if (!incognito) {
+    const { error: insertError } = await supabase.from("messages").insert({
+      chat_id: chatId,
+      role: "user",
+      content: message,
+      token_count: estimateTokens(message),
+      metadata,
+      ...(replacesId ? { replaces_id: replacesId } : {}),
+    });
 
-  if (insertError) {
-    return new Response(
-      JSON.stringify({ error: "Failed to save message" }),
-      { status: 500 }
-    );
+    if (insertError) {
+      return new Response(
+        JSON.stringify({ error: "Failed to save message" }),
+        { status: 500 }
+      );
+    }
   }
 
   // Load conversation history (active branch only — soft-deleted edit
@@ -110,7 +117,22 @@ export async function POST(req: NextRequest) {
   // hasn't been applied) — otherwise the silent failure would send the
   // model an empty conversation and yield generic-looking replies.
   let history: { role: string; content: string; metadata?: { attachments?: { name?: string; type: string; url: string; extractedText?: string }[] } }[] | null = null;
-  {
+  if (incognito) {
+    // Ephemeral: the client owns the transcript. Use it directly (text-only in
+    // Phase 1), capped to the same window as persisted chats.
+    const provided = Array.isArray(body.history) ? body.history : [];
+    history = provided
+      .filter(
+        (m: { role?: string; content?: unknown }) =>
+          (m?.role === "user" || m?.role === "assistant") &&
+          typeof m?.content === "string"
+      )
+      .slice(-50)
+      .map((m: { role: string; content: string }) => ({
+        role: m.role,
+        content: m.content,
+      }));
+  } else {
     const primary = await supabase
       .from("messages")
       .select("role, content, metadata")
@@ -184,7 +206,7 @@ export async function POST(req: NextRequest) {
   // agent/tool loop runs INSIDE the stream so its thinking + tool steps stream
   // live to the UI before the answer.
   let memoryBlock = "";
-  if (message.trim()) {
+  if (!incognito && message.trim()) {
     const recalled = await recallMemories(supabase, message, 6);
     memoryBlock = formatMemoriesForPrompt(recalled);
   }
@@ -334,18 +356,21 @@ export async function POST(req: NextRequest) {
         console.error("Failed to deduct credits after response");
       }
 
-      // Save assistant message
-      const { data: assistantMsg } = await supabase
-        .from("messages")
-        .insert({
-          chat_id: chatId,
-          role: "assistant",
-          content: fullResponse,
-          token_count: outputTokens,
-          cost_credits: actualCost,
-        })
-        .select("id")
-        .single();
+      // Save assistant message. In incognito this stays null, which cascades to
+      // skip the receipt, artifact persistence, auto-title, and memory commit.
+      const { data: assistantMsg } = incognito
+        ? { data: null as { id: string } | null }
+        : await supabase
+            .from("messages")
+            .insert({
+              chat_id: chatId,
+              role: "assistant",
+              content: fullResponse,
+              token_count: outputTokens,
+              cost_credits: actualCost,
+            })
+            .select("id")
+            .single();
 
       const emittedArtifacts: { id: string; type: string; title: string }[] = [];
 
@@ -430,18 +455,20 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // Auto-title
-      const { data: chatData } = await supabase
-        .from("chats")
-        .select("title")
-        .eq("id", chatId)
-        .single();
-
-      if (chatData?.title === "New Chat") {
-        await supabase
+      // Auto-title (skipped in incognito — there is no chat row).
+      if (!incognito) {
+        const { data: chatData } = await supabase
           .from("chats")
-          .update({ title: message.slice(0, 50) })
-          .eq("id", chatId);
+          .select("title")
+          .eq("id", chatId)
+          .single();
+
+        if (chatData?.title === "New Chat") {
+          await supabase
+            .from("chats")
+            .update({ title: message.slice(0, 50) })
+            .eq("id", chatId);
+        }
       }
 
       controller.enqueue(

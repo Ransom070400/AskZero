@@ -16,12 +16,13 @@ interface ChatListProps {
     messageId: string,
     body: { type: string; title: string; language: string | null; content: string }
   ) => void;
+  hideReceipts?: boolean;
 }
 
 // How close to the bottom (px) still counts as "following the conversation".
 const NEAR_BOTTOM_PX = 120;
 
-export function ChatList({ messages, isStreaming, onRegenerate, onRegenerateImage, onEdit, onOpenArtifact, onOpenAsArtifact }: ChatListProps) {
+export function ChatList({ messages, isStreaming, onRegenerate, onRegenerateImage, onEdit, onOpenArtifact, onOpenAsArtifact, hideReceipts }: ChatListProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const [atBottom, setAtBottom] = useState(true);
@@ -76,6 +77,7 @@ export function ChatList({ messages, isStreaming, onRegenerate, onRegenerateImag
                   onEdit={!isStreaming ? onEdit : undefined}
                   onOpenArtifact={onOpenArtifact}
                   onOpenAsArtifact={onOpenAsArtifact}
+                  hideReceipt={hideReceipts}
                 />
               </div>
             );

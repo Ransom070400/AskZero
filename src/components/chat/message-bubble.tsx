@@ -267,6 +267,7 @@ export function MessageBubble({
   onOpenAsArtifact,
   isLast,
   isStreaming,
+  hideReceipt,
 }: {
   message: Message;
   onRegenerate?: () => void;
@@ -276,6 +277,7 @@ export function MessageBubble({
   onOpenAsArtifact?: PreContextValue["onOpenAsArtifact"];
   isLast?: boolean;
   isStreaming?: boolean;
+  hideReceipt?: boolean;
 }) {
   const isUser = message.role === "user";
   const [editing, setEditing] = useState(false);
@@ -582,7 +584,7 @@ export function MessageBubble({
             Retry
           </ActionButton>
         )}
-        {message.content && <ReceiptBadge messageId={message.id} />}
+        {message.content && !hideReceipt && <ReceiptBadge messageId={message.id} />}
         {message.tokenCount != null && (
           <span className="ml-1 text-[11px] font-medium text-text-tertiary tabular-nums">
             {message.tokenCount} tokens
