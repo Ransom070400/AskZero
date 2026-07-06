@@ -18,6 +18,33 @@ These are built and verified locally but not yet live — they ship on the next 
 
 ---
 
+## [2026-07-06] — Verifiable inference, incognito & crypto payments
+
+### Added
+- **Verifiable receipts in the UI** (web + mobile) — a "Verify on 0G" badge on every answer opens a proof panel that **re-derives the Merkle root from the receipt + proof and confirms it live on-chain** (`isAnchored()`). Tamper-evident by construction.
+- **0G Compute in the model picker** — a curated, verified broker model (**GLM 5.1 · 0G Compute**) that runs **on-chain-settled inference** on the decentralized 0G Compute network (not just the Integrate gateway).
+- **Incognito mode** — ephemeral chats that aren't saved, aren't remembered, and skip the memory layer. Launch from the top-bar mask icon or the new-chat toggle.
+- **Pay with 0G** — connect a wallet (**Reown AppKit / WalletConnect** — MetaMask, Coinbase, mobile wallets via QR) and top up by paying **0G tokens on-chain**, credited at the live 0G/USD price.
+- **What's New announcements** — a sequential two-card popup (What's new → Coming soon) with per-version re-broadcast to reach all users.
+- **Security policy** — `SECURITY.md`, a public `/security` page, and a Settings → "Security & Privacy" link (web + mobile).
+- **MIT `LICENSE`.**
+- Model-picker **"Default"** badge; sidebar "coming soon" teasers (Private journaling, Sealed predictions).
+
+### Changed
+- **Receipt verification is chain-aware** — the explorer link and on-chain read are derived from the chain each batch was actually anchored on (0G mainnet `16661` / Galileo testnet `16602`).
+- **README** rewritten for accuracy — honest framing of what runs on 0G, the billing story, the verifiable-receipts differentiator, Pay with 0G, and new env vars.
+- Sidebar trimmed (Deposit & Settings now live in the top nav).
+
+### Fixed
+- Receipt lookups resolve immediately after a turn (client adopts the real persisted message id).
+- "Anchoring tx not found" — was pointing at the wrong chain's explorer.
+
+### Security
+- **0G deposits require a wallet-ownership signature** so no one can claim a stray txHash, plus recipient + 12-confirmation + idempotency checks. Credit amount is computed server-side from the on-chain value.
+- Bearer auth added to the receipt and crypto-deposit routes.
+
+---
+
 ## [2026-07-06] — Mobile launch & global payments
 
 ### Added
