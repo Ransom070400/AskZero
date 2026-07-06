@@ -9,8 +9,6 @@ import {
   Search,
   Trash2,
   ChevronDown,
-  CreditCard,
-  Settings,
   Sparkles,
   BookLock,
   Lock,
@@ -398,18 +396,6 @@ export function ContentSidebar() {
           icon={<Sparkles className="h-4 w-4" />}
           active={pathname === "/research"}
           label="Research"
-        />
-        <FooterLink
-          href="/deposit"
-          icon={<CreditCard className="h-4 w-4" />}
-          active={pathname === "/deposit"}
-          label="Deposit"
-        />
-        <FooterLink
-          href="/settings"
-          icon={<Settings className="h-4 w-4" />}
-          active={pathname === "/settings"}
-          label="Settings"
         />
       </div>
     </div>
