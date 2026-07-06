@@ -8,6 +8,7 @@ import {
   EyeOff,
   ShieldCheck,
   Brain,
+  Coins,
   Smartphone,
   Globe,
   BookLock,
@@ -23,7 +24,7 @@ import {
 // Two-step announcement: "What's new" shows first; closing it reveals "Coming
 // soon"; closing that dismisses for good (persisted). BUMP STORAGE_KEY whenever
 // the contents change so the refreshed cards reach everyone again.
-const STORAGE_KEY = "askzero-whatsnew-2026-07-06-v4";
+const STORAGE_KEY = "askzero-whatsnew-2026-07-06-v5";
 const EXPIRES = new Date("2026-07-16T23:59:59Z").getTime();
 
 const ANDROID_APK_URL =
@@ -109,6 +110,12 @@ export function WhatsNew() {
                     title="Memory layer on 0G Storage"
                     isNew
                     body="AskZero remembers durable facts across chats — archived to 0G Storage, so your memory is content-addressed and yours."
+                  />
+                  <Item
+                    icon={<Coins className="h-5 w-5" />}
+                    title="Pay with 0G"
+                    isNew
+                    body="Top up with crypto — connect a wallet and pay in 0G tokens on-chain, verified and credited instantly."
                   />
                   <Item
                     icon={<Smartphone className="h-5 w-5" />}
