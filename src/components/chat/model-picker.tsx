@@ -93,6 +93,10 @@ export function ModelPicker({
   );
   const groups = groupModels(models);
   const activeKey = active ? providerKey(active.provider) : "og";
+  // The app defaults to the first model returned by /api/models.
+  const defaultKey = models[0]
+    ? `${models[0].provider}|${models[0].model}`
+    : null;
 
   return (
     <DropdownMenu>
@@ -141,6 +145,7 @@ export function ModelPicker({
             {group.models.map((m) => {
               const isActive =
                 m.provider === selected.provider && m.model === selected.model;
+              const isDefault = `${m.provider}|${m.model}` === defaultKey;
               return (
                 <DropdownMenuItem
                   key={`${m.provider}|${m.model}`}
@@ -167,11 +172,16 @@ export function ModelPicker({
                   <div className="flex min-w-0 flex-1 flex-col items-start gap-0.5">
                     <span
                       className={cn(
-                        "w-full truncate text-left text-[13px] text-foreground",
+                        "flex w-full items-center gap-1.5 text-left text-[13px] text-foreground",
                         isActive ? "font-semibold" : "font-medium"
                       )}
                     >
-                      {m.label}
+                      <span className="truncate">{m.label}</span>
+                      {isDefault && (
+                        <span className="shrink-0 rounded-full border border-border/70 px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide text-text-tertiary">
+                          Default
+                        </span>
+                      )}
                     </span>
                     {m.description && (
                       <span className="line-clamp-2 text-left text-[11px] font-normal leading-snug text-text-tertiary">
