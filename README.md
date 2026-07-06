@@ -27,7 +27,8 @@ Most AI apps ask you to trust that the model said what the UI shows. AskZero mak
 - **Artifacts** — long code, HTML, SVG, Mermaid, and live React components open in a side panel with version history.
 - **Long-term memory** — distilled, embedded for semantic recall, archived to 0G Storage.
 - **Verifiable receipts** — per-message, anchored on-chain, verifiable in the UI.
-- **Credits & billing** — Paystack (NGN) and Stripe (USD + 13 APAC currencies).
+- **Incognito mode** — ephemeral chats that aren't saved, aren't remembered, and skip the memory layer entirely.
+- **Credits & billing** — Paystack (NGN), Stripe (USD + 13 APAC currencies), and **Pay with 0G** (connect a wallet, pay in 0G tokens on-chain).
 - **Auth** — Supabase email/password and Google OAuth (web + mobile).
 
 ---
@@ -53,7 +54,8 @@ Pay-as-you-go credits, priced so margins can't invert when the underlying token 
 - **Unit** — **1,000 credits = $1** (1 credit = 0.1¢). Balances render in the user's chosen currency.
 - **Metering** — every message deducts credits for input + output tokens; image generation and research have their own costs. The exact cost is recorded on the receipt.
 - **Dynamic pricing** — Integrate-model prices are computed as **wholesale × markup** (input 3.0×, output 2.0×), recomputed against the live 0G token price so a token-price swing can't push cost below wholesale. A static `MODEL_PRICING` table is the fallback.
-- **Funding** — deposits via **Paystack** (NGN) and **Stripe** (USD + 13 APAC currencies: JPY, SGD, HKD, AUD, NZD, MYR, THB, KRW, PHP, IDR, INR, VND, TWD). An on-chain **0G-token deposit** path (`POST /api/deposit/crypto`) verifies a transfer and converts it to credits.
+- **Funding** — deposits via **Paystack** (NGN), **Stripe** (USD + 13 APAC currencies: JPY, SGD, HKD, AUD, NZD, MYR, THB, KRW, PHP, IDR, INR, VND, TWD), and **Pay with 0G**: connect a wallet (Reown AppKit / WalletConnect) and pay in 0G on-chain (`POST /api/deposit/crypto`).
+- **Secure crypto deposits** — a 0G deposit is credited only after a **wallet-ownership signature** proves the caller sent the tx (so no one can claim a stray txHash), plus recipient / confirmation / idempotency checks. Amount is credited server-side from the on-chain value at the live 0G price.
 - **No subscriptions** — no plans or seats; you spend what you top up.
 
 ---
@@ -97,6 +99,7 @@ Pay-as-you-go credits, priced so margins can't invert when the underlying token 
 - **Mobile** — React Native / Expo (SDK 54, new architecture), expo-router, shared backend via bearer-token API.
 - **Backend** — Supabase (Postgres, Auth, Storage), `pgvector` for embeddings.
 - **Chain** — ethers v6, `@0glabs/0g-serving-broker`, `@0gfoundation/0g-storage-ts-sdk`, `solc`.
+- **Wallet** — Reown AppKit (Web3Modal) + WalletConnect via the ethers adapter (for Pay with 0G).
 - **Payments** — Stripe, Paystack.
 - **Content** — react-markdown, remark/rehype, KaTeX, highlight.js, mermaid, pdf-parse.
 
@@ -132,6 +135,8 @@ Key variables (full list in `.env.example`):
 | `Z_IMAGE_*` | Image generation (Z-Image; default 100 credits) |
 | `NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY` / `PAYSTACK_SECRET_KEY` | NGN deposits |
 | `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` | USD/APAC deposits |
+| `NEXT_PUBLIC_DEPOSIT_WALLET_ADDRESS` / `DEPOSIT_WALLET_ADDRESS` | Destination wallet for **Pay with 0G** (client + server copies of the same address) |
+| `NEXT_PUBLIC_REOWN_PROJECT_ID` | Reown AppKit / WalletConnect project id (free at [dashboard.reown.com](https://dashboard.reown.com)) — enables the wallet chooser |
 | `RESEND_API_KEY` / `EMAIL_FROM` / `ADMIN_EMAILS` | Email + admin allowlist (optional) |
 
 ### 2. Database
@@ -177,7 +182,7 @@ Chat routing dispatches on the `provider` prefix: `integrate:*` → Integrate Ne
 Kept current for accuracy — these are real, deliberate gaps:
 
 - **0G Compute broker — one curated model is live in the picker** (`src/lib/og-compute-models.ts`). Full `listService()` auto-discovery is still intentionally *not* surfaced (providers vary in reliability/pricing). To add a provider: fund its ledger sub-account (`broker.ledger.depositFund` / transfer-fund), smoke-test it, then add it to the curated list. Keep the shared ledger topped up — `getRequestHeaders` auto-funds provider sub-accounts and fails if the available balance is too low.
-- **On-chain 0G deposits** are implemented (`POST /api/deposit/crypto`) but the deposit UI ships Paystack + Stripe.
+- **Pay with 0G is web-only** for now (Reown AppKit + injected/WalletConnect wallets). A mobile 0G-pay flow (WalletConnect deep-linking) is a separate build; mobile ships Paystack + Stripe.
 - **Per-user on-chain ledgers** are designed (`docs/per-user-0g-ledgers-plan.md`) but not implemented; a single shared 0G ledger is used.
 
 ---
