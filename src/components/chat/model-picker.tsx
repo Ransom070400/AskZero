@@ -55,7 +55,7 @@ function groupModels(models: ModelOption[]): ProviderGroup[] {
             ? "Mainnet · TEE-verified inference"
             : key === "image"
               ? "Text-to-image · prompt becomes an image"
-              : "Decentralized providers",
+              : "Mainnet · on-chain settled inference",
         models: [],
       });
     }

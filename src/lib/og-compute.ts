@@ -85,12 +85,36 @@ export interface ChatMessage {
   content: string | ContentPart[];
 }
 
+// Providers must be acknowledged on-chain once (per ledger wallet) before use.
+// Track which we've handled this instance to avoid redundant calls.
+const acknowledged = new Set<string>();
+
+async function ensureAcknowledged(
+  b: Broker,
+  providerAddress: string
+): Promise<void> {
+  if (acknowledged.has(providerAddress)) return;
+  try {
+    await b.inference.acknowledgeProviderSigner(providerAddress);
+  } catch (err) {
+    // "already acknowledged" is expected and fine; anything else we let the
+    // subsequent getRequestHeaders call surface.
+    const msg = err instanceof Error ? err.message.toLowerCase() : "";
+    if (!msg.includes("already") && !msg.includes("acknowledged")) {
+      console.error("acknowledgeProviderSigner:", err);
+    }
+  }
+  acknowledged.add(providerAddress);
+}
+
 export async function sendPrompt(
   providerAddress: string,
   messages: ChatMessage[],
   options: { stream?: boolean } = {}
 ): Promise<Response> {
   const b = await getBroker();
+
+  await ensureAcknowledged(b, providerAddress);
 
   const { endpoint, model } = await b.inference.getServiceMetadata(
     providerAddress

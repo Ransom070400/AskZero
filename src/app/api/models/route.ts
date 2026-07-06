@@ -4,12 +4,13 @@ import {
   listIntegrateModels,
 } from "@/lib/integrate-network";
 import { IMAGE_PREFIX, listImageModels } from "@/lib/image-generation";
+import { OG_COMPUTE_MODELS } from "@/lib/og-compute-models";
 
-// Only the models curated in `integrate-network.ts` are exposed. The 0G
-// chain broker's listService() is intentionally not surfaced here — those
-// providers vary in reliability, pricing and capability, so we ship a
-// hand-picked, verified set instead of letting auto-discovery flood the
-// picker.
+// We expose two sets of chat models:
+//  · Integrate gateway models (TEE-verified OpenAI-compatible proxy), and
+//  · a hand-picked set of 0G Compute broker providers (on-chain settled).
+// The broker's full listService() is intentionally NOT auto-surfaced — those
+// providers vary in reliability/pricing — so we ship a verified curated set.
 export async function GET() {
   const chatModels = listIntegrateModels().map((m) => ({
     provider: `${INTEGRATE_PREFIX}${m.id}`,
@@ -19,6 +20,16 @@ export async function GET() {
     supportsImages: m.supportsImages,
     kind: "chat" as const,
     source: "integrate" as const,
+  }));
+
+  const ogComputeModels = OG_COMPUTE_MODELS.map((m) => ({
+    provider: m.provider, // raw 0x address → chat route routes to the broker
+    model: m.model,
+    label: m.label,
+    description: m.description,
+    supportsImages: false,
+    kind: "chat" as const,
+    source: "og" as const,
   }));
 
   const imageModels = listImageModels().map((m) => ({
@@ -31,5 +42,7 @@ export async function GET() {
     source: "z-image" as const,
   }));
 
-  return NextResponse.json({ models: [...chatModels, ...imageModels] });
+  return NextResponse.json({
+    models: [...chatModels, ...ogComputeModels, ...imageModels],
+  });
 }
