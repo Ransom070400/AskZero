@@ -12,6 +12,8 @@ import {
   CreditCard,
   Settings,
   Sparkles,
+  BookLock,
+  Lock,
 } from "lucide-react";
 import { Logo } from "@/components/ui/logo";
 
@@ -97,15 +99,43 @@ function FooterLink({
   icon,
   label,
   active,
+  soon,
 }: {
-  href: string;
+  href?: string;
   icon: React.ReactNode;
   label: string;
-  active: boolean;
+  active?: boolean;
+  soon?: boolean;
 }) {
+  const inner = (
+    <>
+      {active && (
+        <span className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-[2px] rounded-r-full bg-accent" />
+      )}
+      <span className={cn(active ? "text-accent" : "text-text-tertiary")}>{icon}</span>
+      <span className="flex-1">{label}</span>
+      {soon && (
+        <span className="rounded-full border border-border/70 px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide text-text-tertiary">
+          Soon
+        </span>
+      )}
+    </>
+  );
+
+  if (soon) {
+    return (
+      <div
+        title="Coming soon"
+        className="relative flex cursor-default items-center gap-2.5 rounded-xl pl-3 pr-3 py-2 text-[13px] font-medium text-text-tertiary/80"
+      >
+        {inner}
+      </div>
+    );
+  }
+
   return (
     <Link
-      href={href}
+      href={href!}
       className={cn(
         "relative flex items-center gap-2.5 rounded-xl pl-3 pr-3 py-2 text-[13px] font-medium transition-colors duration-fast ease-out",
         active
@@ -113,11 +143,7 @@ function FooterLink({
           : "text-text-secondary hover:bg-elevated hover:text-foreground"
       )}
     >
-      {active && (
-        <span className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-[2px] rounded-r-full bg-accent" />
-      )}
-      <span className={cn(active ? "text-accent" : "text-text-tertiary")}>{icon}</span>
-      {label}
+      {inner}
     </Link>
   );
 }
@@ -357,6 +383,16 @@ export function ContentSidebar() {
 
       {/* Footer */}
       <div className="border-t border-border/70 p-2 space-y-px">
+        <FooterLink
+          icon={<BookLock className="h-4 w-4" />}
+          label="Private journaling"
+          soon
+        />
+        <FooterLink
+          icon={<Lock className="h-4 w-4" />}
+          label="Sealed predictions"
+          soon
+        />
         <FooterLink
           href="/research"
           icon={<Sparkles className="h-4 w-4" />}
