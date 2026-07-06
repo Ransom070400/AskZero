@@ -48,3 +48,9 @@ export const REQUIRED_CONFIRMATIONS = 12;
 
 export const DEPOSIT_ADDRESS =
   process.env.NEXT_PUBLIC_DEPOSIT_WALLET_ADDRESS || "";
+
+// Message the payer signs to prove they control the sending wallet — shared by
+// the client (signs) and the /api/deposit/crypto route (verifies). Keep in sync.
+export function depositMessage(txHash: string): string {
+  return `AskZero — confirm 0G deposit\nTx: ${txHash}`;
+}

@@ -21,6 +21,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ZeroGPay } from "@/components/deposit/zero-g-pay";
 import {
   USD_TO_CREDITS_RATE,
   formatCredits,
@@ -64,6 +65,7 @@ function DepositContent() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [ngnRate, setNgnRate] = useState(1500);
+  const [pay0G, setPay0G] = useState(false);
   const { formatBalance: formatBal } = useCurrency();
 
   useEffect(() => {
@@ -267,31 +269,42 @@ function DepositContent() {
         <div className="inline-flex w-full rounded-2xl border border-border/70 bg-elevated/60 p-1">
           <CurrencyTab
             label="₦ Naira"
-            active={currency === "NGN"}
+            active={!pay0G && currency === "NGN"}
             onClick={() => {
+              setPay0G(false);
               setCurrency("NGN");
               setAmount("");
             }}
           />
           <CurrencyTab
             label="$ USD"
-            active={currency === "USD"}
+            active={!pay0G && currency === "USD"}
             onClick={() => {
+              setPay0G(false);
               setCurrency("USD");
               setAmount("");
             }}
           />
           <CurrencyTab
             label="APAC"
-            active={isApac(currency)}
+            active={!pay0G && isApac(currency)}
             onClick={() => {
+              setPay0G(false);
               if (!isApac(currency)) setCurrency("JPY");
+              setAmount("");
+            }}
+          />
+          <CurrencyTab
+            label="⬡ 0G"
+            active={pay0G}
+            onClick={() => {
+              setPay0G(true);
               setAmount("");
             }}
           />
         </div>
 
-        {isApac(currency) && (
+        {!pay0G && isApac(currency) && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="press group flex h-11 w-full items-center justify-between rounded-xl border border-border bg-background px-4 text-[14px] font-medium text-foreground transition-[border-color,background-color] duration-fast ease-out hover:border-border-strong">
@@ -331,7 +344,18 @@ function DepositContent() {
         )}
       </section>
 
+      {/* Pay with 0G tokens */}
+      {pay0G && (
+        <section className="space-y-3">
+          <h2 className="text-[12px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+            Pay with 0G
+          </h2>
+          <ZeroGPay onCredited={fetchData} />
+        </section>
+      )}
+
       {/* Amount */}
+      {!pay0G && (
       <section className="space-y-3">
         <div className="flex items-baseline justify-between">
           <h2 className="text-[12px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
@@ -393,6 +417,7 @@ function DepositContent() {
           Payments secured by Paystack · funds custodied on-chain
         </p>
       </section>
+      )}
 
       {/* Transaction history */}
       {transactions.length > 0 && (

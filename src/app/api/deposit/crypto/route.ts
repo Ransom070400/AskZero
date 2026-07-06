@@ -1,43 +1,58 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ethers } from "ethers";
-import { createClient } from "@/lib/supabase/server";
-import { getOGTokenPrice, ogToCredits, REQUIRED_CONFIRMATIONS } from "@/lib/og-token";
+import { getAuthedUser } from "@/lib/supabase/api-auth";
+import {
+  getOGTokenPrice,
+  ogToCredits,
+  REQUIRED_CONFIRMATIONS,
+  depositMessage,
+} from "@/lib/og-token";
 
 export async function POST(req: NextRequest) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const { supabase, user } = await getAuthedUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { txHash } = await req.json();
+  const { txHash, address, signature } = (await req.json()) as {
+    txHash?: string;
+    address?: string;
+    signature?: string;
+  };
 
-  if (!txHash) {
-    return NextResponse.json({ error: "Missing txHash" }, { status: 400 });
+  if (!txHash || !address || !signature) {
+    return NextResponse.json(
+      { error: "Missing txHash, address, or signature" },
+      { status: 400 }
+    );
   }
 
-  // Check idempotency
+  // 1) Prove the caller controls `address` (they signed for it).
+  let recovered: string;
+  try {
+    recovered = ethers.verifyMessage(depositMessage(txHash), signature);
+  } catch {
+    return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+  }
+  if (recovered.toLowerCase() !== address.toLowerCase()) {
+    return NextResponse.json(
+      { error: "Signature does not match wallet" },
+      { status: 400 }
+    );
+  }
+
+  // 2) Idempotency — a txHash can only ever be credited once.
   const { data: existing } = await supabase
     .from("transactions")
     .select("status")
     .eq("reference", txHash)
-    .single();
-
+    .maybeSingle();
   if (existing?.status === "completed") {
-    return NextResponse.json({
-      status: "completed",
-      message: "Already credited",
-    });
+    return NextResponse.json({ status: "completed", message: "Already credited" });
   }
 
-  // Verify on-chain
-  const rpcUrl =
-    process.env.ZERO_G_CHAIN_RPC_URL || "https://evmrpc-testnet.0g.ai";
+  const rpcUrl = process.env.ZERO_G_CHAIN_RPC_URL || "https://evmrpc.0g.ai";
   const depositAddress = process.env.DEPOSIT_WALLET_ADDRESS;
-
   if (!depositAddress) {
     return NextResponse.json(
       { error: "Deposit address not configured" },
@@ -47,23 +62,13 @@ export async function POST(req: NextRequest) {
 
   const provider = new ethers.JsonRpcProvider(rpcUrl);
 
-  let receipt;
-  try {
-    receipt = await provider.getTransactionReceipt(txHash);
-  } catch {
-    return NextResponse.json(
-      { error: "Failed to fetch transaction" },
-      { status: 400 }
-    );
-  }
-
+  const receipt = await provider.getTransactionReceipt(txHash).catch(() => null);
   if (!receipt) {
     return NextResponse.json(
       { error: "Transaction not found or pending" },
       { status: 400 }
     );
   }
-
   if (receipt.status !== 1) {
     return NextResponse.json(
       { error: "Transaction failed on-chain" },
@@ -71,16 +76,27 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Verify recipient
   const tx = await provider.getTransaction(txHash);
-  if (!tx || tx.to?.toLowerCase() !== depositAddress.toLowerCase()) {
+  if (!tx) {
+    return NextResponse.json({ error: "Transaction not found" }, { status: 400 });
+  }
+
+  // 3) The tx must have been SENT BY the wallet the caller proved they own...
+  if (tx.from.toLowerCase() !== address.toLowerCase()) {
     return NextResponse.json(
-      { error: "Transaction not sent to deposit address" },
+      { error: "Transaction was not sent from your wallet" },
+      { status: 400 }
+    );
+  }
+  // ...and sent TO the deposit address.
+  if (tx.to?.toLowerCase() !== depositAddress.toLowerCase()) {
+    return NextResponse.json(
+      { error: "Transaction was not sent to the deposit address" },
       { status: 400 }
     );
   }
 
-  // Check confirmations
+  // 4) Enough confirmations.
   const currentBlock = await provider.getBlockNumber();
   const confirmations = currentBlock - receipt.blockNumber;
   if (confirmations < REQUIRED_CONFIRMATIONS) {
@@ -95,27 +111,20 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Calculate credits
+  // 5) Credits from the on-chain value at the current 0G price.
   const ogAmount = Number(ethers.formatEther(tx.value));
   const ogPrice = await getOGTokenPrice();
   const credits = ogToCredits(ogAmount, ogPrice);
-
   if (credits <= 0) {
-    return NextResponse.json(
-      { error: "Deposit amount too small" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "Deposit amount too small" }, { status: 400 });
   }
 
-  // Create or update transaction
   if (existing) {
-    // Update pending transaction
     await supabase
       .from("transactions")
       .update({ status: "completed", amount: credits })
       .eq("reference", txHash);
   } else {
-    // Insert new transaction
     await supabase.from("transactions").insert({
       user_id: user.id,
       type: "deposit",
@@ -133,17 +142,12 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // Credit balance
   const { error: rpcError } = await supabase.rpc("credit_balance", {
     p_user_id: user.id,
     p_amount: credits,
   });
-
   if (rpcError) {
-    return NextResponse.json(
-      { error: "Failed to credit balance" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to credit balance" }, { status: 500 });
   }
 
   return NextResponse.json({
