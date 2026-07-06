@@ -4,8 +4,12 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Sparkles,
+  EyeOff,
+  ShieldCheck,
   Smartphone,
   Globe,
+  BookLock,
+  Lock,
   Webhook,
   Store,
   Terminal,
@@ -13,11 +17,11 @@ import {
   X,
 } from "lucide-react";
 
-// Dismissible "What's new" announcement. Shows until EXPIRES (5 days after
-// launch) OR until the user dismisses it (persisted in localStorage). Bump
-// STORAGE_KEY + EXPIRES for the next announcement to reuse this component.
-const STORAGE_KEY = "askzero-whatsnew-2026-07-05";
-const EXPIRES = new Date("2026-07-10T23:59:59Z").getTime();
+// Dismissible "What's new" announcement. Shows until EXPIRES OR until dismissed
+// (persisted in localStorage). BUMP STORAGE_KEY whenever the contents change so
+// the refreshed card is shown to everyone again — that's how updates reach users.
+const STORAGE_KEY = "askzero-whatsnew-2026-07-06-v2";
+const EXPIRES = new Date("2026-07-16T23:59:59Z").getTime();
 
 const ANDROID_APK_URL =
   "https://expo.dev/accounts/ransom070/projects/askzero/builds/8b47c0fa-a43c-47ec-8232-22e321f66946";
@@ -26,9 +30,9 @@ export function WhatsNew() {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    if (Date.now() > EXPIRES) return; // 5-day window has passed
+    if (Date.now() > EXPIRES) return;
     try {
-      if (localStorage.getItem(STORAGE_KEY)) return; // already dismissed
+      if (localStorage.getItem(STORAGE_KEY)) return;
     } catch {
       return;
     }
@@ -40,7 +44,7 @@ export function WhatsNew() {
     try {
       localStorage.setItem(STORAGE_KEY, "1");
     } catch {
-      /* private mode — just close */
+      /* private mode */
     }
     setOpen(false);
   };
@@ -66,67 +70,89 @@ export function WhatsNew() {
             role="dialog"
             aria-modal="true"
             aria-label="What's new"
-            className="relative flex max-h-[85dvh] w-full max-w-md flex-col rounded-2xl border border-border bg-elevated shadow-xl"
-            initial={{ opacity: 0, scale: 0.94, y: 14 }}
+            className="relative flex max-h-[86dvh] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-border bg-elevated shadow-2xl"
+            initial={{ opacity: 0, scale: 0.94, y: 16 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 8 }}
-            transition={{ type: "spring", stiffness: 320, damping: 26 }}
+            transition={{ type: "spring", stiffness: 300, damping: 26 }}
           >
-            <button
-              onClick={dismiss}
-              aria-label="Close"
-              className="press absolute right-4 top-4 z-10 text-text-tertiary transition-colors hover:text-foreground"
-            >
-              <X className="h-5 w-5" />
-            </button>
-
-            <div className="overflow-y-auto p-6">
-              <div className="mb-1 flex items-center gap-2 text-accent">
-                <Sparkles className="h-4 w-4" />
-                <span className="text-[12px] font-semibold uppercase tracking-[0.14em]">
-                  What&apos;s new
-                </span>
+            {/* Accent header */}
+            <div className="relative overflow-hidden bg-gradient-to-br from-accent/20 via-accent/5 to-transparent px-6 pb-5 pt-6">
+              <div className="pointer-events-none absolute -right-8 -top-10 h-32 w-32 rounded-full bg-accent/20 blur-3xl" />
+              <button
+                onClick={dismiss}
+                aria-label="Close"
+                className="press absolute right-4 top-4 text-text-tertiary transition-colors hover:text-foreground"
+              >
+                <X className="h-5 w-5" />
+              </button>
+              <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-accent">
+                <Sparkles className="h-3.5 w-3.5" />
+                What&apos;s new
               </div>
-              <h2 className="text-xl font-bold tracking-tight text-foreground">
-                Two fresh updates
+              <h2 className="text-2xl font-bold tracking-tight text-foreground">
+                Fresh in AskZero
               </h2>
+              <p className="mt-1 text-[13px] text-text-secondary">
+                A few things we just shipped — and what&apos;s coming next.
+              </p>
+            </div>
 
-              <div className="mt-5 space-y-3">
+            <div className="overflow-y-auto px-6 pb-6">
+              <SectionLabel>Just shipped</SectionLabel>
+              <div className="space-y-2.5">
+                <Item
+                  icon={<EyeOff className="h-5 w-5" />}
+                  title="Incognito mode"
+                  isNew
+                  body="Chat privately — nothing is saved and nothing is remembered. Open it from the mask icon in the top bar."
+                />
+                <Item
+                  icon={<ShieldCheck className="h-5 w-5" />}
+                  title="Verified receipts"
+                  isNew
+                  body="Every answer is provable on 0G. Tap “Verify on 0G” on any reply to re-derive the proof and confirm it on-chain."
+                />
                 <Item
                   icon={<Smartphone className="h-5 w-5" />}
-                  title="AskZero is now on mobile"
-                  body="The mobile app has shipped — chat, autonomous research, your balance, and deposits, all in your pocket."
+                  title="AskZero on mobile"
+                  body="The iOS & Android app has shipped — chat, research, balance, and deposits in your pocket."
                   action={{ label: "Download for Android (APK)", href: ANDROID_APK_URL }}
                 />
                 <Item
                   icon={<Globe className="h-5 w-5" />}
-                  title="Pay in USD & APAC currencies"
-                  body="Top up in US Dollars and 13 Asia-Pacific currencies (JPY, SGD, INR and more) — no longer Naira-only."
+                  title="Pay in USD & APAC"
+                  body="Top up in US Dollars and 13 Asia-Pacific currencies — no longer Naira-only."
                 />
               </div>
 
-              {/* Coming soon */}
-              <div className="mt-6">
-                <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
-                  Coming soon
-                </p>
-                <div className="space-y-2">
-                  <Soon
-                    icon={<Webhook className="h-4 w-4" />}
-                    title="API Gateway"
-                    body="Programmatic access to AskZero from your own apps."
-                  />
-                  <Soon
-                    icon={<Store className="h-4 w-4" />}
-                    title="On the App Store & Google Play"
-                    body="One-tap installs — no sideloading required."
-                  />
-                  <Soon
-                    icon={<Terminal className="h-4 w-4" />}
-                    title="AskZero CLI"
-                    body="Chat and automate straight from your terminal."
-                  />
-                </div>
+              <SectionLabel>Coming soon</SectionLabel>
+              <div className="space-y-1">
+                <Soon
+                  icon={<BookLock className="h-4 w-4" />}
+                  title="Private journaling"
+                  body="An encrypted, private journal with AI reflections — kept on 0G, readable only by you."
+                />
+                <Soon
+                  icon={<Lock className="h-4 w-4" />}
+                  title="Sealed predictions"
+                  body="Commit a prediction on-chain now, reveal it later — provably made before the outcome."
+                />
+                <Soon
+                  icon={<Webhook className="h-4 w-4" />}
+                  title="API Gateway"
+                  body="Programmatic access to AskZero from your own apps."
+                />
+                <Soon
+                  icon={<Store className="h-4 w-4" />}
+                  title="On the App Store & Google Play"
+                  body="One-tap installs — no sideloading."
+                />
+                <Soon
+                  icon={<Terminal className="h-4 w-4" />}
+                  title="AskZero CLI"
+                  body="Chat and automate from your terminal."
+                />
               </div>
 
               <button
@@ -143,15 +169,25 @@ export function WhatsNew() {
   );
 }
 
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="mb-2.5 mt-6 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-tertiary first:mt-4">
+      {children}
+    </p>
+  );
+}
+
 function Item({
   icon,
   title,
   body,
+  isNew,
   action,
 }: {
   icon: React.ReactNode;
   title: string;
   body: string;
+  isNew?: boolean;
   action?: { label: string; href: string };
 }) {
   return (
@@ -160,7 +196,14 @@ function Item({
         {icon}
       </div>
       <div className="min-w-0">
-        <p className="text-[14px] font-semibold text-foreground">{title}</p>
+        <div className="flex items-center gap-2">
+          <p className="text-[14px] font-semibold text-foreground">{title}</p>
+          {isNew && (
+            <span className="rounded-full bg-accent px-1.5 py-px text-[9px] font-bold uppercase tracking-wide text-primary-foreground">
+              New
+            </span>
+          )}
+        </div>
         <p className="mt-0.5 text-[13px] leading-snug text-text-tertiary">{body}</p>
         {action && (
           <a
