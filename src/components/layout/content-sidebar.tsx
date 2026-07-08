@@ -63,6 +63,25 @@ function groupChatsByDate(chats: Chat[]) {
   return groups;
 }
 
+function relativeTime(iso: string): string {
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "";
+  const m = Math.floor((Date.now() - then) / 60000);
+  if (m < 1) return "now";
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h`;
+  const d = Math.floor(h / 24);
+  if (d < 7) return `${d}d`;
+  const date = new Date(then);
+  const sameYear = date.getFullYear() === new Date().getFullYear();
+  return date.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    ...(sameYear ? {} : { year: "2-digit" }),
+  });
+}
+
 function ChatRow({
   chat,
   isActive,
@@ -160,7 +179,11 @@ function ChatRow({
           </button>
         </span>
       ) : (
-        <DropdownMenu>
+        <span className="flex shrink-0 items-center pl-1">
+          <span className="pr-0.5 text-[11px] tabular-nums text-text-tertiary/70 group-hover/row:hidden">
+            {relativeTime(chat.updated_at)}
+          </span>
+          <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
               aria-label="Chat options"
@@ -195,7 +218,8 @@ function ChatRow({
               Delete
             </DropdownMenuItem>
           </DropdownMenuContent>
-        </DropdownMenu>
+          </DropdownMenu>
+        </span>
       )}
     </div>
   );
