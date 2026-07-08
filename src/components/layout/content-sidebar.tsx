@@ -330,6 +330,7 @@ export function ContentSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [chats, setChats] = useState<Chat[]>([]);
+  const [loadedChats, setLoadedChats] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<SearchHit[]>([]);
@@ -344,6 +345,8 @@ export function ContentSidebar() {
       }
     } catch {
       // silently fail
+    } finally {
+      setLoadedChats(true);
     }
   }, []);
 
@@ -476,6 +479,17 @@ export function ContentSidebar() {
         {query.trim().length >= 2 && (
           <MessageHits hits={hits} loading={searching} chatId={pathname} />
         )}
+        {!loadedChats && chats.length === 0 ? (
+          <div className="space-y-1.5 px-1 py-2" aria-hidden>
+            {Array.from({ length: 7 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-8 animate-pulse rounded-xl bg-elevated"
+                style={{ width: `${92 - (i % 3) * 14}%` }}
+              />
+            ))}
+          </div>
+        ) : (
         <div className="space-y-5 py-1">
           {pinnedChats.length > 0 && (
             <div>
@@ -542,6 +556,7 @@ export function ContentSidebar() {
             </p>
           )}
         </div>
+        )}
       </div>
 
       {/* Footer */}

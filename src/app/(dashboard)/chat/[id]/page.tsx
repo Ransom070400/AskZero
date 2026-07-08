@@ -5,6 +5,7 @@ import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { EyeOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { ChatList } from "@/components/chat/chat-list";
+import { ChatSkeleton } from "@/components/chat/chat-skeleton";
 import { ChatInput, type ImageSize, type SlashCommand } from "@/components/chat/chat-input";
 import { ModelPicker, type ModelOption } from "@/components/chat/model-picker";
 import type { Message, Attachment, ArtifactRef } from "@/components/chat/message-bubble";
@@ -47,6 +48,7 @@ function ChatDetailContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [models, setModels] = useState<ModelOption[]>([]);
@@ -163,6 +165,7 @@ function ChatDetailContent() {
 
   useEffect(() => {
     if (isIncognito) return; // nothing to load — ephemeral session
+    setLoadingHistory(true);
     const supabase = createClient();
     const loadMessages = async () => {
       const primary = await supabase
@@ -226,6 +229,7 @@ function ChatDetailContent() {
           }))
         );
       }
+      setLoadingHistory(false);
     });
   }, [chatId]);
 
@@ -701,6 +705,9 @@ function ChatDetailContent() {
           </span>
         </div>
       )}
+      {loadingHistory && messages.length === 0 ? (
+        <ChatSkeleton />
+      ) : (
       <ChatList
         messages={messages}
         isStreaming={isStreaming}
@@ -713,6 +720,7 @@ function ChatDetailContent() {
         onOpenAsArtifact={handleOpenAsArtifact}
         hideReceipts={isIncognito}
       />
+      )}
 
       <div
         className="px-4 pt-3 pb-3 md:px-6 md:pt-4 md:pb-5"
