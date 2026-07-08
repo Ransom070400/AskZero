@@ -17,6 +17,8 @@ import {
   PinOff,
   Pencil,
   MessageSquare,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -351,12 +353,100 @@ function MessageHits({
   );
 }
 
+function RailButton({
+  title,
+  onClick,
+  children,
+}: {
+  title: string;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      aria-label={title}
+      className="press flex h-10 w-10 items-center justify-center rounded-xl border border-border/70 bg-elevated text-foreground shadow-sm transition-colors duration-fast hover:border-border-strong"
+    >
+      {children}
+    </button>
+  );
+}
+
+function RailLink({
+  href,
+  title,
+  active,
+  children,
+}: {
+  href: string;
+  title: string;
+  active?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      title={title}
+      aria-label={title}
+      className={cn(
+        "flex h-9 w-9 items-center justify-center rounded-lg transition-colors duration-fast",
+        active
+          ? "bg-accent-muted text-accent"
+          : "text-text-tertiary hover:bg-elevated hover:text-foreground"
+      )}
+    >
+      {children}
+    </Link>
+  );
+}
+
+// Collapsed sidebar: a slim rail of icon actions. History lives in the
+// expanded view (or ⌘K); the rail just keeps the essentials one tap away.
+function Rail({
+  onExpand,
+  onNew,
+  researchActive,
+}: {
+  onExpand: () => void;
+  onNew: () => void;
+  researchActive: boolean;
+}) {
+  return (
+    <>
+      <div className="flex h-14 items-center justify-center">
+        <button
+          onClick={onExpand}
+          title="Expand sidebar"
+          aria-label="Expand sidebar"
+          className="press flex h-8 w-8 items-center justify-center rounded-lg text-text-tertiary hover:bg-elevated hover:text-foreground transition-colors duration-fast"
+        >
+          <PanelLeftOpen className="h-5 w-5" />
+        </button>
+      </div>
+      <div className="flex flex-col items-center gap-1 px-2">
+        <RailButton title="New chat" onClick={onNew}>
+          <Plus className="h-[18px] w-[18px]" />
+        </RailButton>
+      </div>
+      <div className="flex-1" />
+      <div className="flex flex-col items-center gap-1 border-t border-border/70 py-2">
+        <RailLink href="/research" title="Research" active={researchActive}>
+          <Sparkles className="h-[18px] w-[18px]" />
+        </RailLink>
+      </div>
+    </>
+  );
+}
+
 export function ContentSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [chats, setChats] = useState<Chat[]>([]);
   const [loadedChats, setLoadedChats] = useState(false);
   const [isMac, setIsMac] = useState(false);
+  const [railCollapsed, setRailCollapsed] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<SearchHit[]>([]);
@@ -458,9 +548,26 @@ export function ContentSidebar() {
     setCollapsed((prev) => ({ ...prev, [label]: !prev[label] }));
   };
 
+  const toggleCollapsed = () => {
+    setRailCollapsed((c) => {
+      const next = !c;
+      try {
+        localStorage.setItem("askzero-sidebar-collapsed", next ? "1" : "0");
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  };
+
   // New-chat shortcut. ⌘N is reserved by browsers, so use ⇧⌘O (⇧Ctrl+O).
   useEffect(() => {
     setIsMac(/Mac|iPhone|iPad/.test(navigator.userAgent));
+    try {
+      setRailCollapsed(localStorage.getItem("askzero-sidebar-collapsed") === "1");
+    } catch {
+      /* ignore */
+    }
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "o") {
         e.preventDefault();
@@ -480,10 +587,31 @@ export function ContentSidebar() {
   const grouped = groupChatsByDate(filtered.filter((c) => !c.pinned));
 
   return (
-    <div className="hidden md:flex h-full w-[268px] flex-col border-r border-border/70 bg-surface">
+    <div
+      className={cn(
+        "hidden md:flex h-full flex-col border-r border-border/70 bg-surface transition-[width] duration-base ease-out",
+        railCollapsed ? "w-[64px]" : "w-[268px]"
+      )}
+    >
+      {railCollapsed ? (
+        <Rail
+          onExpand={toggleCollapsed}
+          onNew={() => router.push("/chat")}
+          researchActive={pathname === "/research"}
+        />
+      ) : (
+        <>
       {/* Brand */}
-      <div className="flex items-center px-5 h-14">
+      <div className="flex items-center justify-between px-5 h-14">
         <Logo size={22} />
+        <button
+          onClick={toggleCollapsed}
+          title="Collapse sidebar"
+          aria-label="Collapse sidebar"
+          className="press flex h-7 w-7 items-center justify-center rounded-md text-text-tertiary hover:bg-elevated hover:text-foreground transition-colors duration-fast"
+        >
+          <PanelLeftClose className="h-4 w-4" />
+        </button>
       </div>
 
       {/* Search */}
@@ -643,6 +771,8 @@ export function ContentSidebar() {
           label="Research"
         />
       </div>
+        </>
+      )}
     </div>
   );
 }
