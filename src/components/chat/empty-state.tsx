@@ -1,14 +1,56 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Logo } from "@/components/ui/logo";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Compass, PenLine, Code2, BarChart3 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-const suggestions = [
-  "How does 0G decentralized AI work?",
-  "Explain blockchain inference",
-  "What can AskZero help me with?",
-  "Compare centralized vs decentralized AI",
+const CATEGORIES = [
+  {
+    id: "explore",
+    label: "Explore",
+    icon: Compass,
+    prompts: [
+      "How does 0G decentralized AI actually work?",
+      "Compare centralized vs decentralized AI inference",
+      "Explain on-chain inference receipts like I'm five",
+      "What can AskZero do that other chat apps can't?",
+    ],
+  },
+  {
+    id: "create",
+    label: "Create",
+    icon: PenLine,
+    prompts: [
+      "Write a launch tweet thread for a Web3 app",
+      "Draft a warm outreach email to a potential investor",
+      "Brainstorm 10 names for an AI note-taking app",
+      "Turn these bullet points into a blog intro",
+    ],
+  },
+  {
+    id: "code",
+    label: "Code",
+    icon: Code2,
+    prompts: [
+      "Build a React balance card with a top-up button",
+      "Write a Solidity function to batch-transfer ERC-20s",
+      "Explain and fix a stack trace I'll paste",
+      "Refactor a function from callbacks to async/await",
+    ],
+  },
+  {
+    id: "analyze",
+    label: "Analyze",
+    icon: BarChart3,
+    prompts: [
+      "Compare Postgres vs MongoDB across 5 dimensions in a table",
+      "Chart a value that doubles over 8 periods",
+      "Summarize the risks in a SaaS pricing model",
+      "Break down the tradeoffs of a monorepo vs polyrepo",
+    ],
+  },
 ];
 
 const container = {
@@ -24,11 +66,19 @@ const item = {
   },
 };
 
+const prompts = {
+  initial: {},
+  animate: { transition: { staggerChildren: 0.05 } },
+};
+
 interface EmptyStateProps {
   onSuggestionClick: (text: string) => void;
 }
 
 export function EmptyState({ onSuggestionClick }: EmptyStateProps) {
+  const [active, setActive] = useState(CATEGORIES[0].id);
+  const category = CATEGORIES.find((c) => c.id === active) ?? CATEGORIES[0];
+
   return (
     <motion.div
       initial="initial"
@@ -54,19 +104,50 @@ export function EmptyState({ onSuggestionClick }: EmptyStateProps) {
         Ask anything. Powered by 0G decentralized compute.
       </motion.p>
 
+      {/* Category tabs */}
       <motion.div
         variants={item}
-        className="mt-10 grid w-full grid-cols-1 gap-2 md:grid-cols-2 md:gap-3"
+        className="mt-9 flex flex-wrap items-center justify-center gap-1.5"
       >
-        {suggestions.map((s) => (
-          <button
+        {CATEGORIES.map((c) => {
+          const Icon = c.icon;
+          const isActive = c.id === active;
+          return (
+            <button
+              key={c.id}
+              onClick={() => setActive(c.id)}
+              className={cn(
+                "press inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors duration-fast",
+                isActive
+                  ? "bg-accent-muted text-accent"
+                  : "text-text-tertiary hover:bg-elevated hover:text-foreground"
+              )}
+            >
+              <Icon className="h-3.5 w-3.5" />
+              {c.label}
+            </button>
+          );
+        })}
+      </motion.div>
+
+      {/* Example prompts for the active category */}
+      <motion.div
+        key={category.id}
+        variants={prompts}
+        initial="initial"
+        animate="animate"
+        className="mt-4 grid w-full grid-cols-1 gap-2 md:grid-cols-2 md:gap-3"
+      >
+        {category.prompts.map((s) => (
+          <motion.button
             key={s}
+            variants={item}
             onClick={() => onSuggestionClick(s)}
             className="press group flex items-center justify-between gap-3 rounded-2xl border border-border/70 bg-elevated/60 px-4 py-3.5 text-left text-[14px] text-text-secondary transition-[border-color,background-color,color] duration-base ease-out hover:border-border-strong hover:bg-elevated hover:text-foreground"
           >
             <span className="leading-snug">{s}</span>
             <ArrowUpRight className="h-4 w-4 shrink-0 text-text-tertiary transition-colors duration-fast group-hover:text-accent" />
-          </button>
+          </motion.button>
         ))}
       </motion.div>
     </motion.div>
