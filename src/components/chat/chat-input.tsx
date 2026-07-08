@@ -14,6 +14,13 @@ import {
 
 export type ImageSize = "1024x1024" | "1024x1792" | "1792x1024";
 
+export interface SlashCommand {
+  id: string;
+  label: string;
+  description: string;
+  run: () => void;
+}
+
 export const IMAGE_SIZES: { id: ImageSize; label: string; hint: string }[] = [
   { id: "1024x1024", label: "Square", hint: "1:1" },
   { id: "1024x1792", label: "Portrait", hint: "9:16" },
@@ -37,6 +44,8 @@ interface ChatInputProps {
   // When false, images are filtered from attempted attachments and the
   // UI hints that the active model is text-only.
   allowImages?: boolean;
+  // Slash commands — shown as a menu when the input starts with "/".
+  commands?: SlashCommand[];
 }
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -63,6 +72,7 @@ export function ChatInput({
   imageSize = "1024x1024",
   onImageSizeChange,
   allowImages = true,
+  commands,
 }: ChatInputProps) {
   const currentStyle = CHAT_STYLES.find((s) => s.id === style) ?? CHAT_STYLES[0];
   const currentImageSize =
@@ -94,6 +104,35 @@ export function ChatInput({
 
   const canSend = (value.trim() || attachments.length > 0) && !disabled;
 
+  // Slash-command menu: shows while typing "/<name>" (before any space).
+  const slashQuery =
+    commands && value.startsWith("/") && !/[\s\n]/.test(value)
+      ? value.slice(1).toLowerCase()
+      : null;
+  const slashMatches =
+    slashQuery !== null
+      ? commands!.filter(
+          (c) =>
+            c.id.toLowerCase().startsWith(slashQuery) ||
+            c.label.toLowerCase().startsWith(slashQuery)
+        )
+      : [];
+  const showSlash = focused && slashMatches.length > 0;
+
+  const runCommand = (cmd: SlashCommand) => {
+    cmd.run();
+    // If the command set the input (rather than navigating), refocus + move
+    // the cursor to the end so the user can keep typing.
+    requestAnimationFrame(() => {
+      const el = textareaRef.current;
+      if (el) {
+        el.focus();
+        const n = el.value.length;
+        el.setSelectionRange(n, n);
+      }
+    });
+  };
+
   // A light haptic on send — Android honors navigator.vibrate; iOS ignores it.
   const triggerSend = () => {
     if (typeof navigator !== "undefined" && "vibrate" in navigator) {
@@ -103,6 +142,18 @@ export function ChatInput({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (showSlash) {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        runCommand(slashMatches[0]);
+        return;
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onChange("");
+        return;
+      }
+    }
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       if (canSend) triggerSend();
@@ -239,6 +290,34 @@ export function ChatInput({
       onDragLeave={() => setDragOver(false)}
       onDrop={handleDrop}
     >
+      {/* Slash-command menu */}
+      {showSlash && (
+        <div className="absolute bottom-full left-0 right-0 mb-2 overflow-hidden rounded-2xl border border-border bg-elevated shadow-xl">
+          {slashMatches.map((cmd, i) => (
+            <button
+              key={cmd.id}
+              type="button"
+              // onMouseDown (not onClick) so selecting doesn't blur the textarea first
+              onMouseDown={(e) => {
+                e.preventDefault();
+                runCommand(cmd);
+              }}
+              className={cn(
+                "flex w-full items-center gap-3 px-3.5 py-2.5 text-left transition-colors",
+                i === 0 ? "bg-surface" : "hover:bg-surface"
+              )}
+            >
+              <span className="font-mono text-[13px] font-semibold text-accent">
+                /{cmd.id}
+              </span>
+              <span className="text-[12px] text-text-tertiary">
+                {cmd.description}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Attachment previews */}
       {attachments.length > 0 && (
         <div className="flex gap-2 overflow-x-auto px-4 pt-3.5 pb-1">

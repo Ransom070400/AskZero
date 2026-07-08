@@ -1,11 +1,11 @@
 "use client";
 
 import { Suspense, useEffect, useState, useRef, useCallback } from "react";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { EyeOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { ChatList } from "@/components/chat/chat-list";
-import { ChatInput, type ImageSize } from "@/components/chat/chat-input";
+import { ChatInput, type ImageSize, type SlashCommand } from "@/components/chat/chat-input";
 import { ModelPicker, type ModelOption } from "@/components/chat/model-picker";
 import type { Message, Attachment, ArtifactRef } from "@/components/chat/message-bubble";
 import type { ChatStyle } from "@/lib/system-prompt";
@@ -45,6 +45,7 @@ function ChatDetailContent() {
   // real chat row, so nothing loads, persists, or shows in history.
   const isIncognito = chatId === "incognito";
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
@@ -717,6 +718,26 @@ function ChatDetailContent() {
             imageSize={imageSize}
             onImageSizeChange={updateImageSize}
             allowImages={activeModelSupportsImages}
+            commands={[
+              {
+                id: "research",
+                label: "Research",
+                description: "Autonomous, cited multi-source research",
+                run: () => router.push("/research"),
+              },
+              {
+                id: "incognito",
+                label: "Incognito",
+                description: "Ephemeral chat — not saved, not remembered",
+                run: () => router.push("/chat/incognito"),
+              },
+              {
+                id: "image",
+                label: "Image",
+                description: "Generate an image from a prompt",
+                run: () => setInput("generate an image of "),
+              },
+            ] satisfies SlashCommand[]}
           />
 
           {/* Status row — model picker + helper text */}
