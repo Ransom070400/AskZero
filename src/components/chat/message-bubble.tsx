@@ -6,6 +6,7 @@ import rehypeHighlight from "rehype-highlight";
 import rehypeKatex from "rehype-katex";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
+import { remarkAlert } from "remark-github-blockquote-alert";
 import { Copy, Check, Download, ExternalLink, FileText, FileCode, History, Pencil, RotateCw, X, Search, Calculator, Globe, Loader2 } from "lucide-react";
 import { MermaidBlock } from "./mermaid-block";
 import { ReceiptBadge } from "./receipt-badge";
@@ -500,7 +501,7 @@ export function MessageBubble({
         >
           <ReactMarkdown
             rehypePlugins={[rehypeHighlight, rehypeKatex]}
-            remarkPlugins={[remarkGfm, remarkMath]}
+            remarkPlugins={[remarkGfm, remarkMath, remarkAlert]}
             components={{ pre: PreBlock as never, p: FadeP as never }}
           >
             {message.content}
