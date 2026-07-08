@@ -355,6 +355,7 @@ export function ContentSidebar() {
   const router = useRouter();
   const [chats, setChats] = useState<Chat[]>([]);
   const [loadedChats, setLoadedChats] = useState(false);
+  const [isMac, setIsMac] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<SearchHit[]>([]);
@@ -456,6 +457,19 @@ export function ContentSidebar() {
     setCollapsed((prev) => ({ ...prev, [label]: !prev[label] }));
   };
 
+  // New-chat shortcut. ⌘N is reserved by browsers, so use ⇧⌘O (⇧Ctrl+O).
+  useEffect(() => {
+    setIsMac(/Mac|iPhone|iPad/.test(navigator.userAgent));
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "o") {
+        e.preventDefault();
+        router.push("/chat");
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [router]);
+
   const filtered = query
     ? chats.filter((c) =>
         c.title.toLowerCase().includes(query.toLowerCase())
@@ -494,7 +508,9 @@ export function ContentSidebar() {
             <Plus className="h-4 w-4 text-text-tertiary group-hover:text-accent transition-colors duration-fast" />
             New chat
           </span>
-          <kbd className="text-[10px] font-medium tracking-wider text-text-tertiary">⌘N</kbd>
+          <kbd className="text-[10px] font-medium tracking-wider text-text-tertiary">
+            {isMac ? "⇧⌘O" : "Ctrl⇧O"}
+          </kbd>
         </button>
       </div>
 

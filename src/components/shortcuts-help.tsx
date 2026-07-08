@@ -36,6 +36,7 @@ export function ShortcutsHelp() {
   const mod = isMac ? "⌘" : "Ctrl";
   const shortcuts: { keys: string[]; label: string }[] = [
     { keys: [mod, "K"], label: "Open command palette" },
+    { keys: [mod, "Shift", "O"], label: "New chat" },
     { keys: [mod, "/"], label: "Focus the message box" },
     { keys: ["/"], label: "Slash commands (in the message box)" },
     { keys: ["Enter"], label: "Send message" },
