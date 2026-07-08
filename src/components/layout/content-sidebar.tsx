@@ -23,6 +23,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { toast } from "@/lib/toast";
 import { Logo } from "@/components/ui/logo";
 
 interface Chat {
@@ -388,25 +389,40 @@ export function ContentSidebar() {
     if (res.ok) {
       setChats((prev) => prev.filter((c) => c.id !== chatId));
       if (pathname === `/chat/${chatId}`) router.push("/chat");
+      toast.success("Chat deleted");
+    } else {
+      toast.error("Couldn't delete the chat");
     }
   };
 
   const handleRename = async (chatId: string, title: string) => {
-    setChats((prev) => prev.map((c) => (c.id === chatId ? { ...c, title } : c)));
-    await fetch(`/api/chats/${chatId}`, {
+    const prev = chats;
+    setChats((cs) => cs.map((c) => (c.id === chatId ? { ...c, title } : c)));
+    const res = await fetch(`/api/chats/${chatId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title }),
     });
+    if (!res.ok) {
+      setChats(prev); // revert
+      toast.error("Couldn't rename the chat");
+    }
   };
 
   const handleTogglePin = async (chatId: string, pinned: boolean) => {
-    setChats((prev) => prev.map((c) => (c.id === chatId ? { ...c, pinned } : c)));
-    await fetch(`/api/chats/${chatId}`, {
+    const prev = chats;
+    setChats((cs) => cs.map((c) => (c.id === chatId ? { ...c, pinned } : c)));
+    const res = await fetch(`/api/chats/${chatId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ pinned }),
     });
+    if (res.ok) {
+      toast.success(pinned ? "Pinned" : "Unpinned");
+    } else {
+      setChats(prev); // revert
+      toast.error("Couldn't update the chat");
+    }
   };
 
   const toggleGroup = (label: string) => {
