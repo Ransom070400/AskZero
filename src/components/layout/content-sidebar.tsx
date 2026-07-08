@@ -16,6 +16,7 @@ import {
   Pin,
   PinOff,
   Pencil,
+  MessageSquare,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -592,11 +593,31 @@ export function ContentSidebar() {
               </div>
             );
           })}
-          {filtered.length === 0 && (
-            <p className="px-3 py-8 text-center text-[12px] text-text-tertiary">
-              {query ? "No matches" : "No chats yet"}
-            </p>
-          )}
+          {filtered.length === 0 &&
+            (query ? (
+              <p className="px-3 py-8 text-center text-[12px] text-text-tertiary">
+                No matches
+              </p>
+            ) : (
+              <div className="flex flex-col items-center gap-1.5 px-4 py-10 text-center">
+                <div className="mb-1 flex h-10 w-10 items-center justify-center rounded-full bg-elevated">
+                  <MessageSquare className="h-5 w-5 text-text-tertiary" />
+                </div>
+                <p className="text-[13px] font-medium text-foreground">
+                  No chats yet
+                </p>
+                <p className="text-[12px] text-text-tertiary">
+                  Your conversations will show up here.
+                </p>
+                <button
+                  onClick={() => router.push("/chat")}
+                  className="press mt-2 inline-flex items-center gap-1.5 rounded-full bg-accent px-3 py-1.5 text-[12px] font-semibold text-white transition-colors duration-fast hover:bg-accent-hover"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Start a chat
+                </button>
+              </div>
+            ))}
         </div>
         )}
         </div>
