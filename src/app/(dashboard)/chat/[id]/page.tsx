@@ -6,6 +6,7 @@ import { EyeOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { ChatList } from "@/components/chat/chat-list";
 import { ChatSkeleton } from "@/components/chat/chat-skeleton";
+import { toast } from "@/lib/toast";
 import { ChatInput, type ImageSize, type SlashCommand } from "@/components/chat/chat-input";
 import { ModelPicker, type ModelOption } from "@/components/chat/model-picker";
 import type { Message, Attachment, ArtifactRef } from "@/components/chat/message-bubble";
@@ -417,18 +418,27 @@ function ChatDetailContent() {
         });
 
         if (!res.ok) {
-          const err = await res.json();
+          const err = await res.json().catch(() => ({}));
           const raw = String(err.error || "");
           let errorContent: string;
-          if (raw === "Insufficient credits") {
+          let toastMsg: string;
+          if (res.status === 429) {
+            errorContent =
+              "Rate limited — too many requests. Wait a moment, then hit Retry.";
+            toastMsg = "Rate limited — try again shortly";
+          } else if (raw === "Insufficient credits") {
             errorContent =
               "Insufficient credits. [Deposit funds](/deposit) to continue.";
+            toastMsg = "Insufficient credits";
           } else if (/not a multimodal model/i.test(raw)) {
             errorContent =
               "This model can't read images — pick a multimodal model from the picker, or remove the image attachments.";
+            toastMsg = "Model can't read images";
           } else {
             errorContent = `Error: ${raw || "Something went wrong"}`;
+            toastMsg = "Message failed — hit Retry";
           }
+          toast.error(toastMsg);
           setMessages((prev) =>
             prev.map((m) =>
               m.id === assistantId ? { ...m, content: errorContent } : m
@@ -506,12 +516,19 @@ function ChatDetailContent() {
       } catch (err) {
         const aborted =
           err instanceof DOMException && err.name === "AbortError";
+        if (!aborted) toast.error("Network error — check your connection");
         setMessages((prev) =>
           prev.map((m) =>
             m.id === assistantId
               ? aborted
                 ? { ...m, content: m.content || "_(stopped)_" }
-                : { ...m, content: "Error: Failed to get response" }
+                : {
+                    ...m,
+                    // Keep any tokens that streamed before the drop.
+                    content:
+                      m.content ||
+                      "Network error — check your connection and hit Retry.",
+                  }
               : m
           )
         );
