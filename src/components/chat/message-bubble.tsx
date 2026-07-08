@@ -9,7 +9,7 @@ import remarkMath from "remark-math";
 import remarkDirective from "remark-directive";
 import { remarkAlert } from "remark-github-blockquote-alert";
 import { remarkDetails } from "@/lib/remark-details";
-import { Copy, Check, Download, ExternalLink, FileText, FileCode, History, Pencil, RotateCw, X, Search, Calculator, Globe, Loader2 } from "lucide-react";
+import { Copy, Check, Download, ExternalLink, FileText, FileCode, History, Pencil, RotateCw, X, Search, Calculator, Globe, Loader2, WrapText, ListOrdered } from "lucide-react";
 import { MermaidBlock } from "./mermaid-block";
 import { ChartBlock } from "./chart-block";
 import { ReceiptBadge } from "./receipt-badge";
@@ -188,6 +188,8 @@ function extractText(node: React.ReactNode): string {
 
 function PreBlock({ children }: { children?: React.ReactNode }) {
   const ctx = useContext(PreContext);
+  const [wrap, setWrap] = useState(false);
+  const [showNums, setShowNums] = useState(false);
   const codeEl = React.Children.toArray(children).find(
     (c): c is React.ReactElement<{
       className?: string;
@@ -196,7 +198,10 @@ function PreBlock({ children }: { children?: React.ReactNode }) {
   );
 
   const className = codeEl?.props.className ?? "";
-  const lang = className.match(/language-([\w+-]+)/)?.[1] ?? "";
+  // Supports a filename hint: ```ts:src/app.ts  → lang "ts", filename "src/app.ts"
+  const langMatch = className.match(/language-([\w+-]+)(?::(.+))?/);
+  const lang = langMatch?.[1] ?? "";
+  const filename = langMatch?.[2] ?? "";
   const text = extractText(codeEl?.props.children).replace(/\n$/, "");
 
   if (lang === "mermaid") {
@@ -218,13 +223,36 @@ function PreBlock({ children }: { children?: React.ReactNode }) {
     });
   };
 
+  const lineCount = text.split("\n").length;
+  const showGutter = showNums && !wrap;
+
   return (
     <div className="my-4 overflow-hidden rounded-xl border border-border/70 bg-surface">
-      <div className="flex items-center justify-between border-b border-border/70 bg-elevated/40 px-3 py-1">
-        <span className="text-[11px] font-medium uppercase tracking-wider text-text-tertiary">
-          {lang || "code"}
+      <div className="flex items-center justify-between gap-2 border-b border-border/70 bg-elevated/40 px-3 py-1">
+        <span className="min-w-0 truncate text-[11px] font-medium text-text-tertiary">
+          {filename ? (
+            <span className="font-mono">{filename}</span>
+          ) : (
+            <span className="uppercase tracking-wider">{lang || "code"}</span>
+          )}
         </span>
-        <div className="flex items-center gap-1">
+        <div className="flex shrink-0 items-center gap-0.5">
+          <button
+            onClick={() => setWrap((w) => !w)}
+            aria-label="Toggle soft wrap"
+            title="Wrap"
+            className={`press inline-flex h-6 w-6 items-center justify-center rounded-md transition-colors duration-fast ${wrap ? "bg-background/60 text-accent" : "text-text-tertiary hover:bg-background/60 hover:text-foreground"}`}
+          >
+            <WrapText className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={() => setShowNums((n) => !n)}
+            aria-label="Toggle line numbers"
+            title="Line numbers"
+            className={`press inline-flex h-6 w-6 items-center justify-center rounded-md transition-colors duration-fast ${showNums ? "bg-background/60 text-accent" : "text-text-tertiary hover:bg-background/60 hover:text-foreground"}`}
+          >
+            <ListOrdered className="h-3.5 w-3.5" />
+          </button>
           {ctx && (
             <button
               onClick={handleOpen}
@@ -238,9 +266,23 @@ function PreBlock({ children }: { children?: React.ReactNode }) {
           <CopyBtn text={text} size="sm" />
         </div>
       </div>
-      <pre className="overflow-x-auto p-4 text-[13px] leading-relaxed">
-        {children}
-      </pre>
+      <div className="flex">
+        {showGutter && (
+          <pre
+            aria-hidden
+            className="select-none border-r border-border/60 py-4 pl-4 pr-3 text-right text-[13px] leading-relaxed text-text-tertiary/50 tabular-nums"
+          >
+            {Array.from({ length: lineCount }, (_, i) => i + 1).join("\n")}
+          </pre>
+        )}
+        <pre
+          className={`p-4 text-[13px] leading-relaxed ${
+            wrap ? "whitespace-pre-wrap break-words" : "overflow-x-auto"
+          } ${showGutter ? "flex-1" : ""}`}
+        >
+          {children}
+        </pre>
+      </div>
     </div>
   );
 }
