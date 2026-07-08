@@ -316,7 +316,10 @@ function ChatDetailContent() {
   );
 
   const sendMessage = useCallback(
-    async (text: string, opts: { replacesId?: string } = {}) => {
+    async (
+      text: string,
+      opts: { replacesId?: string; model?: { provider: string; model: string } } = {}
+    ) => {
       if ((!text.trim() && attachments.length === 0) || isStreaming || !selectedModel) return;
 
       // Picker-selected image model: every plain prompt becomes an image
@@ -387,8 +390,8 @@ function ChatDetailContent() {
           body: JSON.stringify({
             chatId,
             message: text.trim(),
-            model: selectedModel!.model,
-            provider: selectedModel!.provider,
+            model: opts.model?.model ?? selectedModel!.model,
+            provider: opts.model?.provider ?? selectedModel!.provider,
             attachments: uploadedAttachments,
             style,
             replacesId: opts.replacesId,
@@ -609,20 +612,31 @@ function ChatDetailContent() {
     [messages, isStreaming, runImageGeneration]
   );
 
-  const handleRegenerate = useCallback(() => {
-    // Find the last user message and resend it
-    const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
-    if (!lastUserMsg || isStreaming) return;
+  const regenerate = useCallback(
+    (modelOverride?: { provider: string; model: string }) => {
+      // Find the last user message and resend it
+      const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
+      if (!lastUserMsg || isStreaming) return;
 
-    // Remove last assistant message
-    setMessages((prev) => {
-      const idx = prev.findLastIndex((m) => m.role === "assistant");
-      if (idx >= 0) return prev.filter((_, i) => i !== idx);
-      return prev;
-    });
+      // Remove last assistant message
+      setMessages((prev) => {
+        const idx = prev.findLastIndex((m) => m.role === "assistant");
+        if (idx >= 0) return prev.filter((_, i) => i !== idx);
+        return prev;
+      });
 
-    sendMessage(lastUserMsg.content);
-  }, [messages, isStreaming, sendMessage]);
+      sendMessage(lastUserMsg.content, modelOverride ? { model: modelOverride } : {});
+    },
+    [messages, isStreaming, sendMessage]
+  );
+
+  // Keep a no-arg version for the click handler (so the click event never
+  // leaks in as a "model"), plus a variant that regenerates with another model.
+  const handleRegenerate = useCallback(() => regenerate(), [regenerate]);
+  const handleRegenerateWith = useCallback(
+    (m: { provider: string; model: string }) => regenerate(m),
+    [regenerate]
+  );
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -691,6 +705,8 @@ function ChatDetailContent() {
         messages={messages}
         isStreaming={isStreaming}
         onRegenerate={handleRegenerate}
+        onRegenerateWith={handleRegenerateWith}
+        regenModels={models}
         onRegenerateImage={handleRegenerateImage}
         onEdit={handleEdit}
         onOpenArtifact={setOpenArtifactId}

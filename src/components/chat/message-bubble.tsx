@@ -9,7 +9,13 @@ import remarkMath from "remark-math";
 import remarkDirective from "remark-directive";
 import { remarkAlert } from "remark-github-blockquote-alert";
 import { remarkDetails } from "@/lib/remark-details";
-import { Copy, Check, Download, ExternalLink, FileText, FileCode, History, Pencil, RotateCw, X, Search, Calculator, Globe, Loader2, WrapText, ListOrdered } from "lucide-react";
+import { Copy, Check, Download, ExternalLink, FileText, FileCode, History, Pencil, RotateCw, X, Search, Calculator, Globe, Loader2, WrapText, ListOrdered, Share2, ChevronDown } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { MermaidBlock } from "./mermaid-block";
 import { ChartBlock } from "./chart-block";
 import { ReceiptBadge } from "./receipt-badge";
@@ -137,6 +143,88 @@ function ActionButton({
     >
       {children}
     </button>
+  );
+}
+
+function ShareBtn({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  const share = async () => {
+    // Native share sheet where available (mobile / supported desktop);
+    // otherwise fall back to copying the answer to the clipboard.
+    if (typeof navigator.share === "function") {
+      try {
+        await navigator.share({ text });
+      } catch {
+        /* user dismissed the sheet */
+      }
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* ignore */
+    }
+  };
+  return (
+    <button
+      onClick={share}
+      aria-label="Share"
+      className="press inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
+    >
+      {copied ? <Check className="h-3.5 w-3.5 text-success" /> : <Share2 className="h-3.5 w-3.5" />}
+      {copied ? "Copied" : "Share"}
+    </button>
+  );
+}
+
+function RegenerateMenu({
+  onRegenerate,
+  onRegenerateWith,
+  models,
+}: {
+  onRegenerate: () => void;
+  onRegenerateWith?: (m: { provider: string; model: string }) => void;
+  models?: { provider: string; model: string; label: string; kind?: string }[];
+}) {
+  const chatModels = (models ?? []).filter((m) => m.kind !== "image");
+  // No model list → plain Retry (current model).
+  if (!onRegenerateWith || chatModels.length === 0) {
+    return (
+      <ActionButton label="Regenerate" onClick={onRegenerate}>
+        <RotateCw className="h-3.5 w-3.5" />
+        Retry
+      </ActionButton>
+    );
+  }
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          aria-label="Regenerate"
+          className="press inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
+        >
+          <RotateCw className="h-3.5 w-3.5" />
+          Retry
+          <ChevronDown className="h-3 w-3" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-56">
+        <DropdownMenuItem onClick={onRegenerate}>
+          <RotateCw className="mr-2 h-3.5 w-3.5 text-text-tertiary" />
+          Same model
+        </DropdownMenuItem>
+        {chatModels.map((m) => (
+          <DropdownMenuItem
+            key={`${m.provider}|${m.model}`}
+            onClick={() => onRegenerateWith({ provider: m.provider, model: m.model })}
+          >
+            <span className="truncate">{m.label}</span>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -318,9 +406,13 @@ export function MessageBubble({
   isLast,
   isStreaming,
   hideReceipt,
+  onRegenerateWith,
+  regenModels,
 }: {
   message: Message;
   onRegenerate?: () => void;
+  onRegenerateWith?: (m: { provider: string; model: string }) => void;
+  regenModels?: { provider: string; model: string; label: string; kind?: string }[];
   onRegenerateImage?: (messageId: string) => void;
   onEdit?: (messageId: string, newContent: string) => void;
   onOpenArtifact?: (artifactId: string) => void;
@@ -628,11 +720,13 @@ export function MessageBubble({
       )}
       <div className="mt-2 flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-base ease-out">
         <CopyBtn text={message.content} />
+        {message.content && <ShareBtn text={message.content} />}
         {isLast && onRegenerate && (
-          <ActionButton label="Regenerate" onClick={onRegenerate}>
-            <RotateCw className="h-3.5 w-3.5" />
-            Retry
-          </ActionButton>
+          <RegenerateMenu
+            onRegenerate={onRegenerate}
+            onRegenerateWith={onRegenerateWith}
+            models={regenModels}
+          />
         )}
         {message.content && !hideReceipt && <ReceiptBadge messageId={message.id} />}
         {message.tokenCount != null && (
