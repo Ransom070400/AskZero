@@ -136,6 +136,30 @@ function ChatDetailContent() {
     messagesRef.current = messages;
   }, [messages]);
 
+  // Draft persistence — restore an unsent message when opening a chat. Never
+  // for incognito (nothing about it should be saved), and skipped when a ?q=
+  // auto-send is pending.
+  useEffect(() => {
+    if (isIncognito || searchParams.get("q")) return;
+    try {
+      const draft = localStorage.getItem(`askzero-draft-${chatId}`);
+      if (draft) setInput(draft);
+    } catch {
+      /* ignore */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chatId]);
+
+  useEffect(() => {
+    if (isIncognito) return;
+    try {
+      if (input.trim()) localStorage.setItem(`askzero-draft-${chatId}`, input);
+      else localStorage.removeItem(`askzero-draft-${chatId}`);
+    } catch {
+      /* ignore */
+    }
+  }, [input, chatId, isIncognito]);
+
   useEffect(() => {
     if (isIncognito) return; // nothing to load — ephemeral session
     const supabase = createClient();
