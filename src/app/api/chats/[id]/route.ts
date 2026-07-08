@@ -42,11 +42,17 @@ export async function PATCH(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { title } = await req.json();
+  const body = await req.json();
+  const update: Record<string, unknown> = {};
+  if (typeof body.title === "string") update.title = body.title.slice(0, 200);
+  if (typeof body.pinned === "boolean") update.pinned = body.pinned;
+  if (Object.keys(update).length === 0) {
+    return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
+  }
 
   const { error } = await supabase
     .from("chats")
-    .update({ title })
+    .update(update)
     .eq("id", id)
     .eq("user_id", user.id);
 

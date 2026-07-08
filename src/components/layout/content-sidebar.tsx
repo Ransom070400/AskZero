@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { cn } from "@/lib/utils";
 import {
   Plus,
@@ -12,7 +12,17 @@ import {
   Sparkles,
   BookLock,
   Lock,
+  MoreHorizontal,
+  Pin,
+  PinOff,
+  Pencil,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Logo } from "@/components/ui/logo";
 
 interface Chat {
@@ -20,6 +30,7 @@ interface Chat {
   title: string;
   created_at: string;
   updated_at: string;
+  pinned?: boolean;
 }
 
 interface SearchHit {
@@ -55,14 +66,62 @@ function ChatRow({
   chat,
   isActive,
   onDelete,
+  onRename,
+  onTogglePin,
 }: {
   chat: Chat;
   isActive: boolean;
-  onDelete: (e: React.MouseEvent) => void;
+  onDelete: () => void;
+  onRename: (title: string) => void;
+  onTogglePin: () => void;
 }) {
+  const [renaming, setRenaming] = useState(false);
+  const [draft, setDraft] = useState(chat.title);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const committedRef = useRef(false);
+
+  const startRename = () => {
+    committedRef.current = false;
+    setDraft(chat.title);
+    setRenaming(true);
+  };
+  const commit = () => {
+    if (committedRef.current) return;
+    committedRef.current = true;
+    const t = draft.trim();
+    setRenaming(false);
+    if (t && t !== chat.title) onRename(t);
+  };
+  const cancel = () => {
+    committedRef.current = true;
+    setRenaming(false);
+  };
+
+  if (renaming) {
+    return (
+      <div className="flex items-center rounded-xl bg-elevated pl-3 pr-1.5 py-1.5">
+        <input
+          autoFocus
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              commit();
+            } else if (e.key === "Escape") {
+              e.preventDefault();
+              cancel();
+            }
+          }}
+          onBlur={commit}
+          className="w-full border-b border-accent bg-transparent text-[13px] text-foreground outline-none"
+        />
+      </div>
+    );
+  }
+
   return (
-    <Link
-      href={`/chat/${chat.id}`}
+    <div
       className={cn(
         "group/row relative flex items-center justify-between rounded-xl pl-3 pr-1.5 py-1.5 text-[13px] transition-colors duration-fast ease-out",
         isActive
@@ -73,22 +132,71 @@ function ChatRow({
       {isActive && (
         <span className="absolute left-0 top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-r-full bg-accent" />
       )}
-      <span
+      <Link
+        href={`/chat/${chat.id}`}
         className={cn(
-          "truncate",
+          "flex min-w-0 flex-1 items-center gap-1.5 truncate",
           isActive ? "font-semibold" : "font-medium"
         )}
       >
-        {chat.title}
-      </span>
-      <button
-        onClick={onDelete}
-        aria-label="Delete chat"
-        className="press hidden shrink-0 rounded-md p-1 text-text-tertiary transition-colors duration-fast hover:bg-background hover:text-error group-hover/row:flex items-center justify-center"
-      >
-        <Trash2 className="h-3.5 w-3.5" />
-      </button>
-    </Link>
+        {chat.pinned && <Pin className="h-3 w-3 shrink-0 text-text-tertiary" />}
+        <span className="truncate">{chat.title}</span>
+      </Link>
+
+      {confirmDelete ? (
+        <span className="flex shrink-0 items-center gap-1 pl-1">
+          <button
+            onClick={onDelete}
+            className="press rounded-md px-1.5 py-0.5 text-[11px] font-semibold text-error hover:bg-error/10"
+          >
+            Delete
+          </button>
+          <button
+            onClick={() => setConfirmDelete(false)}
+            className="press rounded-md px-1.5 py-0.5 text-[11px] font-medium text-text-tertiary hover:bg-background"
+          >
+            Cancel
+          </button>
+        </span>
+      ) : (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              aria-label="Chat options"
+              className="press hidden shrink-0 items-center justify-center rounded-md p-1 text-text-tertiary transition-colors duration-fast hover:bg-background hover:text-foreground group-hover/row:flex data-[state=open]:flex"
+            >
+              <MoreHorizontal className="h-3.5 w-3.5" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-40">
+            <DropdownMenuItem onClick={startRename}>
+              <Pencil className="mr-2 h-3.5 w-3.5 text-text-tertiary" />
+              Rename
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onTogglePin}>
+              {chat.pinned ? (
+                <>
+                  <PinOff className="mr-2 h-3.5 w-3.5 text-text-tertiary" />
+                  Unpin
+                </>
+              ) : (
+                <>
+                  <Pin className="mr-2 h-3.5 w-3.5 text-text-tertiary" />
+                  Pin
+                </>
+              )}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => setConfirmDelete(true)}
+              className="text-error focus:text-error"
+            >
+              <Trash2 className="mr-2 h-3.5 w-3.5" />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+    </div>
   );
 }
 
@@ -275,15 +383,30 @@ export function ContentSidebar() {
     };
   }, [query]);
 
-  const handleDelete = async (e: React.MouseEvent, chatId: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!confirm("Delete this chat?")) return;
+  const handleDelete = async (chatId: string) => {
     const res = await fetch(`/api/chats/${chatId}`, { method: "DELETE" });
     if (res.ok) {
       setChats((prev) => prev.filter((c) => c.id !== chatId));
       if (pathname === `/chat/${chatId}`) router.push("/chat");
     }
+  };
+
+  const handleRename = async (chatId: string, title: string) => {
+    setChats((prev) => prev.map((c) => (c.id === chatId ? { ...c, title } : c)));
+    await fetch(`/api/chats/${chatId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title }),
+    });
+  };
+
+  const handleTogglePin = async (chatId: string, pinned: boolean) => {
+    setChats((prev) => prev.map((c) => (c.id === chatId ? { ...c, pinned } : c)));
+    await fetch(`/api/chats/${chatId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pinned }),
+    });
   };
 
   const toggleGroup = (label: string) => {
@@ -295,7 +418,8 @@ export function ContentSidebar() {
         c.title.toLowerCase().includes(query.toLowerCase())
       )
     : chats;
-  const grouped = groupChatsByDate(filtered);
+  const pinnedChats = filtered.filter((c) => c.pinned);
+  const grouped = groupChatsByDate(filtered.filter((c) => !c.pinned));
 
   return (
     <div className="hidden md:flex h-full w-[268px] flex-col border-r border-border/70 bg-surface">
@@ -337,6 +461,29 @@ export function ContentSidebar() {
           <MessageHits hits={hits} loading={searching} chatId={pathname} />
         )}
         <div className="space-y-5 py-1">
+          {pinnedChats.length > 0 && (
+            <div>
+              <div className="flex w-full items-center gap-1 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+                <Pin className="h-3 w-3" />
+                <span>Pinned</span>
+                <span className="ml-auto font-medium normal-case tracking-normal text-text-tertiary/70">
+                  {pinnedChats.length}
+                </span>
+              </div>
+              <div className="mt-1 space-y-px">
+                {pinnedChats.map((chat) => (
+                  <ChatRow
+                    key={chat.id}
+                    chat={chat}
+                    isActive={pathname === `/chat/${chat.id}`}
+                    onDelete={() => handleDelete(chat.id)}
+                    onRename={(title) => handleRename(chat.id, title)}
+                    onTogglePin={() => handleTogglePin(chat.id, !chat.pinned)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
           {Object.entries(grouped).map(([label, dateChats]) => {
             const isCollapsed = collapsed[label];
             return (
@@ -363,7 +510,9 @@ export function ContentSidebar() {
                         key={chat.id}
                         chat={chat}
                         isActive={pathname === `/chat/${chat.id}`}
-                        onDelete={(e) => handleDelete(e, chat.id)}
+                        onDelete={() => handleDelete(chat.id)}
+                        onRename={(title) => handleRename(chat.id, title)}
+                        onTogglePin={() => handleTogglePin(chat.id, !chat.pinned)}
                       />
                     ))}
                   </div>
