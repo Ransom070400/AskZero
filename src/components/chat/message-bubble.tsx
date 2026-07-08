@@ -6,9 +6,12 @@ import rehypeHighlight from "rehype-highlight";
 import rehypeKatex from "rehype-katex";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
+import remarkDirective from "remark-directive";
 import { remarkAlert } from "remark-github-blockquote-alert";
+import { remarkDetails } from "@/lib/remark-details";
 import { Copy, Check, Download, ExternalLink, FileText, FileCode, History, Pencil, RotateCw, X, Search, Calculator, Globe, Loader2 } from "lucide-react";
 import { MermaidBlock } from "./mermaid-block";
+import { ChartBlock } from "./chart-block";
 import { ReceiptBadge } from "./receipt-badge";
 
 // Markdown paragraph that fades in when it first appears. As the last paragraph
@@ -198,6 +201,10 @@ function PreBlock({ children }: { children?: React.ReactNode }) {
 
   if (lang === "mermaid") {
     return <MermaidBlock code={text} />;
+  }
+
+  if (lang === "chart") {
+    return <ChartBlock code={text} />;
   }
 
   const handleOpen = () => {
@@ -501,7 +508,7 @@ export function MessageBubble({
         >
           <ReactMarkdown
             rehypePlugins={[rehypeHighlight, rehypeKatex]}
-            remarkPlugins={[remarkGfm, remarkMath, remarkAlert]}
+            remarkPlugins={[remarkGfm, remarkMath, remarkAlert, remarkDirective, remarkDetails]}
             components={{ pre: PreBlock as never, p: FadeP as never }}
           >
             {message.content}

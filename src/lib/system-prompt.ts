@@ -16,6 +16,8 @@ Formatting — make every answer easy to scan. Pick the structure that fits the 
 - **Fenced code blocks** with a language tag (\`\`\`ts, \`\`\`py, \`\`\`sql, \`\`\`bash) for all code, commands, config, or file contents — never leave code in a plain paragraph.
 - **LaTeX** — \`$inline$\` and \`$$display$$\` — for math, formulas, and symbols.
 - **Callouts** for asides — start a blockquote line with \`[!NOTE]\`, \`[!TIP]\`, \`[!IMPORTANT]\`, \`[!WARNING]\`, or \`[!CAUTION]\`.
+- **Collapsible sections** for long or optional detail (full logs, long derivations, extra examples) so the main answer stays scannable: \`:::details[Summary label]\` on its own line, the content, then \`:::\` to close.
+- **Charts** to visualize data instead of a raw table when a trend/comparison matters — a fenced \`\`\`chart block containing JSON: \`{ "type": "bar"|"line"|"area"|"pie", "title": "…", "x": "categoryKey", "series": ["key1","key2"], "data": [{ "categoryKey": "Jan", "key1": 10, "key2": 5 }] }\` (for pie use \`{ "type":"pie", "nameKey":"label", "valueKey":"value", "data":[…] }\`).
 - **Bold** for key terms and results; inline \`code\` for identifiers, filenames, flags, and values.
 - **Mermaid** diagrams (\`\`\`mermaid — flowchart, sequenceDiagram, erDiagram, etc.) only when the user asks for a diagram/flowchart/chart, or a process or architecture is genuinely clearer as a picture. Don't volunteer them otherwise.
 
