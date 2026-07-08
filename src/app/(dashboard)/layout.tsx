@@ -3,6 +3,7 @@ import { TopNav } from "@/components/layout/top-nav";
 import { MobileSidebar } from "@/components/layout/mobile-sidebar";
 import { WhatsNew } from "@/components/whats-new";
 import { CommandPalette } from "@/components/command-palette";
+import { ShortcutsHelp } from "@/components/shortcuts-help";
 import { CurrencyProvider } from "@/lib/currency";
 
 export default function DashboardLayout({
@@ -14,6 +15,7 @@ export default function DashboardLayout({
     <CurrencyProvider>
       <WhatsNew />
       <CommandPalette />
+      <ShortcutsHelp />
       <div className="flex h-[100dvh] overflow-hidden">
         <ContentSidebar />
 
