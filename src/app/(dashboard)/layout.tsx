@@ -4,6 +4,7 @@ import { MobileSidebar } from "@/components/layout/mobile-sidebar";
 import { WhatsNew } from "@/components/whats-new";
 import { CommandPalette } from "@/components/command-palette";
 import { ShortcutsHelp } from "@/components/shortcuts-help";
+import { LowBalanceBanner } from "@/components/layout/low-balance-banner";
 import { CurrencyProvider } from "@/lib/currency";
 
 export default function DashboardLayout({
@@ -32,6 +33,7 @@ export default function DashboardLayout({
           <div className="hidden md:block">
             <TopNav />
           </div>
+          <LowBalanceBanner />
           <main className="flex-1 overflow-y-auto pb-[env(safe-area-inset-bottom)] md:pb-0">
             {children}
           </main>
