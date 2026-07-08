@@ -5,6 +5,7 @@ import { WhatsNew } from "@/components/whats-new";
 import { CommandPalette } from "@/components/command-palette";
 import { ShortcutsHelp } from "@/components/shortcuts-help";
 import { LowBalanceBanner } from "@/components/layout/low-balance-banner";
+import { FirstRunTour } from "@/components/first-run-tour";
 import { CurrencyProvider } from "@/lib/currency";
 
 export default function DashboardLayout({
@@ -14,6 +15,7 @@ export default function DashboardLayout({
 }) {
   return (
     <CurrencyProvider>
+      <FirstRunTour />
       <WhatsNew />
       <CommandPalette />
       <ShortcutsHelp />
