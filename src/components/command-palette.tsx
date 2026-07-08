@@ -39,6 +39,14 @@ export function CommandPalette() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  // Allow other UI (e.g. the collapsed sidebar rail) to open the palette.
+  useEffect(() => {
+    const onOpen = () => setOpen(true);
+    window.addEventListener("askzero:open-command-palette", onOpen);
+    return () =>
+      window.removeEventListener("askzero:open-command-palette", onOpen);
+  }, []);
+
   useEffect(() => {
     if (!open) return;
     setQuery("");

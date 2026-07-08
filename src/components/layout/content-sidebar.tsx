@@ -407,10 +407,12 @@ function RailLink({
 function Rail({
   onExpand,
   onNew,
+  onSearch,
   researchActive,
 }: {
   onExpand: () => void;
   onNew: () => void;
+  onSearch: () => void;
   researchActive: boolean;
 }) {
   return (
@@ -429,6 +431,14 @@ function Rail({
         <RailButton title="New chat" onClick={onNew}>
           <Plus className="h-[18px] w-[18px]" />
         </RailButton>
+        <button
+          onClick={onSearch}
+          title="Search (⌘K)"
+          aria-label="Search"
+          className="press flex h-9 w-9 items-center justify-center rounded-lg text-text-tertiary hover:bg-elevated hover:text-foreground transition-colors duration-fast"
+        >
+          <Search className="h-[18px] w-[18px]" />
+        </button>
       </div>
       <div className="flex-1" />
       <div className="flex flex-col items-center gap-1 border-t border-border/70 py-2">
@@ -597,6 +607,9 @@ export function ContentSidebar() {
         <Rail
           onExpand={toggleCollapsed}
           onNew={() => router.push("/chat")}
+          onSearch={() =>
+            window.dispatchEvent(new Event("askzero:open-command-palette"))
+          }
           researchActive={pathname === "/research"}
         />
       ) : (
