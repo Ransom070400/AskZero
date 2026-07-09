@@ -27,7 +27,7 @@ export async function GET() {
     model: m.model,
     label: m.label,
     description: m.description,
-    supportsImages: false,
+    supportsImages: m.multimodal ?? false,
     kind: "chat" as const,
     source: "og" as const,
   }));

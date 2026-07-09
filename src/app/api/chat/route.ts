@@ -11,6 +11,7 @@ import {
   sendIntegratePrompt,
   retailCostCredits,
 } from "@/lib/integrate-network";
+import { ogRetailCostCredits } from "@/lib/og-compute-models";
 import { buildReceipt, makeNonce } from "@/lib/receipts";
 import { buildSystemPrompt, type ChatStyle } from "@/lib/system-prompt";
 import { runAgentLoop } from "@/lib/agent";
@@ -329,7 +330,7 @@ export async function POST(req: NextRequest) {
         : null;
       const dynamicCost = integrateId
         ? retailCostCredits(integrateId, inputTokens, outputTokens)
-        : null;
+        : ogRetailCostCredits(provider, inputTokens, outputTokens);
       const cost =
         dynamicCost ??
         calculateCost(model || "default", inputTokens, outputTokens);
