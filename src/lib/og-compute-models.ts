@@ -35,17 +35,6 @@ export const OG_COMPUTE_MODELS: OGComputeModel[] = [
     description: "On-chain settled inference · decentralized 0G provider",
     wholesaleNeuron: { input: 4_800_000_000_000, output: 16_020_000_000_000 },
   },
-  {
-    // Anthropic-format provider (Messages API) — served via the broker, settled
-    // on-chain. Standard (not TEE) verifiability; see og-compute.ts adapter.
-    provider: "0x1F444c8A8D0b8e99A50e9f165806d28B01916E04",
-    model: "claude-fable-5",
-    label: "Claude Fable 5 · 0G Compute",
-    description:
-      "Frontier reasoning — strongest here, premium price · on-chain settled on 0G Compute",
-    wholesaleNeuron: { input: 48_070_000_000_000, output: 240_350_000_000_000 },
-    multimodal: true,
-  },
 ];
 
 // Live 0G Compute chatbot providers we haven't wired up yet. Shown in the
@@ -56,6 +45,7 @@ export const OG_COMPUTE_COMING_SOON: {
   model: string;
   label: string;
 }[] = [
+  { provider: "0x1F444c8A8D0b8e99A50e9f165806d28B01916E04", model: "claude-fable-5", label: "Claude Fable 5" },
   { provider: "0xF203A388e9E70F09ece38046a6D40a89cf896309", model: "qwen3.7-max", label: "Qwen 3.7 Max" },
   { provider: "0x1B3AAef3ae5050EEE04ea38cD4B087472BD85EB0", model: "qwen3.7-plus", label: "Qwen 3.7 Plus" },
   { provider: "0x992e6396157Dc4f22E74F2231235D7DE62696db5", model: "qwen3.6-plus", label: "Qwen 3.6 Plus" },
