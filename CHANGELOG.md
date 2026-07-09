@@ -18,6 +18,45 @@ These are built and verified locally but not yet live — they ship on the next 
 
 ---
 
+## [2026-07-09] — Free credits, referrals, Code builds & a UX overhaul
+
+### Added
+- **Code (agentic build)** — a `/code` page that turns a prompt into working software: **plan → write files → self-review for bugs → runnable deliverable** with a **live preview** (HTML/SVG/React). Quick/standard tiers (60/240 credits), charged on success only. Sidebar + ⌘K entries.
+- **Referral credits** — invite a friend and **both get free credits** (referrer +200, new user +100). Settings card with your share link, stats, and a "have a code?" redeem; auto-redeems from the invite link. Codes are allocated lazily and redeemed post-signup, so the signup path can't break.
+- **Signup bonus** — new accounts start with **100 free credits**, granted in the hardened signup handler (no `transactions` insert, so signups can't fail). First-run **welcome-credits banner** ("You've got ₦X free to start — you only pay per question").
+- **First-run welcome tour** — a one-time walkthrough (incognito, Verify-on-0G, model picker, deposit).
+- **"Why AskZero" explainer** — three empty-state cards: Prove it · Pay your way · One tool for everything.
+- **⌘K command palette** — search/jump to chats + quick actions (new, incognito, research, code, deposit, settings).
+- **Keyboard-shortcuts help overlay** (press `?`) documenting ⌘K, new chat, slash, send, and more.
+- **Slash commands** in the composer — `/research`, `/incognito`, `/image` with a filtered menu.
+- **Global toast system** (success/error/info), wired through sidebar rename/pin/delete with optimistic revert.
+- **Per-chat menu** — inline rename, **pin/unpin** (pinned group on top), inline delete-confirm.
+- **Collapsible sidebar rail** — a ⇧-toggle icon rail (persisted) that reclaims ~200px, with a Search icon that opens ⌘K.
+- **Richer output** — collapsible `:::details` sections, **chart blocks** (bar/line/area/pie via Recharts), and GitHub-style callouts (`[!NOTE]`…).
+- **Code blocks** — filename label (```lang:file), soft-wrap toggle, and a line-number gutter.
+- **Message toolbar** — Share (native share / copy fallback) and **regenerate with a different model**.
+- **Draft persistence** — unsent composer text is restored per chat (excluded for incognito).
+- **Skeleton loaders** for chat history + the sidebar list (no more blank flashes).
+- **Low-balance banner** with one-tap Top up (out-of-credits + running-low states).
+- **Google sign-in via GIS + `signInWithIdToken`** — no supabase.co redirect on web login/signup.
+
+### Changed
+- **Premium motion & polish** (all reduced-motion safe) — View Transitions cross-fade between chats/pages; spring message-entrance (new messages only); a reusable `.hover-lift`; and an animated **balance count-up** on top-up.
+- **Plain-language trust copy** — softened What's New, first-run tour, empty state, incognito and receipt copy (benefit-first, less jargon); a "Verified" badge.
+- **Empty state** refreshed with example prompts by category (Explore / Create / Code / Analyze), some showcasing tables & charts.
+- **Model picker** — 0G Compute providers (Claude Fable 5, Qwen, DeepSeek, MiniMax, …) shown as disabled **"Soon"** while GLM stays the live 0G Compute model; capped dropdown height with scroll; cost/strength heads-up toast on switch.
+- **Copy/share strips markdown** — pasted answers are clean (no raw `**`/`#`); code blocks still copy verbatim.
+- **Sidebar** — friendlier empty state with a Start-a-chat CTA, relative timestamps (2h/3d/Jul 2), soft scroll-fade masks, and a real ⇧⌘O new-chat shortcut.
+- **Stronger formatting directive** so answers use tables/headings/lists/code/math instead of walls of prose.
+- **0G Compute robustness** — pump-based Anthropic SSE transform (matches the verified path) and `maxDuration=120` so long reasoning/settlement isn't cut off.
+- **README** documents Code, referral/starter credits, and free-credit `bonus` transactions.
+- **License metadata** — `"license": "MIT"` + author added to web and mobile `package.json`.
+
+### Fixed
+- **Clearer chat error states** — rate-limit (429) messaging, safe JSON parsing, network-drop keeps partial output, plus toasts; Retry via regenerate.
+
+---
+
 ## [2026-07-06] — Verifiable inference, incognito & crypto payments
 
 ### Added
