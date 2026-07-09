@@ -41,7 +41,8 @@ export const OG_COMPUTE_MODELS: OGComputeModel[] = [
     provider: "0x1F444c8A8D0b8e99A50e9f165806d28B01916E04",
     model: "claude-fable-5",
     label: "Claude Fable 5 · 0G Compute",
-    description: "Frontier model · on-chain settled on 0G Compute",
+    description:
+      "Frontier reasoning — strongest here, premium price · on-chain settled on 0G Compute",
     wholesaleNeuron: { input: 48_070_000_000_000, output: 240_350_000_000_000 },
     multimodal: true,
   },

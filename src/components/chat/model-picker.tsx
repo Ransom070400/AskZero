@@ -9,6 +9,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { toast } from "@/lib/toast";
+
+// Frontier-but-pricey models get a heads-up + badge when selected.
+const isPremiumModel = (model: string) => /claude/i.test(model);
 
 export interface ModelOption {
   provider: string;
@@ -146,12 +150,19 @@ export function ModelPicker({
               const isActive =
                 m.provider === selected.provider && m.model === selected.model;
               const isDefault = `${m.provider}|${m.model}` === defaultKey;
+              const isPremium = isPremiumModel(m.model);
               return (
                 <DropdownMenuItem
                   key={`${m.provider}|${m.model}`}
-                  onClick={() =>
-                    onSelect({ provider: m.provider, model: m.model })
-                  }
+                  onClick={() => {
+                    onSelect({ provider: m.provider, model: m.model });
+                    // Heads-up each time they switch to a premium model.
+                    if (isPremium && !isActive) {
+                      toast.info(
+                        `${m.label.split(" · ")[0]} — the most capable model here, but premium: roughly 15× GLM's per-token cost, and it reasons before replying.`
+                      );
+                    }
+                  }}
                   className={cn(
                     "items-start gap-2.5 px-2 py-2.5",
                     isActive && "bg-accent-muted/50"
@@ -180,6 +191,11 @@ export function ModelPicker({
                       {isDefault && (
                         <span className="shrink-0 rounded-full border border-border/70 px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide text-text-tertiary">
                           Default
+                        </span>
+                      )}
+                      {isPremium && (
+                        <span className="shrink-0 rounded-full bg-amber-500/15 px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400">
+                          Premium
                         </span>
                       )}
                     </span>
