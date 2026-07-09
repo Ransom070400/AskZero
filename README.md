@@ -21,6 +21,7 @@ Most AI apps ask you to trust that the model said what the UI shows. AskZero mak
 
 - **Streaming chat** — SSE, conversation history with auto-titling, selectable answer styles (default / concise / explanatory / code), and a live "thinking" trace for tool/agent steps.
 - **Autonomous research** — multi-source web research that reads, cross-checks, and returns a cited report.
+- **Autonomous build (Code)** — describe what to build and AskZero plans it, writes the code, reviews its own work for bugs, then returns a runnable deliverable with a **live preview** (HTML/SVG/React) via the Artifacts renderer.
 - **Vision & file input** — image attachments (multimodal) and PDF text extraction.
 - **Voice input** — in-browser / on-device recording → Whisper transcription.
 - **Image generation** — natural-language intent detection routes "draw/generate…" prompts to a text-to-image model.
@@ -29,6 +30,7 @@ Most AI apps ask you to trust that the model said what the UI shows. AskZero mak
 - **Verifiable receipts** — per-message, anchored on-chain, verifiable in the UI.
 - **Incognito mode** — ephemeral chats that aren't saved, aren't remembered, and skip the memory layer entirely.
 - **Credits & billing** — Paystack (NGN), Stripe (USD + 13 APAC currencies), and **Pay with 0G** (connect a wallet, pay in 0G tokens on-chain).
+- **Referral & starter credits** — new accounts get a signup bonus, and referrals reward **both** sides when a friend joins with your link.
 - **Auth** — Supabase email/password and Google OAuth (web + mobile).
 
 ---
@@ -52,7 +54,8 @@ The app does exactly this from the receipt panel on every message (web and mobil
 Pay-as-you-go credits, priced so margins can't invert when the underlying token moves.
 
 - **Unit** — **1,000 credits = $1** (1 credit = 0.1¢). Balances render in the user's chosen currency.
-- **Metering** — every message deducts credits for input + output tokens; image generation and research have their own costs. The exact cost is recorded on the receipt.
+- **Metering** — every message deducts credits for input + output tokens; image generation, research, and code builds have their own flat costs (research 50/200, build 60/240 by depth). The exact cost is recorded on the receipt.
+- **Free credits** — new accounts start with a signup bonus, and referrals grant credits to both the inviter and the new user. Free grants are logged as non-revenue `bonus` transactions, so paid-revenue metrics stay clean.
 - **Dynamic pricing** — Integrate-model prices are computed as **wholesale × markup** (input 3.0×, output 2.0×), recomputed against the live 0G token price so a token-price swing can't push cost below wholesale. A static `MODEL_PRICING` table is the fallback.
 - **Funding** — deposits via **Paystack** (NGN), **Stripe** (USD + 13 APAC currencies: JPY, SGD, HKD, AUD, NZD, MYR, THB, KRW, PHP, IDR, INR, VND, TWD), and **Pay with 0G**: connect a wallet (Reown AppKit / WalletConnect) and pay in 0G on-chain (`POST /api/deposit/crypto`).
 - **Secure crypto deposits** — a 0G deposit is credited only after a **wallet-ownership signature** proves the caller sent the tx (so no one can claim a stray txHash), plus recipient / confirmation / idempotency checks. Amount is credited server-side from the on-chain value at the live 0G price.
@@ -141,7 +144,7 @@ Key variables (full list in `.env.example`):
 
 ### 2. Database
 
-Apply the SQL migrations in `supabase/migrations/` (Supabase CLI or dashboard). They create the core tables, credit RPCs (`deduct_credits`, `add_credits`, `complete_deposit`), attachments, inference receipts + batches, artifacts, message search/edit branches, and the memory layer (`memories` with `pgvector`, `chat_archives`). Create a public Storage bucket named `chat-attachments`.
+Apply the SQL migrations in `supabase/migrations/` (Supabase CLI or dashboard). They create the core tables, credit RPCs (`deduct_credits`, `add_credits`, `complete_deposit`), attachments, inference receipts + batches, artifacts, message search/edit branches, the memory layer (`memories` with `pgvector`, `chat_archives`), and referral credits (`referral_info`, `redeem_referral`). Create a public Storage bucket named `chat-attachments`.
 
 ### 3. One-time 0G setup (optional — on-chain paths)
 
