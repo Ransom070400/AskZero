@@ -2,6 +2,8 @@
   "name": "askzero",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
+  "author": "Eze Ransom",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

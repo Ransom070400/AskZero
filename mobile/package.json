@@ -1,6 +1,8 @@
 {
   "name": "askzero-mobile",
   "version": "1.0.0",
+  "license": "MIT",
+  "author": "Eze Ransom",
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
