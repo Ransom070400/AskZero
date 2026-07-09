@@ -5,12 +5,12 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   Sparkles,
   Rocket,
-  EyeOff,
+  Gift,
+  Users,
+  Code2,
+  BarChart3,
+  Command,
   ShieldCheck,
-  Brain,
-  Coins,
-  Smartphone,
-  Globe,
   BookLock,
   Lock,
   Webhook,
@@ -24,11 +24,8 @@ import {
 // Two-step announcement: "What's new" shows first; closing it reveals "Coming
 // soon"; closing that dismisses for good (persisted). BUMP STORAGE_KEY whenever
 // the contents change so the refreshed cards reach everyone again.
-const STORAGE_KEY = "askzero-whatsnew-2026-07-09-v6";
-const EXPIRES = new Date("2026-08-01T23:59:59Z").getTime();
-
-const ANDROID_APK_URL =
-  "https://expo.dev/accounts/ransom070/projects/askzero/builds/8b47c0fa-a43c-47ec-8232-22e321f66946";
+const STORAGE_KEY = "askzero-whatsnew-2026-07-09-v7";
+const EXPIRES = new Date("2026-08-15T23:59:59Z").getTime();
 
 export function WhatsNew() {
   // null = hidden, 0 = What's new, 1 = Coming soon
@@ -94,39 +91,39 @@ export function WhatsNew() {
 
                 <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto px-6 pt-1">
                   <Item
-                    icon={<EyeOff className="h-5 w-5" />}
-                    title="Incognito mode"
+                    icon={<Gift className="h-5 w-5" />}
+                    title="Free credits to start"
                     isNew
-                    body="Chat privately — nothing is saved and nothing is remembered. Open it from the mask icon in the top bar."
+                    body="New accounts begin with free credits — try AskZero before you pay a thing. No subscription; you only pay per question."
+                  />
+                  <Item
+                    icon={<Users className="h-5 w-5" />}
+                    title="Refer a friend — both earn"
+                    isNew
+                    body="Share your invite link from Settings. When a friend signs up, you both get free credits."
+                  />
+                  <Item
+                    icon={<Code2 className="h-5 w-5" />}
+                    title="Build with Code"
+                    isNew
+                    body="Describe an app or script and AskZero plans it, writes it, reviews its own work for bugs, then shows a live preview. Open “Code” in the sidebar."
+                  />
+                  <Item
+                    icon={<BarChart3 className="h-5 w-5" />}
+                    title="Answers that are easy to scan"
+                    isNew
+                    body="Now with charts, tables, collapsible details, and callouts — not just walls of text."
+                  />
+                  <Item
+                    icon={<Command className="h-5 w-5" />}
+                    title="Faster to get around"
+                    isNew
+                    body="Press ⌘K to jump anywhere, use /research and /image in the composer, pin your important chats, and hit ? for shortcuts."
                   />
                   <Item
                     icon={<ShieldCheck className="h-5 w-5" />}
                     title="Verified answers"
-                    isNew
                     body="Every answer comes with a tamper-proof receipt. Tap “Verified” on any reply to prove it wasn't changed."
-                  />
-                  <Item
-                    icon={<Brain className="h-5 w-5" />}
-                    title="Memory across chats"
-                    isNew
-                    body="AskZero remembers useful facts from your conversations so you don't repeat yourself — and it's yours to clear anytime."
-                  />
-                  <Item
-                    icon={<Coins className="h-5 w-5" />}
-                    title="Pay with crypto"
-                    isNew
-                    body="Prefer crypto? Connect a wallet and top up in 0G tokens — credited to your balance instantly."
-                  />
-                  <Item
-                    icon={<Smartphone className="h-5 w-5" />}
-                    title="AskZero on mobile"
-                    body="The iOS & Android app has shipped — chat, research, balance, and deposits in your pocket."
-                    action={{ label: "Download for Android (APK)", href: ANDROID_APK_URL }}
-                  />
-                  <Item
-                    icon={<Globe className="h-5 w-5" />}
-                    title="Pay in USD & APAC"
-                    body="Top up in US Dollars and 13 Asia-Pacific currencies — no longer Naira-only."
                   />
                 </div>
 
