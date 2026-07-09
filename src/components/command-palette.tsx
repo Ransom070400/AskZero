@@ -7,6 +7,7 @@ import {
   Plus,
   EyeOff,
   Sparkles,
+  Code2,
   CreditCard,
   Settings,
   MessageSquare,
@@ -68,6 +69,7 @@ export function CommandPalette() {
     () => [
       { id: "new", label: "New chat", icon: Plus, run: () => router.push("/chat") },
       { id: "incognito", label: "New incognito chat", icon: EyeOff, run: () => router.push("/chat/incognito") },
+      { id: "code", label: "Code", icon: Code2, run: () => router.push("/code") },
       { id: "research", label: "Research", icon: Sparkles, run: () => router.push("/research") },
       { id: "deposit", label: "Deposit / balance", icon: CreditCard, run: () => router.push("/deposit") },
       { id: "settings", label: "Settings", icon: Settings, run: () => router.push("/settings") },

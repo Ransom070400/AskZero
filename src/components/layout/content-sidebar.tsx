@@ -10,6 +10,7 @@ import {
   Trash2,
   ChevronDown,
   Sparkles,
+  Code2,
   BookLock,
   Lock,
   MoreHorizontal,
@@ -409,11 +410,13 @@ function Rail({
   onNew,
   onSearch,
   researchActive,
+  codeActive,
 }: {
   onExpand: () => void;
   onNew: () => void;
   onSearch: () => void;
   researchActive: boolean;
+  codeActive: boolean;
 }) {
   return (
     <>
@@ -442,6 +445,9 @@ function Rail({
       </div>
       <div className="flex-1" />
       <div className="flex flex-col items-center gap-1 border-t border-border/70 py-2">
+        <RailLink href="/code" title="Code" active={codeActive}>
+          <Code2 className="h-[18px] w-[18px]" />
+        </RailLink>
         <RailLink href="/research" title="Research" active={researchActive}>
           <Sparkles className="h-[18px] w-[18px]" />
         </RailLink>
@@ -611,6 +617,7 @@ export function ContentSidebar() {
             window.dispatchEvent(new Event("askzero:open-command-palette"))
           }
           researchActive={pathname === "/research"}
+          codeActive={pathname === "/code"}
         />
       ) : (
         <>
@@ -776,6 +783,12 @@ export function ContentSidebar() {
           icon={<Lock className="h-4 w-4" />}
           label="Sealed predictions"
           soon
+        />
+        <FooterLink
+          href="/code"
+          icon={<Code2 className="h-4 w-4" />}
+          active={pathname === "/code"}
+          label="Code"
         />
         <FooterLink
           href="/research"
