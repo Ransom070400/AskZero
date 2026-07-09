@@ -135,7 +135,11 @@ export function ModelPicker({
         </button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="start" side="top" className="w-80 p-1">
+      <DropdownMenuContent
+        align="start"
+        side="top"
+        className="max-h-[min(70vh,32rem)] w-80 overflow-y-auto p-1"
+      >
         {groups.map((group, gi) => (
           <div key={group.key}>
             {gi > 0 && <DropdownMenuSeparator />}
