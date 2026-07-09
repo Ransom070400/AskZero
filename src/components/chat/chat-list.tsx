@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import { ArrowDown } from "lucide-react";
 import { MessageBubble, type Message } from "./message-bubble";
 import { TypingIndicator } from "./typing-indicator";
@@ -28,6 +29,10 @@ export function ChatList({ messages, isStreaming, onRegenerate, onRegenerateWith
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const [atBottom, setAtBottom] = useState(true);
+  // Only animate messages that arrive *after* mount — the initial history load
+  // (and switching chats) should paint instantly, not cascade.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   const updateAtBottom = useCallback(() => {
     const el = scrollRef.current;
@@ -66,9 +71,11 @@ export function ChatList({ messages, isStreaming, onRegenerate, onRegenerateWith
           {messages.map((msg, i) => {
             const isLast = i === messages.length - 1;
             return (
-              <div
+              <motion.div
                 key={msg.id}
-                className={isLast ? "animate-in fade-in-0 duration-200 ease-out" : undefined}
+                initial={mounted ? { opacity: 0, y: 12 } : false}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ type: "spring", stiffness: 320, damping: 30, mass: 0.7 }}
               >
                 <MessageBubble
                   message={msg}
@@ -83,7 +90,7 @@ export function ChatList({ messages, isStreaming, onRegenerate, onRegenerateWith
                   onOpenAsArtifact={onOpenAsArtifact}
                   hideReceipt={hideReceipts}
                 />
-              </div>
+              </motion.div>
             );
           })}
           {isStreaming &&
