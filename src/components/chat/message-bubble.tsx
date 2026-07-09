@@ -16,6 +16,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import removeMarkdown from "remove-markdown";
 import { MermaidBlock } from "./mermaid-block";
 import { ChartBlock } from "./chart-block";
 import { ReceiptBadge } from "./receipt-badge";
@@ -149,18 +150,19 @@ function ActionButton({
 function ShareBtn({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
   const share = async () => {
+    const clean = removeMarkdown(text);
     // Native share sheet where available (mobile / supported desktop);
     // otherwise fall back to copying the answer to the clipboard.
     if (typeof navigator.share === "function") {
       try {
-        await navigator.share({ text });
+        await navigator.share({ text: clean });
       } catch {
         /* user dismissed the sheet */
       }
       return;
     }
     try {
-      await navigator.clipboard.writeText(text);
+      await navigator.clipboard.writeText(clean);
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
@@ -231,16 +233,19 @@ function RegenerateMenu({
 function CopyBtn({
   text,
   size = "md",
+  markdown,
 }: {
   text: string;
   size?: "sm" | "md";
+  // When true, strip markdown so the pasted text is clean (no ** or # etc.).
+  markdown?: boolean;
 }) {
   const [copied, setCopied] = useState(false);
   const small = size === "sm";
   return (
     <button
       onClick={() => {
-        navigator.clipboard.writeText(text);
+        navigator.clipboard.writeText(markdown ? removeMarkdown(text) : text);
         setCopied(true);
         setTimeout(() => setCopied(false), 1200);
       }}
@@ -719,7 +724,7 @@ export function MessageBubble({
         </div>
       )}
       <div className="mt-2 flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-base ease-out">
-        <CopyBtn text={message.content} />
+        <CopyBtn text={message.content} markdown />
         {message.content && <ShareBtn text={message.content} />}
         {isLast && onRegenerate && (
           <RegenerateMenu
