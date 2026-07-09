@@ -12,10 +12,10 @@ const CATEGORIES = [
     label: "Explore",
     icon: Compass,
     prompts: [
-      "How does 0G decentralized AI actually work?",
-      "Compare centralized vs decentralized AI inference",
-      "Explain on-chain inference receipts like I'm five",
-      "What can AskZero do that other chat apps can't?",
+      "Explain a hard topic in simple terms",
+      "Help me draft a message I'm nervous to send",
+      "Give me a study plan for this week",
+      "What can you help me with?",
     ],
   },
   {
@@ -101,7 +101,7 @@ export function EmptyState({ onSuggestionClick }: EmptyStateProps) {
         variants={item}
         className="mt-3 text-center text-[15px] text-text-tertiary"
       >
-        Ask anything. Powered by 0G decentralized compute.
+        Ask anything. Private by design — we don&apos;t sell your data or train on your chats.
       </motion.p>
 
       {/* Category tabs */}

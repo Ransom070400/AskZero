@@ -718,7 +718,7 @@ function ChatDetailContent() {
           <span>
             <b className="font-semibold text-foreground">Incognito</b> — this chat
             isn&apos;t saved and won&apos;t be remembered. You&apos;re still charged
-            per message, and the model still processes your prompt (in a TEE).
+            per message, and your prompt is processed privately in a secure enclave.
           </span>
         </div>
       )}

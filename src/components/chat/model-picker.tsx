@@ -57,10 +57,10 @@ function groupModels(models: ModelOption[]): ProviderGroup[] {
               : "0G Compute",
         hint:
           key === "integrate"
-            ? "Mainnet · TEE-verified inference"
+            ? "Private & verified — runs in a secure enclave"
             : key === "image"
-              ? "Text-to-image · prompt becomes an image"
-              : "Mainnet · on-chain settled inference",
+              ? "Text-to-image · your prompt becomes a picture"
+              : "Verified inference · runs on 0G",
         models: [],
       });
     }

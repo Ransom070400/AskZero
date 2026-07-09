@@ -84,10 +84,10 @@ export function ReceiptBadge({ messageId }: { messageId: string }) {
       <button
         onClick={load}
         className="press inline-flex items-center gap-1 rounded-lg px-1.5 py-1 text-[11px] font-medium text-text-tertiary transition-colors hover:text-accent"
-        title="Verify this answer on 0G"
+        title="This answer has a tamper-proof receipt — tap to see it"
       >
         <ShieldCheck className="h-3.5 w-3.5" />
-        Verify on 0G
+        Verified
       </button>
 
       <AnimatePresence>
@@ -160,9 +160,10 @@ export function ReceiptBadge({ messageId }: { messageId: string }) {
                 {data && (
                   <div className="space-y-5">
                     <p className="text-[13px] leading-relaxed text-text-secondary">
-                      AskZero fingerprints this answer&apos;s inputs and outputs and
-                      anchors the hash on the 0G chain, so it can&apos;t be altered
-                      after the fact.
+                      This is a unique fingerprint of your exact question and
+                      answer. Change a single character and the fingerprint no
+                      longer matches — so you can prove this is the original
+                      answer, untampered. (The technical details are below.)
                     </p>
 
                     <Group label="Status">
