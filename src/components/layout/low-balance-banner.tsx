@@ -6,8 +6,9 @@ import { AlertCircle, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCurrency } from "@/lib/currency";
 
-// Below this many credits (1000 credits = $1) we nudge a top-up.
-const THRESHOLD = 200;
+// Below this many credits (1000 credits = $1) we nudge a top-up. Kept under the
+// 100-credit signup grant so brand-new users aren't greeted as "low".
+const THRESHOLD = 50;
 
 export function LowBalanceBanner() {
   const { formatBalance } = useCurrency();

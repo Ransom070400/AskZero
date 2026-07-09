@@ -5,6 +5,7 @@ import { WhatsNew } from "@/components/whats-new";
 import { CommandPalette } from "@/components/command-palette";
 import { ShortcutsHelp } from "@/components/shortcuts-help";
 import { LowBalanceBanner } from "@/components/layout/low-balance-banner";
+import { WelcomeCredits } from "@/components/layout/welcome-credits";
 import { FirstRunTour } from "@/components/first-run-tour";
 import { CurrencyProvider } from "@/lib/currency";
 
@@ -35,6 +36,7 @@ export default function DashboardLayout({
           <div className="hidden md:block">
             <TopNav />
           </div>
+          <WelcomeCredits />
           <LowBalanceBanner />
           <main className="flex-1 overflow-y-auto pb-[env(safe-area-inset-bottom)] md:pb-0">
             {children}
