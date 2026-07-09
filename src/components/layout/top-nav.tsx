@@ -16,8 +16,44 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { LogOut, Settings, CreditCard, Plus, EyeOff } from "lucide-react";
 import { useCurrency } from "@/lib/currency";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
+
+// Smoothly tick a number toward its target (e.g. balance after a top-up).
+// Snaps on first value and when the user prefers reduced motion.
+function useCountUp(target: number | null, duration = 700): number {
+  const [display, setDisplay] = useState(0);
+  const prevRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (target === null) return;
+    const from = prevRef.current;
+    const reduce =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (from === null || reduce) {
+      setDisplay(target);
+      prevRef.current = target;
+      return;
+    }
+    if (from === target) return;
+    let raf = 0;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setDisplay(from + (target - from) * eased);
+      if (t < 1) {
+        raf = requestAnimationFrame(tick);
+      } else {
+        setDisplay(target);
+        prevRef.current = target;
+      }
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, duration]);
+  return display;
+}
 
 export function TopNav() {
   const router = useRouter();
@@ -25,6 +61,7 @@ export function TopNav() {
   const { formatBalance } = useCurrency();
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [balance, setBalance] = useState<number | null>(null);
+  const shownBalance = useCountUp(balance);
   const [avatarError, setAvatarError] = useState(false);
 
   const fetchBalance = useCallback(async () => {
@@ -92,7 +129,7 @@ export function TopNav() {
         >
           <Plus className="h-3 w-3 text-text-tertiary group-hover:text-accent transition-colors duration-fast" />
           <span className="tabular-nums">
-            {balance !== null ? formatBalance(balance) : "—"}
+            {balance !== null ? formatBalance(Math.round(shownBalance)) : "—"}
           </span>
         </button>
 
