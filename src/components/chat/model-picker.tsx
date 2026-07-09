@@ -172,6 +172,7 @@ export function ModelPicker({
                   }}
                   className={cn(
                     "items-start gap-2.5 px-2 py-2.5",
+                    !soon && "hover-lift",
                     isActive && "bg-accent-muted/50",
                     soon && "pointer-events-none opacity-55"
                   )}

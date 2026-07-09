@@ -358,6 +358,20 @@ html {
   }
 }
 
+/* Subtle 1px rise + shadow bloom on hover for card-like interactive surfaces. */
+.hover-lift {
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+}
+.hover-lift:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px -8px hsl(var(--foreground) / 0.16);
+}
+@media (prefers-reduced-motion: reduce) {
+  .hover-lift:hover {
+    transform: none;
+  }
+}
+
 /* GitHub-style callouts (remark-github-blockquote-alert) */
 .markdown-alert {
   border-left: 3px solid hsl(var(--border-strong));

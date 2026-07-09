@@ -143,7 +143,7 @@ export function EmptyState({ onSuggestionClick }: EmptyStateProps) {
             key={s}
             variants={item}
             onClick={() => onSuggestionClick(s)}
-            className="press group flex items-center justify-between gap-3 rounded-2xl border border-border/70 bg-elevated/60 px-4 py-3.5 text-left text-[14px] text-text-secondary transition-[border-color,background-color,color] duration-base ease-out hover:border-border-strong hover:bg-elevated hover:text-foreground"
+            className="press hover-lift group flex items-center justify-between gap-3 rounded-2xl border border-border/70 bg-elevated/60 px-4 py-3.5 text-left text-[14px] text-text-secondary hover:border-border-strong hover:bg-elevated hover:text-foreground"
           >
             <span className="leading-snug">{s}</span>
             <ArrowUpRight className="h-4 w-4 shrink-0 text-text-tertiary transition-colors duration-fast group-hover:text-accent" />
