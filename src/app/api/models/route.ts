@@ -4,7 +4,10 @@ import {
   listIntegrateModels,
 } from "@/lib/integrate-network";
 import { IMAGE_PREFIX, listImageModels } from "@/lib/image-generation";
-import { OG_COMPUTE_MODELS } from "@/lib/og-compute-models";
+import {
+  OG_COMPUTE_MODELS,
+  OG_COMPUTE_COMING_SOON,
+} from "@/lib/og-compute-models";
 
 // We expose two sets of chat models:
 //  · Integrate gateway models (TEE-verified OpenAI-compatible proxy), and
@@ -32,6 +35,19 @@ export async function GET() {
     source: "og" as const,
   }));
 
+  // UI-only preview: real 0G Compute providers, not yet wired up. Rendered
+  // disabled ("Soon") in the picker — never selectable.
+  const comingSoonModels = OG_COMPUTE_COMING_SOON.map((m) => ({
+    provider: m.provider,
+    model: m.model,
+    label: m.label,
+    description: "",
+    supportsImages: false,
+    kind: "chat" as const,
+    source: "og" as const,
+    comingSoon: true as const,
+  }));
+
   const imageModels = listImageModels().map((m) => ({
     provider: `${IMAGE_PREFIX}${m.id}`,
     model: m.id,
@@ -43,6 +59,11 @@ export async function GET() {
   }));
 
   return NextResponse.json({
-    models: [...chatModels, ...ogComputeModels, ...imageModels],
+    models: [
+      ...chatModels,
+      ...ogComputeModels,
+      ...comingSoonModels,
+      ...imageModels,
+    ],
   });
 }

@@ -48,6 +48,28 @@ export const OG_COMPUTE_MODELS: OGComputeModel[] = [
   },
 ];
 
+// Live 0G Compute chatbot providers we haven't wired up yet. Shown in the
+// picker as disabled "Soon" entries (UI only — not selectable, not integrated)
+// so users can see what's coming. Addresses/models from listService() (mainnet).
+export const OG_COMPUTE_COMING_SOON: {
+  provider: string;
+  model: string;
+  label: string;
+}[] = [
+  { provider: "0xF203A388e9E70F09ece38046a6D40a89cf896309", model: "qwen3.7-max", label: "Qwen 3.7 Max" },
+  { provider: "0x1B3AAef3ae5050EEE04ea38cD4B087472BD85EB0", model: "qwen3.7-plus", label: "Qwen 3.7 Plus" },
+  { provider: "0x992e6396157Dc4f22E74F2231235D7DE62696db5", model: "qwen3.6-plus", label: "Qwen 3.6 Plus" },
+  { provider: "0x4415ef5CBb415347bb18493af7cE01f225Fc0868", model: "qwen/qwen3-vl-30b-a3b-instruct", label: "Qwen3-VL 30B" },
+  { provider: "0xB01EBd79c3fd63ff52fD47C3935119601EEe2FdB", model: "deepseek-v4-pro", label: "DeepSeek V4 Pro" },
+  { provider: "0x61C0007197E7D4d6A842d6768E8035728877B9F6", model: "deepseek-v4-flash", label: "DeepSeek V4 Flash" },
+  { provider: "0xDB7B465300B0acf454867683c5481055f698b2e8", model: "glm-5.1", label: "GLM 5.1" },
+  { provider: "0xb1242816181a87F597B01CE673cdadEb1c723bbF", model: "glm-5", label: "GLM 5" },
+  { provider: "0xd9966e13a6026Fcca4b13E7ff95c94DE268C471C", model: "zai-org/GLM-5-FP8", label: "GLM 5 FP8" },
+  { provider: "0xa6581CfDc65278cC539e94d864012ce4B35c5D56", model: "MiniMax-M3", label: "MiniMax M3" },
+  { provider: "0x25F8f01cA76060ea40895472b1b79f76613Ca497", model: "openai/gpt-5.4-mini", label: "GPT-5.4 Mini" },
+  { provider: "0x4870CbC4D07d6Ac2EE5aA865588e5985FE77a4E9", model: "0GM-1.0-35B-A3B", label: "0GM 1.0 35B" },
+];
+
 // Retail markups on the on-chain wholesale cost (multiplicative → margin holds
 // when the 0G token price moves). Mirrors integrate-network.ts.
 const INPUT_MARKUP = 3.0;

@@ -21,6 +21,7 @@ export interface ModelOption {
   description?: string;
   supportsImages?: boolean;
   kind?: "chat" | "image";
+  comingSoon?: boolean;
 }
 
 type GroupKey = "integrate" | "image" | "og";
@@ -151,10 +152,12 @@ export function ModelPicker({
                 m.provider === selected.provider && m.model === selected.model;
               const isDefault = `${m.provider}|${m.model}` === defaultKey;
               const isPremium = isPremiumModel(m.model);
+              const soon = m.comingSoon;
               return (
                 <DropdownMenuItem
                   key={`${m.provider}|${m.model}`}
                   onClick={() => {
+                    if (soon) return;
                     onSelect({ provider: m.provider, model: m.model });
                     // Heads-up each time they switch to a premium model.
                     if (isPremium && !isActive) {
@@ -165,7 +168,8 @@ export function ModelPicker({
                   }}
                   className={cn(
                     "items-start gap-2.5 px-2 py-2.5",
-                    isActive && "bg-accent-muted/50"
+                    isActive && "bg-accent-muted/50",
+                    soon && "pointer-events-none opacity-55"
                   )}
                 >
                   <span
@@ -193,9 +197,14 @@ export function ModelPicker({
                           Default
                         </span>
                       )}
-                      {isPremium && (
+                      {isPremium && !soon && (
                         <span className="shrink-0 rounded-full bg-amber-500/15 px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400">
                           Premium
+                        </span>
+                      )}
+                      {soon && (
+                        <span className="shrink-0 rounded-full border border-border/70 px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide text-text-tertiary">
+                          Soon
                         </span>
                       )}
                     </span>

@@ -730,7 +730,7 @@ function ChatDetailContent() {
         isStreaming={isStreaming}
         onRegenerate={handleRegenerate}
         onRegenerateWith={handleRegenerateWith}
-        regenModels={models}
+        regenModels={models.filter((m) => !m.comingSoon)}
         onRegenerateImage={handleRegenerateImage}
         onEdit={handleEdit}
         onOpenArtifact={setOpenArtifactId}
