@@ -3,7 +3,16 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Logo } from "@/components/ui/logo";
-import { ArrowUpRight, Compass, PenLine, Code2, BarChart3 } from "lucide-react";
+import {
+  ArrowUpRight,
+  Compass,
+  PenLine,
+  Code2,
+  BarChart3,
+  ShieldCheck,
+  Wallet,
+  Layers,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const CATEGORIES = [
@@ -50,6 +59,26 @@ const CATEGORIES = [
       "Summarize the risks in a SaaS pricing model",
       "Break down the tradeoffs of a monorepo vs polyrepo",
     ],
+  },
+];
+
+// Why AskZero over a generic AI chat — the three things that actually make it
+// different, shown once at the empty state so a first-time user gets the pitch.
+const WHY = [
+  {
+    icon: ShieldCheck,
+    title: "Prove it",
+    desc: "Every answer gets a tamper-evident receipt anchored on 0G — verify it can't be quietly changed.",
+  },
+  {
+    icon: Wallet,
+    title: "Pay your way",
+    desc: "No subscription. Pay by the message — in naira, USD, or 0G tokens.",
+  },
+  {
+    icon: Layers,
+    title: "One tool for everything",
+    desc: "Chat, deep research, code builds, and image generation — one balance.",
   },
 ];
 
@@ -149,6 +178,32 @@ export function EmptyState({ onSuggestionClick }: EmptyStateProps) {
             <ArrowUpRight className="h-4 w-4 shrink-0 text-text-tertiary transition-colors duration-fast group-hover:text-accent" />
           </motion.button>
         ))}
+      </motion.div>
+
+      {/* Why AskZero — the pitch, once, for a first-time user */}
+      <motion.div variants={item} className="mt-10 w-full">
+        <p className="mb-3 text-center text-[11px] font-semibold uppercase tracking-[0.16em] text-text-tertiary">
+          Why AskZero
+        </p>
+        <div className="grid w-full grid-cols-1 gap-2.5 sm:grid-cols-3">
+          {WHY.map((w) => {
+            const Icon = w.icon;
+            return (
+              <div
+                key={w.title}
+                className="rounded-2xl border border-border/60 bg-elevated/40 p-4"
+              >
+                <div className="mb-2.5 flex h-8 w-8 items-center justify-center rounded-lg bg-accent-muted text-accent">
+                  <Icon className="h-4 w-4" />
+                </div>
+                <p className="text-[13px] font-semibold text-foreground">{w.title}</p>
+                <p className="mt-1 text-[12px] leading-relaxed text-text-tertiary">
+                  {w.desc}
+                </p>
+              </div>
+            );
+          })}
+        </div>
       </motion.div>
     </motion.div>
   );
