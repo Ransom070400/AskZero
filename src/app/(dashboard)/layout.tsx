@@ -7,6 +7,7 @@ import { ShortcutsHelp } from "@/components/shortcuts-help";
 import { LowBalanceBanner } from "@/components/layout/low-balance-banner";
 import { WelcomeCredits } from "@/components/layout/welcome-credits";
 import { FirstRunTour } from "@/components/first-run-tour";
+import { ReferralRedeemer } from "@/components/referral-redeemer";
 import { CurrencyProvider } from "@/lib/currency";
 
 export default function DashboardLayout({
@@ -17,6 +18,7 @@ export default function DashboardLayout({
   return (
     <CurrencyProvider>
       <FirstRunTour />
+      <ReferralRedeemer />
       <WhatsNew />
       <CommandPalette />
       <ShortcutsHelp />

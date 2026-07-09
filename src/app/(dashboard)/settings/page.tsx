@@ -11,6 +11,7 @@ import { useCurrency, type DisplayCurrency } from "@/lib/currency";
 import { APAC_CURRENCIES, APAC_CODES, isApacCurrency } from "@/lib/pricing-apac";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { ReferralCard } from "@/components/referral-card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -291,6 +292,9 @@ export default function SettingsPage() {
           </span>
         </Row>
       </Section>
+
+      {/* Refer & earn — invite friends, both get free credits */}
+      <ReferralCard />
 
       {/* Memory — what the assistant remembers across chats */}
       <MemorySection />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
@@ -19,6 +19,18 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const supabase = createClient();
+
+  // Capture a referral code from the invite link (?ref=CODE) into a cookie.
+  // It's redeemed after the session exists (ReferralRedeemer in the dashboard),
+  // which covers both email and Google sign-up without touching the signup path.
+  useEffect(() => {
+    const ref = new URLSearchParams(window.location.search).get("ref");
+    if (ref && /^[A-Za-z0-9]{4,16}$/.test(ref)) {
+      document.cookie = `az_ref=${encodeURIComponent(
+        ref.toUpperCase()
+      )}; path=/; max-age=${60 * 60 * 24 * 30}; samesite=lax`;
+    }
+  }, []);
 
   const handleEmailSignup = async (e: React.FormEvent) => {
     e.preventDefault();
