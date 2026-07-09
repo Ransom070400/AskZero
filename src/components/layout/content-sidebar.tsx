@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { Link, useTransitionRouter } from "next-view-transitions";
+import { usePathname } from "next/navigation";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { cn } from "@/lib/utils";
 import {
@@ -452,7 +452,7 @@ function Rail({
 
 export function ContentSidebar() {
   const pathname = usePathname();
-  const router = useRouter();
+  const router = useTransitionRouter();
   const [chats, setChats] = useState<Chat[]>([]);
   const [loadedChats, setLoadedChats] = useState(false);
   const [isMac, setIsMac] = useState(false);

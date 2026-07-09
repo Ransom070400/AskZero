@@ -344,6 +344,20 @@ html {
   stroke: hsl(var(--accent-hover));
 }
 
+/* Cross-fade page/chat navigation (next-view-transitions). Degrades to an
+   instant nav in browsers without the View Transitions API. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.22s;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+}
+
 /* GitHub-style callouts (remark-github-blockquote-alert) */
 .markdown-alert {
   border-left: 3px solid hsl(var(--border-strong));

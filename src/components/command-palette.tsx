@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useTransitionRouter } from "next-view-transitions";
 import { createClient } from "@/lib/supabase/client";
 import {
   Plus,
@@ -21,7 +21,7 @@ interface ChatItem {
 
 // ⌘K / Ctrl+K quick launcher: jump to a chat, start one, or navigate.
 export function CommandPalette() {
-  const router = useRouter();
+  const router = useTransitionRouter();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [chats, setChats] = useState<ChatItem[]>([]);
