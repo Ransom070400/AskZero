@@ -22,6 +22,11 @@ import {
   commitMemory,
 } from "@/lib/memory";
 
+// Reasoning models (e.g. claude-fable-5 on 0G Compute) can think for tens of
+// seconds before emitting text, plus first-use on-chain settlement. Give the
+// stream room so a serverless platform doesn't cut it off mid-response.
+export const maxDuration = 120;
+
 function estimateTokens(text: string): number {
   return Math.ceil(text.length / 4);
 }

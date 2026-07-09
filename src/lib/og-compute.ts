@@ -131,46 +131,51 @@ function partsToText(content: string | ContentPart[]): string {
 }
 
 function anthropicToOpenAISSE(resp: Response): ReadableStream<Uint8Array> {
-  const reader = resp.body!.getReader();
-  const decoder = new TextDecoder();
   const encoder = new TextEncoder();
-  let buffer = "";
   return new ReadableStream<Uint8Array>({
-    async pull(controller) {
-      const { done, value } = await reader.read();
-      if (done) {
+    async start(controller) {
+      const reader = resp.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+          for (const line of lines) {
+            const t = line.trim();
+            if (!t.startsWith("data:")) continue;
+            const data = t.slice(5).trim();
+            if (!data || data === "[DONE]") continue;
+            try {
+              const ev = JSON.parse(data);
+              // Only the answer text — skip thinking / signature deltas.
+              if (
+                ev.type === "content_block_delta" &&
+                ev.delta?.type === "text_delta" &&
+                ev.delta.text
+              ) {
+                controller.enqueue(
+                  encoder.encode(
+                    `data: ${JSON.stringify({
+                      choices: [{ delta: { content: ev.delta.text } }],
+                    })}\n\n`
+                  )
+                );
+              }
+            } catch {
+              /* skip malformed chunk */
+            }
+          }
+        }
+      } catch {
+        /* upstream stream error — fall through to close cleanly */
+      } finally {
         controller.enqueue(encoder.encode("data: [DONE]\n\n"));
         controller.close();
-        return;
       }
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() || "";
-      for (const line of lines) {
-        const t = line.trim();
-        if (!t.startsWith("data:")) continue;
-        const data = t.slice(5).trim();
-        if (!data || data === "[DONE]") continue;
-        try {
-          const ev = JSON.parse(data);
-          // Only the answer text — skip thinking / signature deltas.
-          if (
-            ev.type === "content_block_delta" &&
-            ev.delta?.type === "text_delta" &&
-            ev.delta.text
-          ) {
-            const chunk = JSON.stringify({
-              choices: [{ delta: { content: ev.delta.text } }],
-            });
-            controller.enqueue(encoder.encode(`data: ${chunk}\n\n`));
-          }
-        } catch {
-          /* skip malformed chunk */
-        }
-      }
-    },
-    cancel() {
-      reader.cancel().catch(() => {});
     },
   });
 }
