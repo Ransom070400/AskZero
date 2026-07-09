@@ -7,23 +7,23 @@ import { cn } from "@/lib/utils";
 const STEPS = [
   {
     icon: EyeOff,
-    title: "Incognito mode",
-    body: "Start an ephemeral chat that's never saved or remembered — private by design. Toggle it from the top bar or ⌘K.",
+    title: "Private chats",
+    body: "Start an incognito chat that's never saved or remembered — private by design. Toggle it from the top bar or ⌘K.",
   },
   {
     icon: ShieldCheck,
-    title: "Verifiable answers",
-    body: "Every reply is fingerprinted and anchored on the 0G chain. Hit “Verify on 0G” on any answer to prove it wasn't tampered with.",
+    title: "Answers you can trust",
+    body: "Every reply gets a tamper-proof receipt — a fingerprint that proves the answer wasn't changed after the fact. Tap “Verified” on any answer to see it.",
   },
   {
     icon: Cpu,
     title: "Pick your model",
-    body: "Switch models anytime from the picker — including GLM-5.1 on 0G Compute, with on-chain-settled inference.",
+    body: "Switch anytime — a cheap, fast model for everyday questions, or a stronger one when you need it. You'll always see the cost.",
   },
   {
     icon: CreditCard,
-    title: "Pay your way",
-    body: "No subscription. Top up with card, Naira, or 0G tokens — you only pay for what you use.",
+    title: "Pay only for what you ask",
+    body: "No subscription to lock into. Top up a little at a time — with a card or in Naira — and pay per question.",
   },
 ];
 

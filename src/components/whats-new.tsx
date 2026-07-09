@@ -24,8 +24,8 @@ import {
 // Two-step announcement: "What's new" shows first; closing it reveals "Coming
 // soon"; closing that dismisses for good (persisted). BUMP STORAGE_KEY whenever
 // the contents change so the refreshed cards reach everyone again.
-const STORAGE_KEY = "askzero-whatsnew-2026-07-06-v5";
-const EXPIRES = new Date("2026-07-16T23:59:59Z").getTime();
+const STORAGE_KEY = "askzero-whatsnew-2026-07-09-v6";
+const EXPIRES = new Date("2026-08-01T23:59:59Z").getTime();
 
 const ANDROID_APK_URL =
   "https://expo.dev/accounts/ransom070/projects/askzero/builds/8b47c0fa-a43c-47ec-8232-22e321f66946";
@@ -101,21 +101,21 @@ export function WhatsNew() {
                   />
                   <Item
                     icon={<ShieldCheck className="h-5 w-5" />}
-                    title="Verified receipts"
+                    title="Verified answers"
                     isNew
-                    body="Every answer is provable on 0G. Tap “Verify on 0G” on any reply to re-derive the proof and confirm it on-chain."
+                    body="Every answer comes with a tamper-proof receipt. Tap “Verified” on any reply to prove it wasn't changed."
                   />
                   <Item
                     icon={<Brain className="h-5 w-5" />}
-                    title="Memory layer on 0G Storage"
+                    title="Memory across chats"
                     isNew
-                    body="AskZero remembers durable facts across chats — archived to 0G Storage, so your memory is content-addressed and yours."
+                    body="AskZero remembers useful facts from your conversations so you don't repeat yourself — and it's yours to clear anytime."
                   />
                   <Item
                     icon={<Coins className="h-5 w-5" />}
-                    title="Pay with 0G"
+                    title="Pay with crypto"
                     isNew
-                    body="Top up with crypto — connect a wallet and pay in 0G tokens on-chain, verified and credited instantly."
+                    body="Prefer crypto? Connect a wallet and top up in 0G tokens — credited to your balance instantly."
                   />
                   <Item
                     icon={<Smartphone className="h-5 w-5" />}
@@ -160,12 +160,12 @@ export function WhatsNew() {
                   <Soon
                     icon={<BookLock className="h-4 w-4" />}
                     title="Private journaling"
-                    body="An encrypted, private journal with AI reflections — kept on 0G, readable only by you."
+                    body="An encrypted, private journal with AI reflections — readable only by you."
                   />
                   <Soon
                     icon={<Lock className="h-4 w-4" />}
                     title="Sealed predictions"
-                    body="Commit a prediction on-chain now, reveal it later — provably made before the outcome."
+                    body="Lock in a prediction now, reveal it later — with proof you made it before the outcome."
                   />
                   <Soon
                     icon={<Webhook className="h-4 w-4" />}
