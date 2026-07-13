@@ -9,6 +9,7 @@ import remarkMath from "remark-math";
 import remarkDirective from "remark-directive";
 import { remarkAlert } from "remark-github-blockquote-alert";
 import { remarkDetails } from "@/lib/remark-details";
+import { useCurrency } from "@/lib/currency";
 import { Copy, Check, Download, ExternalLink, FileText, FileCode, History, Pencil, RotateCw, X, Search, Calculator, Globe, Loader2, WrapText, ListOrdered, Share2, ChevronDown } from "lucide-react";
 import {
   DropdownMenu,
@@ -427,6 +428,7 @@ export function MessageBubble({
   hideReceipt?: boolean;
 }) {
   const isUser = message.role === "user";
+  const { formatCost } = useCurrency();
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState("");
   const [showPrev, setShowPrev] = useState(false);
@@ -735,9 +737,16 @@ export function MessageBubble({
         )}
         {message.content && !hideReceipt && <ReceiptBadge messageId={message.id} />}
         {message.tokenCount != null && (
-          <span className="ml-1 text-[11px] font-medium text-text-tertiary tabular-nums">
+          <span
+            className="ml-1 text-[11px] font-medium text-text-tertiary tabular-nums"
+            title={
+              message.costCredits != null
+                ? `${message.tokenCount} tokens · ${message.costCredits} credits`
+                : `${message.tokenCount} tokens`
+            }
+          >
             {message.tokenCount} tokens
-            {message.costCredits != null && ` · ${message.costCredits}c`}
+            {message.costCredits != null && ` · ${formatCost(message.costCredits)}`}
           </span>
         )}
       </div>
