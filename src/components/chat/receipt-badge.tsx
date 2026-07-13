@@ -59,6 +59,9 @@ interface VerifyResult {
 }
 
 const PROOF_MOMENT_KEY = "askzero-proof-moment-seen";
+// Hidden for now — flip to true to re-enable the interactive tamper demo +
+// first-answer callout. The rest of the receipt/verify modal is unaffected.
+const PROOF_MOMENT_ENABLED = false;
 
 export function ReceiptBadge({
   messageId,
@@ -95,7 +98,7 @@ export function ReceiptBadge({
     setSeen(true);
   };
 
-  const showCallout = !!spotlight && !seen && !!content;
+  const showCallout = PROOF_MOMENT_ENABLED && !!spotlight && !seen && !!content;
 
   const runVerify = async () => {
     setVerifying(true);
@@ -241,7 +244,7 @@ export function ReceiptBadge({
                       answer, untampered. (The technical details are below.)
                     </p>
 
-                    {(data.output ?? content) && (
+                    {PROOF_MOMENT_ENABLED && (data.output ?? content) && (
                       <TamperDemo
                         original={(data.output ?? content)!}
                         outputHash={data.receipt.output_hash}
