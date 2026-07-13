@@ -735,7 +735,13 @@ export function MessageBubble({
             models={regenModels}
           />
         )}
-        {message.content && !hideReceipt && <ReceiptBadge messageId={message.id} />}
+        {message.content && !hideReceipt && (
+          <ReceiptBadge
+            messageId={message.id}
+            content={message.content}
+            spotlight={isLast}
+          />
+        )}
         {message.tokenCount != null && (
           <span
             className="ml-1 text-[11px] font-medium text-text-tertiary tabular-nums"

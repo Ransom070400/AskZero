@@ -1,8 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ShieldCheck, Loader2, X, Copy, Check, ExternalLink } from "lucide-react";
+import { keccak256, toUtf8Bytes } from "ethers";
+import {
+  ShieldCheck,
+  ShieldAlert,
+  Loader2,
+  X,
+  Copy,
+  Check,
+  ExternalLink,
+  Wand2,
+  RotateCcw,
+  ArrowRight,
+} from "lucide-react";
 
 interface ReceiptResponse {
   receipt: {
@@ -43,12 +55,44 @@ interface VerifyResult {
   contractUrl?: string;
 }
 
-export function ReceiptBadge({ messageId }: { messageId: string }) {
+const PROOF_MOMENT_KEY = "askzero-proof-moment-seen";
+
+export function ReceiptBadge({
+  messageId,
+  content,
+  spotlight,
+}: {
+  messageId: string;
+  content?: string;
+  spotlight?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const [data, setData] = useState<ReceiptResponse | null>(null);
   const [state, setState] = useState<"idle" | "loading" | "none" | "error">("idle");
   const [verify, setVerify] = useState<VerifyResult | null>(null);
   const [verifying, setVerifying] = useState(false);
+  // Default true so the first-answer callout never flashes before we've read
+  // localStorage; the effect flips it to the real value on mount.
+  const [seen, setSeen] = useState(true);
+
+  useEffect(() => {
+    try {
+      setSeen(!!localStorage.getItem(PROOF_MOMENT_KEY));
+    } catch {
+      setSeen(true);
+    }
+  }, []);
+
+  const markSeen = () => {
+    try {
+      localStorage.setItem(PROOF_MOMENT_KEY, "1");
+    } catch {
+      /* private mode — fine, it just shows again next time */
+    }
+    setSeen(true);
+  };
+
+  const showCallout = !!spotlight && !seen && !!content;
 
   const runVerify = async () => {
     setVerifying(true);
@@ -81,14 +125,42 @@ export function ReceiptBadge({ messageId }: { messageId: string }) {
 
   return (
     <>
-      <button
-        onClick={load}
-        className="press inline-flex items-center gap-1 rounded-lg px-1.5 py-1 text-[11px] font-medium text-text-tertiary transition-colors hover:text-accent"
-        title="This answer has a tamper-proof receipt — tap to see it"
-      >
-        <ShieldCheck className="h-3.5 w-3.5" />
-        Verified
-      </button>
+      <span className="relative inline-flex items-center gap-1.5">
+        <button
+          onClick={load}
+          className="press inline-flex items-center gap-1 rounded-lg px-1.5 py-1 text-[11px] font-medium text-text-tertiary transition-colors hover:text-accent"
+          title="This answer has a tamper-proof receipt — tap to see it"
+        >
+          <ShieldCheck className="h-3.5 w-3.5" />
+          Verified
+        </button>
+
+        {showCallout && (
+          <motion.span
+            initial={{ opacity: 0, x: -6 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="inline-flex items-center gap-1 rounded-full border border-accent/40 bg-accent/10 py-0.5 pl-2 pr-1 text-[11px] font-semibold text-accent"
+          >
+            <button
+              onClick={() => {
+                markSeen();
+                load();
+              }}
+              className="press inline-flex items-center gap-1"
+            >
+              See why this can&apos;t be faked
+              <ArrowRight className="h-3 w-3" />
+            </button>
+            <button
+              onClick={markSeen}
+              aria-label="Dismiss"
+              className="press text-accent/60 hover:text-accent"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </motion.span>
+        )}
+      </span>
 
       <AnimatePresence>
         {open && (
@@ -165,6 +237,13 @@ export function ReceiptBadge({ messageId }: { messageId: string }) {
                       longer matches — so you can prove this is the original
                       answer, untampered. (The technical details are below.)
                     </p>
+
+                    {content && (
+                      <TamperDemo
+                        original={content}
+                        outputHash={data.receipt.output_hash}
+                      />
+                    )}
 
                     <Group label="Status">
                       <StatusRow ok label="Receipt created" />
@@ -318,6 +397,117 @@ export function ReceiptBadge({ messageId }: { messageId: string }) {
         )}
       </AnimatePresence>
     </>
+  );
+}
+
+// Interactive proof-of-integrity demo. Recomputes the answer's fingerprint
+// client-side with the SAME function the server used (output_hash =
+// keccak256(utf8(answer)) — see lib/receipts.hashText), so the "matches" state
+// is a real recomputation, not a mock. Edit the text → the hash diverges →
+// the check goes red. This is the visceral "watch it break" moment.
+function TamperDemo({
+  original,
+  outputHash,
+}: {
+  original: string;
+  outputHash: string;
+}) {
+  const [text, setText] = useState(original);
+
+  useEffect(() => {
+    setText(original);
+  }, [original]);
+
+  const liveHash = useMemo(() => {
+    try {
+      return keccak256(toUtf8Bytes(text));
+    } catch {
+      return "";
+    }
+  }, [text]);
+
+  const matches = liveHash.toLowerCase() === outputHash.toLowerCase();
+  const tampered = text !== original;
+  const shortHash =
+    liveHash.length > 18 ? `${liveHash.slice(0, 10)}…${liveHash.slice(-8)}` : liveHash;
+
+  // Flip the first letter/digit to something guaranteed different.
+  const tamperForMe = () => {
+    const idx = text.search(/[A-Za-z0-9]/);
+    if (idx === -1) {
+      setText(`${text}.`);
+      return;
+    }
+    const ch = text[idx];
+    const alt = /[0-9]/.test(ch)
+      ? ch === "0"
+        ? "1"
+        : "0"
+      : ch.toLowerCase() === "a"
+        ? "e"
+        : "a";
+    const cased = ch === ch.toUpperCase() ? alt.toUpperCase() : alt;
+    setText(text.slice(0, idx) + cased + text.slice(idx + 1));
+  };
+
+  return (
+    <div className="space-y-3 rounded-xl border border-border/60 bg-background/40 p-3.5">
+      <div>
+        <p className="text-[13px] font-semibold text-foreground">See it yourself</p>
+        <p className="mt-0.5 text-[12px] leading-snug text-text-tertiary">
+          Edit the answer below and watch its fingerprint change — that&apos;s why a
+          single altered character breaks the proof.
+        </p>
+      </div>
+
+      <textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        spellCheck={false}
+        className="h-28 w-full resize-none rounded-lg border border-border/70 bg-background px-3 py-2 font-mono text-[12px] leading-relaxed text-foreground outline-none focus:border-border-strong"
+      />
+
+      <div className="flex items-center justify-between gap-3">
+        <span className="min-w-0 truncate font-mono text-[12px] text-text-tertiary">
+          {shortHash}
+        </span>
+        <span
+          className={
+            matches
+              ? "inline-flex shrink-0 items-center gap-1.5 rounded-full bg-success/15 px-2.5 py-1 text-[11px] font-semibold text-success"
+              : "inline-flex shrink-0 items-center gap-1.5 rounded-full bg-error/15 px-2.5 py-1 text-[11px] font-semibold text-error"
+          }
+        >
+          {matches ? (
+            <>
+              <Check className="h-3 w-3" /> Matches the original
+            </>
+          ) : (
+            <>
+              <ShieldAlert className="h-3 w-3" /> Tampered — won&apos;t verify
+            </>
+          )}
+        </span>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <button
+          onClick={tamperForMe}
+          className="press inline-flex items-center gap-1.5 rounded-lg border border-border/70 bg-elevated px-3 py-1.5 text-[12px] font-semibold text-foreground hover:border-border-strong"
+        >
+          <Wand2 className="h-3.5 w-3.5" />
+          Tamper for me
+        </button>
+        <button
+          onClick={() => setText(original)}
+          disabled={!tampered}
+          className="press inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-semibold text-text-secondary hover:text-foreground disabled:opacity-40"
+        >
+          <RotateCcw className="h-3.5 w-3.5" />
+          Restore
+        </button>
+      </div>
+    </div>
   );
 }
 
