@@ -16,6 +16,34 @@ function json(body: unknown, status = 200) {
   });
 }
 
+// Cloudflare Turnstile — bot control that doesn't punish shared/carrier-NAT IPs
+// (unlike a per-IP cap). Verified server-side; enforced only when configured so
+// the faucet still runs before keys are set.
+async function verifyTurnstile(
+  secret: string,
+  token: string,
+  ip: string
+): Promise<boolean> {
+  try {
+    const form = new URLSearchParams();
+    form.append("secret", secret);
+    form.append("response", token);
+    if (ip && ip !== "unknown") form.append("remoteip", ip);
+    const res = await fetch(
+      "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: form,
+      }
+    );
+    const data = (await res.json()) as { success?: boolean };
+    return !!data.success;
+  } catch {
+    return false;
+  }
+}
+
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const raw = String(body.address ?? "").trim();
@@ -32,6 +60,18 @@ export async function POST(req: NextRequest) {
     "unknown";
   const { ok } = rateLimit(`gas:${ip}`, 5); // 5/min per IP
   if (!ok) return rateLimitResponse();
+
+  // Bot control — reject non-humans before touching the DB or the wallet.
+  const turnstileSecret = process.env.TURNSTILE_SECRET_KEY;
+  if (turnstileSecret) {
+    const token = String(body.turnstileToken ?? "");
+    if (!token) {
+      return json({ error: "Please complete the bot check." }, 400);
+    }
+    if (!(await verifyTurnstile(turnstileSecret, token, ip))) {
+      return json({ error: "Bot check failed — please try again." }, 403);
+    }
+  }
 
   const rpcUrl =
     process.env.NEXT_PUBLIC_ZERO_G_RPC_URL ?? process.env.ZERO_G_CHAIN_RPC_URL;
