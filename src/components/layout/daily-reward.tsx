@@ -46,8 +46,13 @@ export function DailyReward() {
     try {
       const res = await fetch("/api/daily", { method: "POST" });
       const data = await res.json().catch(() => ({}));
-      if (res.ok) setClaimed({ reward: data.reward, streak: data.streak });
-      else setDismissed(true); // already claimed elsewhere / error — just close
+      if (res.ok) {
+        setClaimed({ reward: data.reward, streak: data.streak });
+        // Update the top-nav streak badge immediately.
+        window.dispatchEvent(new Event("askzero:daily-claimed"));
+      } else {
+        setDismissed(true); // already claimed elsewhere / error — just close
+      }
     } finally {
       setClaiming(false);
     }

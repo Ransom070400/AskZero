@@ -14,7 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, Settings, CreditCard, Plus, EyeOff } from "lucide-react";
+import { LogOut, Settings, CreditCard, Plus, EyeOff, Flame } from "lucide-react";
 import { useCurrency } from "@/lib/currency";
 import { useEffect, useState, useCallback, useRef } from "react";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
@@ -89,6 +89,29 @@ export function TopNav() {
     return () => clearInterval(interval);
   }, [fetchBalance]);
 
+  // Login streak badge. A live streak (claimed today, or yesterday and still
+  // claimable) shows the count; a broken streak shows nothing.
+  const [streak, setStreak] = useState(0);
+  const fetchStreak = useCallback(async () => {
+    try {
+      const res = await fetch("/api/daily");
+      if (!res.ok) return;
+      const d = await res.json();
+      const alive = d.claimed_today || d.next_streak === d.current_streak + 1;
+      setStreak(alive ? d.current_streak ?? 0 : 0);
+    } catch {
+      // silently fail
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchStreak();
+    // Refresh the badge the moment the daily reward is claimed.
+    const onClaim = () => fetchStreak();
+    window.addEventListener("askzero:daily-claimed", onClaim);
+    return () => window.removeEventListener("askzero:daily-claimed", onClaim);
+  }, [fetchStreak]);
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     router.push("/login");
@@ -121,6 +144,17 @@ export function TopNav() {
         >
           <EyeOff className="h-4 w-4" />
         </button>
+
+        {/* Login streak — always-visible so the streak feels owned */}
+        {streak > 0 && (
+          <div
+            title={`${streak}-day streak — claim your daily reward to keep it going`}
+            className="flex items-center gap-1 rounded-full border border-border/70 bg-elevated/80 px-2.5 py-1 text-[13px] font-semibold text-foreground"
+          >
+            <Flame className="h-3.5 w-3.5 text-accent" />
+            <span className="tabular-nums">{streak}</span>
+          </div>
+        )}
 
         {/* Balance pill — refined affordance, hover lifts subtly */}
         <button
