@@ -4,6 +4,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { Logo } from "@/components/ui/logo";
+import { SavingsCalculator } from "@/components/savings-calculator";
 
 const fade = (delay: number) => ({
   initial: { opacity: 0, y: 16 },
@@ -20,8 +21,10 @@ const fade = (delay: number) => ({
 
 export default function LandingPage() {
   return (
-    <div className="relative flex min-h-[100dvh] flex-col overflow-hidden bg-black text-white">
-      <AmbientGlow />
+    <div className="relative bg-black text-white">
+      {/* Hero screen */}
+      <div className="relative flex min-h-[100dvh] flex-col overflow-hidden">
+        <AmbientGlow />
 
       {/* Nav — single text link, no chrome */}
       <motion.header
@@ -78,8 +81,20 @@ export default function LandingPage() {
               <ArrowRight className="h-4 w-4 transition-transform duration-fast group-hover:translate-x-0.5" />
             </Link>
           </motion.div>
+
+          <motion.a
+            {...fade(4)}
+            href="#savings"
+            className="inline-flex items-center gap-1 text-[12px] font-medium text-white/35 transition-colors duration-fast hover:text-white/70"
+          >
+            see how much you&apos;d save ↓
+          </motion.a>
         </div>
       </main>
+      </div>
+
+      {/* Savings calculator — the marketing point */}
+      <SavingsCalculator />
 
       {/* Footer — minimal, single line */}
       <motion.footer
