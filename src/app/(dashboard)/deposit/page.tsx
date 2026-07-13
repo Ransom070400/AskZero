@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ZeroGPay } from "@/components/deposit/zero-g-pay";
+import { SubscriptionAnchor } from "@/components/deposit/subscription-anchor";
 import {
   USD_TO_CREDITS_RATE,
   formatCredits,
@@ -260,6 +261,9 @@ function DepositContent() {
           )}
         </div>
       </div>
+
+      {/* Why pay-as-you-go wins: month-to-date spend vs a $20/mo subscription */}
+      <SubscriptionAnchor />
 
       {/* Currency selector */}
       <section className="space-y-3">
