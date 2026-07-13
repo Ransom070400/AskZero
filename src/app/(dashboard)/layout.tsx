@@ -8,6 +8,7 @@ import { LowBalanceBanner } from "@/components/layout/low-balance-banner";
 import { WelcomeCredits } from "@/components/layout/welcome-credits";
 import { FirstRunTour } from "@/components/first-run-tour";
 import { ReferralRedeemer } from "@/components/referral-redeemer";
+import { DailyReward } from "@/components/layout/daily-reward";
 import { CurrencyProvider } from "@/lib/currency";
 
 export default function DashboardLayout({
@@ -19,6 +20,7 @@ export default function DashboardLayout({
     <CurrencyProvider>
       <FirstRunTour />
       <ReferralRedeemer />
+      <DailyReward />
       <WhatsNew />
       <CommandPalette />
       <ShortcutsHelp />
