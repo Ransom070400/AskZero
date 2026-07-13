@@ -46,7 +46,9 @@ export async function updateSession(request: NextRequest) {
   const isPublic =
     isApi ||
     request.nextUrl.pathname === "/" ||
-    request.nextUrl.pathname.startsWith("/auth");
+    request.nextUrl.pathname.startsWith("/auth") ||
+    // Public gas faucet — community voters claim without an account.
+    request.nextUrl.pathname.startsWith("/gas");
 
   // If not logged in and trying to access protected routes, redirect to login
   if (!user && !isAuthPage && !isPublic) {
