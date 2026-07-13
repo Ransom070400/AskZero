@@ -13,6 +13,11 @@ import {
   Check,
   TrendingDown,
   AlertTriangle,
+  UserCheck,
+  Repeat,
+  Percent,
+  Zap,
+  ArrowRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -32,6 +37,28 @@ interface Treasury {
   balance: string;
 }
 
+interface Cohorts {
+  funnel: {
+    signedUp: number;
+    activated: number;
+    paid: number;
+    activatedPct: number;
+    paidPctOfActivated: number;
+    paidPctOfAll: number;
+  };
+  health: {
+    new7d: number;
+    active7d: number;
+    returning: number;
+    returningPct: number;
+    arpu: string;
+    arppu: string;
+    referredCount: number;
+  };
+  featureUsage: { kind: string; count: number; credits: number }[];
+  currencyMix: { currency: string; count: number; credits: number }[];
+}
+
 interface Transaction {
   id: string;
   user_id: string;
@@ -46,6 +73,7 @@ export default function AdminPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [treasury, setTreasury] = useState<Treasury | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [cohorts, setCohorts] = useState<Cohorts | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -62,6 +90,12 @@ export default function AdminPage() {
         setTransactions(data.recentTransactions);
       })
       .catch(() => setError("Failed to load"));
+
+    // Cohorts load independently — a slow/failed aggregate shouldn't blank the page.
+    fetch("/api/admin/cohorts")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => data && setCohorts(data))
+      .catch(() => {});
   }, []);
 
   const copyAddress = () => {
@@ -229,6 +263,101 @@ export default function AdminPage() {
         </div>
       </section>
 
+      {/* Funnel: signed up → activated → paid */}
+      {cohorts && (
+        <section className="space-y-3">
+          <h2 className="px-1 text-[12px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+            Funnel
+          </h2>
+          <div className="flex flex-col gap-2 rounded-2xl border border-border/70 bg-elevated/40 p-4 sm:flex-row sm:items-stretch">
+            <FunnelStep
+              icon={<Users className="h-4 w-4" />}
+              label="Signed up"
+              value={cohorts.funnel.signedUp}
+            />
+            <FunnelArrow pct={cohorts.funnel.activatedPct} caption="asked ≥1 question" />
+            <FunnelStep
+              icon={<MessageSquare className="h-4 w-4" />}
+              label="Activated"
+              value={cohorts.funnel.activated}
+            />
+            <FunnelArrow pct={cohorts.funnel.paidPctOfActivated} caption="of activated paid" />
+            <FunnelStep
+              icon={<CreditCard className="h-4 w-4" />}
+              label="Paid"
+              value={cohorts.funnel.paid}
+              highlight
+            />
+          </div>
+        </section>
+      )}
+
+      {/* Cohort health */}
+      {cohorts && (
+        <section className="space-y-3">
+          <h2 className="px-1 text-[12px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+            Health
+          </h2>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
+            <StatCard
+              label="Paying"
+              icon={<Percent className="h-4 w-4" />}
+              value={`${cohorts.funnel.paidPctOfAll}%`}
+              sub={`${cohorts.funnel.paid} of ${cohorts.funnel.signedUp}`}
+            />
+            <StatCard
+              label="Returning"
+              icon={<Repeat className="h-4 w-4" />}
+              value={`${cohorts.health.returningPct}%`}
+              sub={`${cohorts.health.returning} came back`}
+            />
+            <StatCard
+              label="Active 7d"
+              icon={<UserCheck className="h-4 w-4" />}
+              value={cohorts.health.active7d.toLocaleString()}
+            />
+            <StatCard
+              label="New 7d"
+              icon={<Users className="h-4 w-4" />}
+              value={cohorts.health.new7d.toLocaleString()}
+            />
+            <StatCard
+              label="ARPU"
+              icon={<Coins className="h-4 w-4" />}
+              value={`$${cohorts.health.arpu}`}
+              sub={`$${cohorts.health.arppu} per payer`}
+            />
+            <StatCard
+              label="Via referral"
+              icon={<Zap className="h-4 w-4" />}
+              value={cohorts.health.referredCount.toLocaleString()}
+            />
+          </div>
+        </section>
+      )}
+
+      {/* Feature usage + currency mix */}
+      {cohorts && (cohorts.featureUsage.length > 0 || cohorts.currencyMix.length > 0) && (
+        <section className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <Breakdown
+            title="What they use"
+            emptyLabel="No usage yet"
+            rows={cohorts.featureUsage.map((f) => ({
+              label: f.kind,
+              value: `${f.count.toLocaleString()} · ${f.credits.toLocaleString()}c`,
+            }))}
+          />
+          <Breakdown
+            title="Deposits by currency"
+            emptyLabel="No deposits yet"
+            rows={cohorts.currencyMix.map((c) => ({
+              label: c.currency,
+              value: `${c.count} · $${(c.credits / 1000).toFixed(2)}`,
+            }))}
+          />
+        </section>
+      )}
+
       {/* Recent transactions */}
       <section className="space-y-3">
         <h2 className="px-1 text-[12px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
@@ -276,6 +405,95 @@ function StatCard({
         <p className="mt-0.5 text-[11px] text-text-tertiary tabular-nums">
           {sub}
         </p>
+      )}
+    </div>
+  );
+}
+
+function FunnelStep({
+  icon,
+  label,
+  value,
+  highlight,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: number;
+  highlight?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex-1 rounded-xl border p-3.5 text-center",
+        highlight
+          ? "border-accent/40 bg-accent-muted/40"
+          : "border-border/60 bg-background/40"
+      )}
+    >
+      <div className="flex items-center justify-center gap-1.5 text-text-tertiary">
+        {icon}
+        <span className="text-[11px] font-semibold uppercase tracking-[0.12em]">
+          {label}
+        </span>
+      </div>
+      <p
+        className={cn(
+          "mt-1.5 font-display text-2xl font-bold tabular-nums tracking-tight",
+          highlight && "text-accent"
+        )}
+      >
+        {value.toLocaleString()}
+      </p>
+    </div>
+  );
+}
+
+function FunnelArrow({ pct, caption }: { pct: number; caption: string }) {
+  return (
+    <div className="flex shrink-0 flex-row items-center justify-center gap-1.5 px-1 sm:flex-col sm:gap-0.5">
+      <ArrowRight className="h-4 w-4 rotate-90 text-text-tertiary sm:rotate-0" />
+      <span className="text-[12px] font-bold tabular-nums text-foreground">{pct}%</span>
+      <span className="hidden text-[10px] leading-tight text-text-tertiary sm:block sm:max-w-[80px] sm:text-center">
+        {caption}
+      </span>
+    </div>
+  );
+}
+
+function Breakdown({
+  title,
+  rows,
+  emptyLabel,
+}: {
+  title: string;
+  rows: { label: string; value: string }[];
+  emptyLabel: string;
+}) {
+  return (
+    <div className="space-y-3">
+      <h2 className="px-1 text-[12px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+        {title}
+      </h2>
+      {rows.length === 0 ? (
+        <div className="rounded-2xl border border-border/70 bg-elevated/40 px-5 py-8 text-center">
+          <p className="text-[13px] text-text-tertiary">{emptyLabel}</p>
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-2xl border border-border/70 divide-y divide-border/50">
+          {rows.map((r) => (
+            <div
+              key={r.label}
+              className="flex items-center justify-between gap-3 bg-elevated/40 px-4 py-3"
+            >
+              <span className="text-[13px] font-semibold capitalize text-foreground">
+                {r.label}
+              </span>
+              <span className="text-[12px] tabular-nums text-text-secondary">
+                {r.value}
+              </span>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
