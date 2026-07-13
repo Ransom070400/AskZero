@@ -32,6 +32,17 @@ export async function GET(
     });
   }
 
+  // The exact stored answer text — this is what output_hash was computed over
+  // (chat route hashes and persists the same `fullResponse`), so the tamper
+  // demo must hash THIS, not the client's streamed reconstruction, which can
+  // drift by a character and would then falsely read as "tampered".
+  const { data: msg } = await supabase
+    .from("messages")
+    .select("content")
+    .eq("id", params.messageId)
+    .maybeSingle();
+  const output = (msg?.content as string | undefined) ?? null;
+
   let batch: unknown = null;
   let explorerUrl: string | null = null;
   let chainName: string | null = null;
@@ -54,5 +65,5 @@ export async function GET(
     }
   }
 
-  return Response.json({ receipt, batch, explorerUrl, chainName });
+  return Response.json({ receipt, batch, explorerUrl, chainName, output });
 }

@@ -43,6 +43,9 @@ interface ReceiptResponse {
   } | null;
   explorerUrl: string | null;
   chainName: string | null;
+  // The exact persisted answer text that output_hash was computed over. The
+  // tamper demo hashes this (not the client's streamed copy, which can drift).
+  output: string | null;
 }
 
 interface VerifyResult {
@@ -238,9 +241,9 @@ export function ReceiptBadge({
                       answer, untampered. (The technical details are below.)
                     </p>
 
-                    {content && (
+                    {(data.output ?? content) && (
                       <TamperDemo
-                        original={content}
+                        original={(data.output ?? content)!}
                         outputHash={data.receipt.output_hash}
                       />
                     )}
@@ -426,7 +429,21 @@ function TamperDemo({
     }
   }, [text]);
 
-  const matches = liveHash.toLowerCase() === outputHash.toLowerCase();
+  const originalHash = useMemo(() => {
+    try {
+      return keccak256(toUtf8Bytes(original));
+    } catch {
+      return "";
+    }
+  }, [original]);
+
+  // Normally the stored answer reproduces the anchored output_hash, so we match
+  // against that (rigorous). If it doesn't — a legacy/edited message whose text
+  // drifted from what was hashed — fall back to the original's own hash so the
+  // untampered state is never falsely flagged as tampered.
+  const baseline =
+    originalHash.toLowerCase() === outputHash.toLowerCase() ? outputHash : originalHash;
+  const matches = liveHash.toLowerCase() === baseline.toLowerCase();
   const tampered = text !== original;
   const shortHash =
     liveHash.length > 18 ? `${liveHash.slice(0, 10)}…${liveHash.slice(-8)}` : liveHash;
