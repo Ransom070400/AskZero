@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { Fuel, Loader2, Check, ExternalLink, AlertCircle } from "lucide-react";
 import { Logo } from "@/components/ui/logo";
 import { Input } from "@/components/ui/input";
@@ -12,98 +12,16 @@ interface Success {
   amount: string;
 }
 
-interface TurnstileOpts {
-  sitekey: string;
-  callback: (token: string) => void;
-  "expired-callback"?: () => void;
-  "error-callback"?: () => void;
-}
-
-declare global {
-  interface Window {
-    turnstile?: {
-      render: (el: HTMLElement, opts: TurnstileOpts) => string;
-      reset: (id?: string) => void;
-      remove: (id?: string) => void;
-    };
-  }
-}
-
-const SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
-
 export default function GasPage() {
   const [address, setAddress] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorLink, setErrorLink] = useState<string | null>(null);
   const [success, setSuccess] = useState<Success | null>(null);
-  const [token, setToken] = useState("");
-
-  const widgetRef = useRef<HTMLDivElement>(null);
-  const widgetId = useRef<string | null>(null);
-
-  // Load + render the Turnstile widget (explicit mode) when configured.
-  useEffect(() => {
-    if (!SITE_KEY) return;
-    let cancelled = false;
-    let poll: ReturnType<typeof setInterval> | undefined;
-
-    const render = () => {
-      if (cancelled || widgetId.current !== null) return;
-      if (!widgetRef.current || !window.turnstile) return;
-      widgetId.current = window.turnstile.render(widgetRef.current, {
-        sitekey: SITE_KEY,
-        callback: (t) => setToken(t),
-        "expired-callback": () => setToken(""),
-        "error-callback": () => setToken(""),
-      });
-    };
-
-    if (window.turnstile) {
-      render();
-    } else {
-      const src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
-      let s = document.querySelector<HTMLScriptElement>(
-        'script[src^="https://challenges.cloudflare.com/turnstile"]'
-      );
-      if (!s) {
-        s = document.createElement("script");
-        s.src = src;
-        s.async = true;
-        s.defer = true;
-        document.head.appendChild(s);
-      }
-      s.addEventListener("load", render);
-      // Fallback in case the load event already fired.
-      poll = setInterval(() => {
-        if (window.turnstile) {
-          clearInterval(poll);
-          render();
-        }
-      }, 200);
-      setTimeout(() => poll && clearInterval(poll), 10000);
-    }
-
-    return () => {
-      cancelled = true;
-      if (poll) clearInterval(poll);
-    };
-  }, []);
-
-  const resetTurnstile = () => {
-    setToken("");
-    if (window.turnstile && widgetId.current !== null) {
-      window.turnstile.reset(widgetId.current);
-    }
-  };
 
   const claim = async () => {
     const addr = address.trim();
     if (!addr || loading) return;
-    if (SITE_KEY && !token) {
-      setError("Please complete the bot check below.");
-      return;
-    }
     setLoading(true);
     setError(null);
     setErrorLink(null);
@@ -112,7 +30,7 @@ export default function GasPage() {
       const res = await fetch("/api/gas", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address: addr, turnstileToken: token }),
+        body: JSON.stringify({ address: addr }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -129,8 +47,6 @@ export default function GasPage() {
       setError("Network error. Please try again.");
     } finally {
       setLoading(false);
-      // Turnstile tokens are single-use — get a fresh one for any retry.
-      resetTurnstile();
     }
   };
 
@@ -215,12 +131,9 @@ export default function GasPage() {
               </div>
             )}
 
-            {/* Bot check (only when configured) */}
-            {SITE_KEY && <div ref={widgetRef} className="flex justify-center" />}
-
             <Button
               onClick={claim}
-              disabled={loading || !address.trim() || (!!SITE_KEY && !token)}
+              disabled={loading || !address.trim()}
               size="lg"
               className="w-full"
             >
