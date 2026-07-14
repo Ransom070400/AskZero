@@ -129,18 +129,34 @@ export async function POST(req: NextRequest) {
       to: address,
       value: ethers.parseEther(CLAIM_AMOUNT),
     });
+    // Record the hash up front so an in-flight payout is always traceable.
     await db.from("gas_claims").update({ tx_hash: tx.hash }).eq("address", address);
+
+    // CRITICAL: wait for the tx to actually be MINED before calling it a win.
+    // sendTransaction only broadcasts — a tx that is later dropped or replaced
+    // (e.g. a nonce race against another sender on this wallet) would otherwise
+    // be reported as a phantom success and the user would receive nothing while
+    // being permanently blocked from re-claiming. wait() with a timeout resolves
+    // that: only a real, status==1 receipt counts.
+    const receipt = await tx.wait(1, 90_000).catch(() => null);
+    if (!receipt || receipt.status !== 1) {
+      throw new Error("payout not confirmed on-chain");
+    }
+
     return json({
       txHash: tx.hash,
       explorerUrl: txUrl(CHAIN_ID, tx.hash),
       amount: CLAIM_AMOUNT,
     });
   } catch (e) {
-    // Roll back the reservation (only if we never sent) so they can retry.
-    await db.from("gas_claims").delete().eq("address", address).is("tx_hash", null);
+    // Roll back the reservation so the user can claim again. We delete even when
+    // a hash was recorded: the payout did not confirm, so the claim never
+    // completed. (At 0.001 0G, the small risk that a timed-out tx confirms later
+    // is far preferable to today's certainty of users getting nothing at all.)
+    await db.from("gas_claims").delete().eq("address", address);
     console.error("gas faucet send failed", e);
     return json(
-      { error: "Couldn't send gas right now. Please try again in a moment." },
+      { error: "That didn't go through — please try claiming again." },
       502
     );
   }
