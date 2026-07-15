@@ -9,6 +9,7 @@ import { ChatSkeleton } from "@/components/chat/chat-skeleton";
 import { toast } from "@/lib/toast";
 import { ChatInput, type ImageSize, type SlashCommand } from "@/components/chat/chat-input";
 import { ModelPicker, type ModelOption } from "@/components/chat/model-picker";
+import { CostMeter } from "@/components/chat/cost-meter";
 import type { Message, Attachment, ArtifactRef } from "@/components/chat/message-bubble";
 import type { ChatStyle } from "@/lib/system-prompt";
 import { ArtifactPanel } from "@/components/artifact/artifact-panel";
@@ -781,18 +782,26 @@ function ChatDetailContent() {
             ] satisfies SlashCommand[]}
           />
 
-          {/* Status row — model picker + helper text */}
+          {/* Status row — model picker + cost meter + helper text */}
           <div className="flex items-center justify-between gap-3 px-2">
-            {models.length > 0 && selectedModel ? (
-              <ModelPicker
-                models={models}
-                selected={selectedModel}
-                disabled={isStreaming}
-                onSelect={setSelectedModel}
+            <div className="flex min-w-0 items-center gap-2.5">
+              {models.length > 0 && selectedModel ? (
+                <ModelPicker
+                  models={models}
+                  selected={selectedModel}
+                  disabled={isStreaming}
+                  onSelect={setSelectedModel}
+                />
+              ) : (
+                <span />
+              )}
+              <CostMeter
+                promptText={input}
+                model={selectedModel?.model}
+                hasAttachments={attachments.length > 0}
+                isStreaming={isStreaming}
               />
-            ) : (
-              <span />
-            )}
+            </div>
 
             <p className="hidden md:block text-[11px] text-text-tertiary">
               <kbd className="mr-1 rounded bg-elevated/80 px-1 py-0.5 text-[10px] font-medium">⌘/</kbd>
