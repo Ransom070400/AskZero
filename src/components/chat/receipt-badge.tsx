@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { keccak256, toUtf8Bytes } from "ethers";
+import { cn } from "@/lib/utils";
 import {
   ShieldCheck,
   ShieldAlert,
@@ -68,10 +69,12 @@ export function ReceiptBadge({
   messageId,
   content,
   spotlight,
+  isStreaming,
 }: {
   messageId: string;
   content?: string;
   spotlight?: boolean;
+  isStreaming?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [data, setData] = useState<ReceiptResponse | null>(null);
@@ -81,6 +84,21 @@ export function ReceiptBadge({
   // Default true so the first-answer callout never flashes before we've read
   // localStorage; the effect flips it to the real value on mount.
   const [seen, setSeen] = useState(true);
+  // "Sealing" — a one-shot pop + shine when THIS answer just finished streaming,
+  // so the on-chain receipt feels earned rather than being a silent badge.
+  const [sealing, setSealing] = useState(false);
+  const wasStreaming = useRef(false);
+
+  useEffect(() => {
+    const wasStreamingBefore = wasStreaming.current;
+    wasStreaming.current = !!isStreaming;
+    // Fire only on the streaming→done transition for the last answer.
+    if (spotlight && wasStreamingBefore && !isStreaming) {
+      setSealing(true);
+      const t = setTimeout(() => setSealing(false), 900);
+      return () => clearTimeout(t);
+    }
+  }, [isStreaming, spotlight]);
 
   useEffect(() => {
     try {
@@ -133,14 +151,28 @@ export function ReceiptBadge({
   return (
     <>
       <span className="relative inline-flex items-center gap-1.5">
-        <button
+        <motion.button
           onClick={load}
-          className="press inline-flex items-center gap-1 rounded-lg px-1.5 py-1 text-[11px] font-medium text-text-tertiary transition-colors hover:text-accent"
+          animate={sealing ? { scale: [1, 1.18, 1] } : { scale: 1 }}
+          transition={{ duration: 0.7, ease: "easeOut" }}
+          className={cn(
+            "press relative inline-flex items-center gap-1 overflow-hidden rounded-lg px-1.5 py-1 text-[11px] font-medium transition-colors",
+            sealing ? "text-success" : "text-text-tertiary hover:text-accent"
+          )}
           title="This answer has a tamper-proof receipt — tap to see it"
         >
           <ShieldCheck className="h-3.5 w-3.5" />
-          Verified
-        </button>
+          {sealing ? "Sealed" : "Verified"}
+          {sealing && (
+            <motion.span
+              aria-hidden
+              className="absolute inset-0 -skew-x-12 bg-gradient-to-r from-transparent via-success/40 to-transparent"
+              initial={{ x: "-130%" }}
+              animate={{ x: "130%" }}
+              transition={{ duration: 0.7, ease: "easeOut" }}
+            />
+          )}
+        </motion.button>
 
         {showCallout && (
           <motion.span

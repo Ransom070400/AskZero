@@ -830,6 +830,7 @@ export function MessageBubble({
             messageId={message.id}
             content={message.content}
             spotlight={isLast}
+            isStreaming={isStreaming}
           />
         )}
         {message.tokenCount != null && (
