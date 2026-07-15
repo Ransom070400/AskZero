@@ -10,7 +10,7 @@ import remarkDirective from "remark-directive";
 import { remarkAlert } from "remark-github-blockquote-alert";
 import { remarkDetails } from "@/lib/remark-details";
 import { useCurrency } from "@/lib/currency";
-import { Copy, Check, Download, ExternalLink, FileText, FileCode, History, Pencil, RotateCw, X, Search, Calculator, Globe, Loader2, WrapText, ListOrdered, Share2, ChevronDown } from "lucide-react";
+import { Copy, Check, Download, ExternalLink, FileText, FileCode, History, Pencil, RotateCw, X, Search, Calculator, Globe, Loader2, WrapText, ListOrdered, Share2, ChevronDown, Wand2, Quote } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -231,6 +231,40 @@ function RegenerateMenu({
   );
 }
 
+// One-tap rewrites of the last answer. Each just sends a canned follow-up — the
+// model already has the prior answer in context, so "make that shorter" works.
+const REWRITES: { label: string; instruction: string }[] = [
+  { label: "Shorter", instruction: "Make that shorter and more concise." },
+  { label: "Explain simpler", instruction: "Explain that more simply, as if I'm new to the topic." },
+  { label: "More detail", instruction: "Expand on that with more detail and concrete examples." },
+  { label: "Bullet points", instruction: "Rewrite that as clear, concise bullet points." },
+  { label: "More formal", instruction: "Rewrite that in a more formal, professional tone." },
+];
+
+function RewriteMenu({ onTransform }: { onTransform: (instruction: string) => void }) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          aria-label="Rewrite this answer"
+          className="press inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
+        >
+          <Wand2 className="h-3.5 w-3.5" />
+          Rewrite
+          <ChevronDown className="h-3 w-3" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-48">
+        {REWRITES.map((r) => (
+          <DropdownMenuItem key={r.label} onClick={() => onTransform(r.instruction)}>
+            {r.label}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 function CopyBtn({
   text,
   size = "md",
@@ -414,6 +448,8 @@ export function MessageBubble({
   hideReceipt,
   onRegenerateWith,
   regenModels,
+  onTransform,
+  onQuote,
 }: {
   message: Message;
   onRegenerate?: () => void;
@@ -426,12 +462,40 @@ export function MessageBubble({
   isLast?: boolean;
   isStreaming?: boolean;
   hideReceipt?: boolean;
+  // Send a canned "rewrite the last answer" follow-up (Shorter, Simpler, …).
+  onTransform?: (instruction: string) => void;
+  // Ask a follow-up about a highlighted span of this answer.
+  onQuote?: (quotedText: string) => void;
 }) {
   const isUser = message.role === "user";
   const { formatCost } = useCurrency();
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState("");
   const [showPrev, setShowPrev] = useState(false);
+  // Quote-to-ask: a floating "Ask about this" button anchored to a text
+  // selection inside this answer.
+  const [quote, setQuote] = useState<{ text: string; x: number; y: number } | null>(null);
+
+  const handleSelect = () => {
+    if (!onQuote) return;
+    const sel = typeof window !== "undefined" ? window.getSelection() : null;
+    if (!sel || sel.isCollapsed) return setQuote(null);
+    const text = sel.toString().trim();
+    if (text.length < 3) return setQuote(null);
+    const rect = sel.getRangeAt(0).getBoundingClientRect();
+    setQuote({ text, x: rect.left + rect.width / 2, y: rect.top });
+  };
+
+  // Dismiss the button when the selection is cleared (click elsewhere, scroll).
+  useEffect(() => {
+    if (!onQuote) return;
+    const onChange = () => {
+      const s = window.getSelection();
+      if (!s || s.isCollapsed) setQuote(null);
+    };
+    document.addEventListener("selectionchange", onChange);
+    return () => document.removeEventListener("selectionchange", onChange);
+  }, [onQuote]);
   const [prevMessages, setPrevMessages] = useState<
     | {
         id: string;
@@ -639,6 +703,8 @@ export function MessageBubble({
           [&_blockquote]:border-l-2 [&_blockquote]:border-accent/40 [&_blockquote]:pl-4 [&_blockquote]:text-text-secondary [&_blockquote]:italic
           [&_ul]:my-3 [&_ol]:my-3 [&_li]:my-1
           [&_table]:block [&_table]:w-full [&_table]:overflow-x-auto [&_table]:border-collapse [&_th]:whitespace-nowrap [&_th]:text-left [&_th]:p-2 [&_th]:border-b [&_th]:border-border [&_td]:p-2 [&_td]:border-b [&_td]:border-border/40"
+        onMouseUp={handleSelect}
+        onTouchEnd={handleSelect}
       >
         <PreContext.Provider
           value={
@@ -662,6 +728,27 @@ export function MessageBubble({
           />
         )}
       </div>
+      {quote && onQuote && (
+        <button
+          // Keep the text selection alive through the click.
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => {
+            onQuote(quote.text.slice(0, 500));
+            setQuote(null);
+            window.getSelection()?.removeAllRanges();
+          }}
+          style={{
+            position: "fixed",
+            left: quote.x,
+            top: Math.max(8, quote.y - 44),
+            transform: "translateX(-50%)",
+          }}
+          className="press z-[60] inline-flex items-center gap-1.5 rounded-full bg-foreground px-3 py-1.5 text-[12px] font-semibold text-background shadow-lg animate-in fade-in-0 zoom-in-95"
+        >
+          <Quote className="h-3.5 w-3.5" />
+          Ask about this
+        </button>
+      )}
       {assistantImages.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-2">
           {assistantImages.map((att) => (
@@ -734,6 +821,9 @@ export function MessageBubble({
             onRegenerateWith={onRegenerateWith}
             models={regenModels}
           />
+        )}
+        {isLast && onTransform && message.content && (
+          <RewriteMenu onTransform={onTransform} />
         )}
         {message.content && !hideReceipt && (
           <ReceiptBadge

@@ -20,12 +20,14 @@ interface ChatListProps {
     body: { type: string; title: string; language: string | null; content: string }
   ) => void;
   hideReceipts?: boolean;
+  onTransform?: (instruction: string) => void;
+  onQuote?: (quotedText: string) => void;
 }
 
 // How close to the bottom (px) still counts as "following the conversation".
 const NEAR_BOTTOM_PX = 120;
 
-export function ChatList({ messages, isStreaming, onRegenerate, onRegenerateWith, regenModels, onRegenerateImage, onEdit, onOpenArtifact, onOpenAsArtifact, hideReceipts }: ChatListProps) {
+export function ChatList({ messages, isStreaming, onRegenerate, onRegenerateWith, regenModels, onRegenerateImage, onEdit, onOpenArtifact, onOpenAsArtifact, hideReceipts, onTransform, onQuote }: ChatListProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const [atBottom, setAtBottom] = useState(true);
@@ -89,6 +91,8 @@ export function ChatList({ messages, isStreaming, onRegenerate, onRegenerateWith
                   onOpenArtifact={onOpenArtifact}
                   onOpenAsArtifact={onOpenAsArtifact}
                   hideReceipt={hideReceipts}
+                  onTransform={!isStreaming ? onTransform : undefined}
+                  onQuote={onQuote}
                 />
               </motion.div>
             );

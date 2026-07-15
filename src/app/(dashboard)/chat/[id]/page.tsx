@@ -737,6 +737,8 @@ function ChatDetailContent() {
         onOpenArtifact={setOpenArtifactId}
         onOpenAsArtifact={handleOpenAsArtifact}
         hideReceipts={isIncognito}
+        onTransform={(instruction) => sendMessage(instruction)}
+        onQuote={(q) => setInput(`About "${q.replace(/\s+/g, " ").trim()}": `)}
       />
       )}
 
