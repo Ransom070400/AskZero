@@ -59,9 +59,10 @@ interface VerifyResult {
 }
 
 const PROOF_MOMENT_KEY = "askzero-proof-moment-seen";
-// Hidden for now — flip to true to re-enable the interactive tamper demo +
-// first-answer callout. The rest of the receipt/verify modal is unaffected.
-const PROOF_MOMENT_ENABLED = false;
+// The interactive tamper demo + first-answer callout. The demo only renders when
+// the API returns `output` (the exact persisted answer that reproduces the
+// anchored output_hash), so it can never false-flag an untouched answer.
+const PROOF_MOMENT_ENABLED = true;
 
 export function ReceiptBadge({
   messageId,
@@ -244,9 +245,9 @@ export function ReceiptBadge({
                       answer, untampered. (The technical details are below.)
                     </p>
 
-                    {PROOF_MOMENT_ENABLED && (data.output ?? content) && (
+                    {PROOF_MOMENT_ENABLED && data.output && (
                       <TamperDemo
-                        original={(data.output ?? content)!}
+                        original={data.output}
                         outputHash={data.receipt.output_hash}
                       />
                     )}
@@ -441,11 +442,12 @@ function TamperDemo({
   }, [original]);
 
   // Normally the stored answer reproduces the anchored output_hash, so we match
-  // against that (rigorous). If it doesn't — a legacy/edited message whose text
-  // drifted from what was hashed — fall back to the original's own hash so the
-  // untampered state is never falsely flagged as tampered.
-  const baseline =
-    originalHash.toLowerCase() === outputHash.toLowerCase() ? outputHash : originalHash;
+  // against that (rigorous — the fingerprint is literally the one committed
+  // on-chain). If it doesn't — a legacy/edited message whose text drifted from
+  // what was hashed — fall back to the original's own hash so the untampered
+  // state is never falsely flagged as tampered.
+  const rigorous = originalHash.toLowerCase() === outputHash.toLowerCase();
+  const baseline = rigorous ? outputHash : originalHash;
   const matches = liveHash.toLowerCase() === baseline.toLowerCase();
   const tampered = text !== original;
   const shortHash =
@@ -500,7 +502,8 @@ function TamperDemo({
         >
           {matches ? (
             <>
-              <Check className="h-3 w-3" /> Matches the original
+              <Check className="h-3 w-3" />{" "}
+              {rigorous ? "Matches the on-chain hash" : "Matches the original"}
             </>
           ) : (
             <>
