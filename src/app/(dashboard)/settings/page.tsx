@@ -475,6 +475,37 @@ interface Memory {
   og_root_hash: string | null;
 }
 
+// Warmer, glanceable relative time ("3d ago") with the full timestamp on hover.
+function timeAgo(iso: string): string {
+  const s = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
+  if (s < 60) return "just now";
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  if (d < 7) return `${d}d ago`;
+  const w = Math.floor(d / 7);
+  if (w < 5) return `${w}w ago`;
+  return new Date(iso).toLocaleDateString();
+}
+
+function MemorySkeleton() {
+  return (
+    <>
+      {[0, 1, 2].map((i) => (
+        <div key={i} className="flex items-start justify-between gap-3 px-5 py-3.5">
+          <div className="min-w-0 flex-1 space-y-2">
+            <div className="h-3 w-[85%] animate-pulse rounded bg-border/60" />
+            <div className="h-2.5 w-16 animate-pulse rounded bg-border/40" />
+          </div>
+          <div className="h-6 w-6 shrink-0 animate-pulse rounded-lg bg-border/40" />
+        </div>
+      ))}
+    </>
+  );
+}
+
 function MemorySection() {
   const supabase = createClient();
   const [memories, setMemories] = useState<Memory[]>([]);
@@ -505,12 +536,17 @@ function MemorySection() {
 
   return (
     <section className="space-y-2.5">
-      <div className="flex items-baseline justify-between px-1">
-        <h2 className="text-[12px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
-          Memory
-        </h2>
+      <div className="flex items-center justify-between px-1">
+        <div className="flex items-center gap-2">
+          <span className="flex h-5 w-5 items-center justify-center rounded-md bg-accent-muted text-accent">
+            <Sparkles className="h-3 w-3" />
+          </span>
+          <h2 className="text-[12px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+            Memory
+          </h2>
+        </div>
         {!loading && memories.length > 0 && (
-          <span className="text-[11px] text-text-tertiary tabular-nums">
+          <span className="rounded-full bg-elevated px-2 py-0.5 text-[11px] font-medium text-text-tertiary tabular-nums">
             {memories.length} {memories.length === 1 ? "memory" : "memories"}
           </span>
         )}
@@ -522,41 +558,49 @@ function MemorySection() {
 
       <div className="overflow-hidden rounded-2xl border border-border/70 bg-elevated/40 divide-y divide-border/50">
         {loading ? (
-          <div className="px-5 py-4 text-[13px] text-text-tertiary">Loading…</div>
+          <MemorySkeleton />
         ) : memories.length === 0 ? (
-          <div className="px-5 py-5 text-[13px] text-text-tertiary leading-relaxed">
-            Nothing remembered yet. As you chat, AskZero notes durable facts —
-            preferences, projects, recurring goals — and they&apos;ll show up here.
+          <div className="flex flex-col items-center gap-2.5 px-5 py-8 text-center">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent-muted/60 text-accent">
+              <Sparkles className="h-4 w-4" />
+            </span>
+            <p className="max-w-[280px] text-[13px] text-text-tertiary leading-relaxed">
+              Nothing remembered yet. As you chat, AskZero notes durable facts —
+              preferences, projects, recurring goals — and they&apos;ll show up here.
+            </p>
           </div>
         ) : (
           memories.map((m) => (
             <div
               key={m.id}
-              className="group flex items-start justify-between gap-3 px-5 py-3.5"
+              className="group/mem flex items-start justify-between gap-3 px-5 py-3.5 transition-colors duration-fast hover:bg-surface/40"
             >
               <div className="min-w-0 space-y-1.5">
                 <p className="text-[13px] text-foreground leading-relaxed">
                   {m.content}
                 </p>
-                <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-2">
                   {m.og_root_hash && (
                     <span
-                      className="inline-flex items-center gap-1 text-[10px] font-medium text-text-tertiary"
+                      className="inline-flex items-center gap-1 rounded-full bg-success/10 px-1.5 py-0.5 text-[10px] font-semibold text-success"
                       title={`Anchored on 0G Storage · ${m.og_root_hash.slice(0, 10)}…`}
                     >
-                      <ShieldCheck className="h-3 w-3 text-success" />
+                      <ShieldCheck className="h-2.5 w-2.5" />
                       On 0G
                     </span>
                   )}
-                  <span className="text-[10px] text-text-tertiary tabular-nums">
-                    {new Date(m.created_at).toLocaleDateString()}
+                  <span
+                    className="text-[10px] text-text-tertiary tabular-nums"
+                    title={new Date(m.created_at).toLocaleString()}
+                  >
+                    {timeAgo(m.created_at)}
                   </span>
                 </div>
               </div>
               <button
                 onClick={() => handleDelete(m.id)}
                 aria-label="Forget this memory"
-                className="press shrink-0 rounded-lg p-1.5 text-text-tertiary transition-colors duration-fast hover:bg-surface hover:text-error"
+                className="press shrink-0 rounded-lg p-1.5 text-text-tertiary opacity-100 transition-[color,background-color,opacity] duration-fast hover:bg-surface hover:text-error md:opacity-0 md:group-hover/mem:opacity-100"
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
