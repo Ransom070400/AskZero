@@ -20,6 +20,8 @@ import {
   MessageSquare,
   PanelLeftClose,
   PanelLeftOpen,
+  X,
+  Loader2,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -637,13 +639,27 @@ export function ContentSidebar() {
       {/* Search */}
       <div className="px-3 pb-2">
         <label className="relative block">
-          <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-tertiary" />
+          {searching ? (
+            <Loader2 className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 animate-spin text-accent" />
+          ) : (
+            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-tertiary" />
+          )}
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search"
-            className="h-9 w-full rounded-xl bg-elevated/70 pl-8 pr-3 text-[13px] font-medium text-foreground placeholder:font-normal placeholder:text-text-tertiary outline-none border border-transparent transition-[border-color,background-color,box-shadow] duration-fast ease-out hover:bg-elevated focus:bg-background focus:border-accent/50 focus:shadow-ring"
+            className="h-9 w-full rounded-xl bg-elevated/70 pl-8 pr-8 text-[13px] font-medium text-foreground placeholder:font-normal placeholder:text-text-tertiary outline-none border border-transparent transition-[border-color,background-color,box-shadow] duration-fast ease-out hover:bg-elevated focus:bg-background focus:border-accent/50 focus:shadow-ring"
           />
+          {query && (
+            <button
+              type="button"
+              onClick={() => setQuery("")}
+              aria-label="Clear search"
+              className="press absolute right-2 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-md text-text-tertiary transition-colors duration-fast hover:bg-elevated hover:text-foreground"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
         </label>
       </div>
 
@@ -651,10 +667,22 @@ export function ContentSidebar() {
       <div className="px-3 pb-3">
         <button
           onClick={() => router.push("/chat")}
-          className="press group flex w-full items-center justify-between rounded-xl border border-border/70 bg-elevated px-3 py-2 text-[13px] font-semibold text-foreground shadow-sm transition-[border-color,background-color] duration-fast ease-out hover:border-border-strong"
+          className={cn(
+            "press group flex w-full items-center justify-between rounded-xl border bg-elevated px-3 py-2 text-[13px] font-semibold text-foreground shadow-sm transition-[border-color,background-color] duration-fast ease-out hover:border-border-strong",
+            pathname === "/chat"
+              ? "border-accent/50 bg-accent-muted/40"
+              : "border-border/70"
+          )}
         >
           <span className="flex items-center gap-2">
-            <Plus className="h-4 w-4 text-text-tertiary group-hover:text-accent transition-colors duration-fast" />
+            <Plus
+              className={cn(
+                "h-4 w-4 transition-colors duration-fast",
+                pathname === "/chat"
+                  ? "text-accent"
+                  : "text-text-tertiary group-hover:text-accent"
+              )}
+            />
             New chat
           </span>
           <kbd className="text-[10px] font-medium tracking-wider text-text-tertiary">
