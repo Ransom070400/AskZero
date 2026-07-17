@@ -19,6 +19,7 @@ import {
   ChevronDown,
   ShieldCheck,
   Sparkles,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ZeroGPay } from "@/components/deposit/zero-g-pay";
@@ -47,6 +48,20 @@ interface Transaction {
   status: string;
   created_at: string;
 }
+
+// Make credits legible as value: a typical default-model answer is ~2 credits
+// (mirrors the chat cost meter), so a balance/top-up reads as "≈ N questions".
+const CREDITS_PER_ANSWER = 2;
+const approxQuestions = (credits: number) =>
+  Math.max(1, Math.round(credits / CREDITS_PER_ANSWER));
+
+// Friendlier labels than the raw transaction type.
+const TX_LABELS: Record<string, string> = {
+  usage: "Chat usage",
+  deposit: "Top-up",
+  bonus: "Bonus credits",
+  refund: "Refund",
+};
 
 export default function DepositPage() {
   return (
@@ -260,6 +275,12 @@ function DepositContent() {
             </p>
           )}
         </div>
+        {balance !== null && balance > 0 && (
+          <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-accent-muted/50 px-2.5 py-1 text-[12px] font-medium text-accent tabular-nums">
+            <Sparkles className="h-3 w-3" />
+            ≈ {formatCredits(approxQuestions(balance))} questions left
+          </p>
+        )}
       </div>
 
       {/* Why pay-as-you-go wins: month-to-date spend vs a $20/mo subscription */}
@@ -361,17 +382,9 @@ function DepositContent() {
       {/* Amount */}
       {!pay0G && (
       <section className="space-y-3">
-        <div className="flex items-baseline justify-between">
-          <h2 className="text-[12px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
-            Amount
-          </h2>
-          {estimatedCredits > 0 && (
-            <p className="text-[12px] font-medium text-text-tertiary tabular-nums">
-              <Sparkles className="inline h-3 w-3 -mt-0.5 mr-1 text-accent" />
-              {formatCredits(estimatedCredits)} credits
-            </p>
-          )}
-        </div>
+        <h2 className="text-[12px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+          Amount
+        </h2>
 
         <div className="relative">
           <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[18px] font-semibold text-text-tertiary">
@@ -387,6 +400,18 @@ function DepositContent() {
             className="h-14 pl-10 text-[20px] font-semibold tracking-tight tabular-nums"
           />
         </div>
+
+        {estimatedCredits > 0 && (
+          <div className="flex items-center justify-between rounded-xl border border-accent/20 bg-accent-muted/30 px-4 py-2.5">
+            <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-foreground tabular-nums">
+              <Sparkles className="h-3.5 w-3.5 text-accent" />
+              {formatCredits(estimatedCredits)} credits
+            </span>
+            <span className="text-[12px] font-medium text-accent tabular-nums">
+              ≈ {formatCredits(approxQuestions(estimatedCredits))} questions
+            </span>
+          </div>
+        )}
 
         <div className="flex flex-wrap gap-2">
           {presetsAny(currency).map((preset) => (
@@ -411,9 +436,14 @@ function DepositContent() {
           disabled={numericAmount <= 0 || loading}
           onClick={handleFiatDeposit}
         >
-          {loading
-            ? "Processing…"
-            : `Fund account${numericAmount > 0 ? ` · ${formatAny(numericAmount, currency)}` : ""}`}
+          {loading ? (
+            <span className="inline-flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Processing…
+            </span>
+          ) : (
+            `Fund account${numericAmount > 0 ? ` · ${formatAny(numericAmount, currency)}` : ""}`
+          )}
         </Button>
 
         <p className="flex items-center justify-center gap-1.5 text-[11px] font-medium text-text-tertiary">
@@ -499,8 +529,8 @@ function TransactionRow({ tx }: { tx: Transaction }) {
       <div className="flex min-w-0 items-center gap-3">
         <StatusIcon className={cn("h-4 w-4 shrink-0", statusColor)} />
         <div className="min-w-0">
-          <p className="text-[13px] font-semibold capitalize text-foreground">
-            {tx.type}
+          <p className="text-[13px] font-semibold text-foreground">
+            {TX_LABELS[tx.type] ?? tx.type}
           </p>
           <p className="text-[11px] text-text-tertiary">
             {new Date(tx.created_at).toLocaleString(undefined, {
@@ -516,7 +546,7 @@ function TransactionRow({ tx }: { tx: Transaction }) {
         <p
           className={cn(
             "text-[13px] font-semibold tabular-nums",
-            isUsage ? "text-text-secondary" : "text-foreground"
+            isUsage ? "text-text-secondary" : "text-success"
           )}
         >
           {isUsage ? "−" : "+"}
