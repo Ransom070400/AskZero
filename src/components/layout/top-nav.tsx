@@ -145,27 +145,31 @@ export function TopNav() {
           <EyeOff className="h-4 w-4" />
         </button>
 
-        {/* Login streak — always-visible so the streak feels owned */}
-        {streak > 0 && (
-          <div
-            title={`${streak}-day streak — claim your daily reward to keep it going`}
-            className="flex items-center gap-1 rounded-full border border-border/70 bg-elevated/80 px-2.5 py-1 text-[13px] font-semibold text-foreground"
+        {/* Streak + balance — one unified account cluster: 🔥 streak · + balance */}
+        <div className="flex items-center overflow-hidden rounded-full border border-border/70 bg-elevated/80">
+          {streak > 0 && (
+            <>
+              <div
+                title={`${streak}-day streak — claim your daily reward to keep it going`}
+                className="flex items-center gap-1 py-1 pl-2.5 pr-2 text-[13px] font-semibold text-foreground"
+              >
+                <Flame className="h-3.5 w-3.5 text-accent" />
+                <span className="tabular-nums">{streak}</span>
+              </div>
+              <span className="h-4 w-px bg-border/70" />
+            </>
+          )}
+          <button
+            onClick={() => router.push("/deposit")}
+            aria-label="Add credits"
+            className="press group flex items-center gap-1.5 py-1 pl-2.5 pr-3 text-[13px] font-semibold text-foreground transition-colors duration-fast ease-out hover:bg-elevated"
           >
-            <Flame className="h-3.5 w-3.5 text-accent" />
-            <span className="tabular-nums">{streak}</span>
-          </div>
-        )}
-
-        {/* Balance pill — refined affordance, hover lifts subtly */}
-        <button
-          onClick={() => router.push("/deposit")}
-          className="press group flex items-center gap-1.5 rounded-full border border-border/70 bg-elevated/80 px-3 py-1 text-[13px] font-semibold text-foreground transition-[border-color,background-color,box-shadow] duration-fast ease-out hover:border-border-strong hover:shadow-sm"
-        >
-          <Plus className="h-3 w-3 text-text-tertiary group-hover:text-accent transition-colors duration-fast" />
-          <span className="tabular-nums">
-            {balance !== null ? formatBalance(Math.round(shownBalance)) : "—"}
-          </span>
-        </button>
+            <Plus className="h-3 w-3 text-text-tertiary group-hover:text-accent transition-colors duration-fast" />
+            <span className="tabular-nums">
+              {balance !== null ? formatBalance(Math.round(shownBalance)) : "—"}
+            </span>
+          </button>
+        </div>
 
         <span className="hidden md:block">
           <ThemeToggle />
