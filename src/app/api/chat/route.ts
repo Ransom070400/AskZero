@@ -16,6 +16,7 @@ import { buildReceipt, makeNonce } from "@/lib/receipts";
 import { buildSystemPrompt, type ChatStyle } from "@/lib/system-prompt";
 import { runAgentLoop } from "@/lib/agent";
 import { detectArtifacts } from "@/lib/artifact-detect";
+import { TYPICAL_OUTPUT_TOKENS } from "@/lib/estimate";
 import {
   recallMemories,
   formatMemoriesForPrompt,
@@ -31,7 +32,32 @@ function estimateTokens(text: string): number {
   return Math.ceil(text.length / 4);
 }
 
-const MIN_CREDITS = 5;
+// Single source of truth for "what does this answer cost?" — used to gate the
+// request up front AND to settle it afterwards, so the projection can never
+// disagree with the charge. On-chain (Integrate Network) models price
+// dynamically as wholesale × markup so the margin can't invert when the 0G
+// token price moves; everything else falls back to the static MODEL_PRICING
+// table. Billing has a 1-credit floor.
+function costForTokens(
+  provider: string,
+  model: string | undefined,
+  inputTokens: number,
+  outputTokens: number
+): number {
+  const integrateId = provider.startsWith(INTEGRATE_PREFIX)
+    ? provider.slice(INTEGRATE_PREFIX.length)
+    : null;
+  const dynamicCost = integrateId
+    ? retailCostCredits(integrateId, inputTokens, outputTokens)
+    : ogRetailCostCredits(provider, inputTokens, outputTokens);
+  const cost =
+    dynamicCost ??
+    calculateCost(model || "default", inputTokens, outputTokens);
+  return Math.max(cost, 1);
+}
+
+// Absolute floor — the cheapest an answer can ever be.
+const MIN_CREDITS = 1;
 
 export async function POST(req: NextRequest) {
   const { supabase, user } = await getAuthedUser();
@@ -79,21 +105,31 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Check balance
+  // Check balance. The gate has to clear this answer's PROJECTED cost, not a
+  // flat floor. deduct_credits refuses to overdraw, so a user parked just above
+  // a fixed floor would fail the post-answer deduction and — because that
+  // failure was swallowed — keep both their balance and the answer, forever.
+  let balance = Number.POSITIVE_INFINITY;
   try {
-    const balance = await checkBalance(user.id, supabase);
-    if (balance < MIN_CREDITS) {
-      return new Response(
-        JSON.stringify({
-          error: "Insufficient credits",
-          balance,
-          depositUrl: "/deposit",
-        }),
-        { status: 402 }
-      );
-    }
+    balance = await checkBalance(user.id, supabase);
   } catch {
-    // proceed
+    // Balance unreadable — proceed and let the (atomic) settlement below be the
+    // backstop rather than failing a request over a transient read error.
+  }
+  const projectedCost = Math.max(
+    costForTokens(provider, model, estimateTokens(message), TYPICAL_OUTPUT_TOKENS),
+    MIN_CREDITS
+  );
+  if (balance < projectedCost) {
+    return new Response(
+      JSON.stringify({
+        error: "Insufficient credits",
+        balance: Number.isFinite(balance) ? balance : 0,
+        required: projectedCost,
+        depositUrl: "/deposit",
+      }),
+      { status: 402 }
+    );
   }
 
   // Save user message (skipped entirely in incognito — nothing is persisted).
@@ -255,6 +291,26 @@ export async function POST(req: NextRequest) {
             .join(" ")
         ) + attachments.length * 85; // ~85 tokens per image
 
+      // Re-gate on the real input size. History, the system prompt and the tool
+      // observations dwarf the raw message, so the pre-flight projection can
+      // under-estimate badly on a long chat. Catching it here means we decline
+      // before spending money on inference rather than after.
+      const projectedNow = Math.max(
+        costForTokens(provider, model, inputTokens, TYPICAL_OUTPUT_TOKENS),
+        MIN_CREDITS
+      );
+      if (balance < projectedNow) {
+        send({
+          error: "Insufficient credits",
+          balance: Number.isFinite(balance) ? balance : 0,
+          required: projectedNow,
+          depositUrl: "/deposit",
+        });
+        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+        controller.close();
+        return;
+      }
+
       // 3) Call the model for the final answer (streamed).
       let ogResponse: Response;
       try {
@@ -325,33 +381,27 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // Calculate cost and deduct. On-chain (Integrate Network) models are
-      // priced dynamically as wholesale × markup so the margin can't invert
-      // when the 0G token price moves; everything else falls back to the
-      // static MODEL_PRICING table.
+      // Calculate cost and settle.
       const outputTokens = estimateTokens(fullResponse);
-      const integrateId = provider.startsWith(INTEGRATE_PREFIX)
-        ? provider.slice(INTEGRATE_PREFIX.length)
-        : null;
-      const dynamicCost = integrateId
-        ? retailCostCredits(integrateId, inputTokens, outputTokens)
-        : ogRetailCostCredits(provider, inputTokens, outputTokens);
-      const cost =
-        dynamicCost ??
-        calculateCost(model || "default", inputTokens, outputTokens);
-      const actualCost = Math.max(cost, 1);
+      const actualCost = costForTokens(
+        provider,
+        model,
+        inputTokens,
+        outputTokens
+      );
 
       const LOW_BALANCE_THRESHOLD = 50;
+      const usageMeta = {
+        chat_id: chatId,
+        model: model || "unknown",
+        input_tokens: inputTokens,
+        output_tokens: outputTokens,
+      };
       try {
         const newBalance = await deductCredits(
           user.id,
           actualCost,
-          {
-            chat_id: chatId,
-            model: model || "unknown",
-            input_tokens: inputTokens,
-            output_tokens: outputTokens,
-          },
+          usageMeta,
           supabase
         );
 
@@ -359,7 +409,26 @@ export async function POST(req: NextRequest) {
           sendLowBalanceWarning(user.email, newBalance);
         }
       } catch {
-        console.error("Failed to deduct credits after response");
+        // deduct_credits refuses to overdraw, so an answer that ran longer than
+        // projected lands here. Collect what's actually there instead of
+        // swallowing the failure: leaving the balance untouched would hand the
+        // user a free answer and let them farm more by parking just under the
+        // cost of an expensive reply. Draining to zero also means the next
+        // request is stopped by the gate above.
+        try {
+          const remaining = await checkBalance(user.id, supabase);
+          if (remaining > 0) {
+            await deductCredits(
+              user.id,
+              remaining,
+              { ...usageMeta, full_cost: actualCost, shortfall: actualCost - remaining },
+              supabase
+            );
+          }
+          if (user.email) sendLowBalanceWarning(user.email, 0);
+        } catch (err) {
+          console.error("Failed to settle credits after response", err);
+        }
       }
 
       // Save assistant message. In incognito this stays null, which cascades to
