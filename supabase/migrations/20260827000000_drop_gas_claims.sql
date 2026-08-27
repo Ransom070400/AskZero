@@ -1,0 +1,25 @@
+-- ============================================================
+-- Drop the gas faucet claims table
+-- ------------------------------------------------------------
+-- The /gas faucet page and its /api/gas payout route were removed (commit
+-- 4e0dc9e). The campaign they existed for — handing community voters the
+-- 0.001 0G they needed to 5x a vote — is over, and nothing reads or writes
+-- this table any more.
+--
+-- This destroys 647 claim records (one per wallet paid, 2026-07-13 onward).
+-- That is intentional, and the payouts themselves are not lost: every one is
+-- a settled transaction on 0G mainnet, permanently recorded on-chain and
+-- independently queryable by the faucet wallet's address. What goes away is
+-- our local index of them — including the `ip` column, which is the one piece
+-- of personal data here and has no reason to outlive the feature.
+--
+-- Dropping the table takes its unique(address) constraint and RLS setting
+-- with it; there are no policies, foreign keys, or dependent objects to
+-- unwind first.
+--
+-- The original migration (20260714000000_gas_claims.sql) is deliberately left
+-- in place. Migrations are an append-only log: a fresh database still creates
+-- the table and then drops it here, which is correct and costs nothing.
+-- ============================================================
+
+drop table if exists public.gas_claims;
