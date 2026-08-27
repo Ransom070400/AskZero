@@ -7,4 +7,13 @@
 // that nothing would ever read.
 import { defineCloudflareConfig } from "@opennextjs/cloudflare/config";
 
-export default defineCloudflareConfig();
+export default {
+  ...defineCloudflareConfig(),
+
+  // `npm run build` IS `opennextjs-cloudflare build`, so that a CI whose build
+  // command is the default `npm run build` produces a Worker bundle rather than
+  // a plain Next build. OpenNext then shells out to `config.buildCommand ??
+  // "npm run build"` to compile the Next app — without this override that is
+  // the same script again, and the build recurses until the machine gives out.
+  buildCommand: "npm run build:next",
+};
