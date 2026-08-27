@@ -1,0 +1,28 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "askzero",
+
+  // Our own entrypoint, which wraps OpenNext's generated `.open-next/worker.js`
+  // to add the `scheduled` handler. Pointing `main` straight at the generated
+  // worker would build fine but silently drop receipt anchoring.
+  "main": "cloudflare/worker.ts",
+
+  "compatibility_date": "2026-08-26",
+  // nodejs_compat is required: the server bundle pulls in ethers, the 0G SDKs
+  // and pdf-parse, all of which need Node built-ins.
+  "compatibility_flags": ["nodejs_compat"],
+
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+
+  // Replaces the Vercel Cron from vercel.json. Hourly, same schedule as before.
+  "triggers": {
+    "crons": ["0 * * * *"]
+  },
+
+  "observability": {
+    "enabled": true
+  }
+}
