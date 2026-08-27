@@ -468,6 +468,29 @@ function ChatDetailContent() {
 
             try {
               const parsed = JSON.parse(trimmed);
+
+              // The server can decline mid-stream — most importantly when the
+              // real input size pushes the projected cost above the balance,
+              // which is only known after the request has already opened. Same
+              // treatment as the pre-stream 402 so it never fails silently.
+              if (parsed.error) {
+                const streamErr = String(parsed.error);
+                const insufficient = streamErr === "Insufficient credits";
+                toast.error(insufficient ? "Insufficient credits" : streamErr);
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === assistantId
+                      ? {
+                          ...m,
+                          content: insufficient
+                            ? "Insufficient credits. [Deposit funds](/deposit) to continue."
+                            : `Error: ${streamErr}`,
+                        }
+                      : m
+                  )
+                );
+                continue;
+              }
               if (
                 parsed.type === "thinking" ||
                 parsed.type === "tool" ||
