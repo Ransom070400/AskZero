@@ -285,6 +285,42 @@ html {
 }
 
 /* Landing page ambient backdrop — slow, meditative drift. Never distracting. */
+/* Shimmer for the "thinking" label shown while an answer is still pending.
+   The sweep is a moving highlight clipped to the glyphs, so the word itself
+   carries the motion — no spinner, no layout of its own. 200% background with
+   a -200%..200% slide keeps the highlight fully off-glyph between passes, so
+   the loop reads as one light travelling past rather than a pulse. */
+@keyframes shimmerSweep {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.shimmer-text {
+  background: linear-gradient(
+    100deg,
+    hsl(var(--text-tertiary)) 0%,
+    hsl(var(--text-tertiary)) 40%,
+    hsl(var(--foreground)) 50%,
+    hsl(var(--text-tertiary)) 60%,
+    hsl(var(--text-tertiary)) 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmerSweep 1.8s linear infinite;
+}
+/* Without motion the gradient would freeze mid-sweep and leave the word
+   half-transparent, so fall back to a flat, fully legible colour. */
+@media (prefers-reduced-motion: reduce) {
+  .shimmer-text {
+    animation: none;
+    background: none;
+    -webkit-background-clip: border-box;
+    background-clip: border-box;
+    color: hsl(var(--text-secondary));
+  }
+}
+
 @keyframes ambientDrift {
   0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.50; }
   50%      { transform: translate(-48%, -52%) scale(1.08); opacity: 0.62; }

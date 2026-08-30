@@ -9,6 +9,7 @@ import { TypingIndicator } from "./typing-indicator";
 interface ChatListProps {
   messages: Message[];
   isStreaming?: boolean;
+  modelLabel?: string;
   onRegenerate?: () => void;
   onRegenerateWith?: (m: { provider: string; model: string }) => void;
   regenModels?: { provider: string; model: string; label: string; kind?: string }[];
@@ -27,7 +28,7 @@ interface ChatListProps {
 // How close to the bottom (px) still counts as "following the conversation".
 const NEAR_BOTTOM_PX = 120;
 
-export function ChatList({ messages, isStreaming, onRegenerate, onRegenerateWith, regenModels, onRegenerateImage, onEdit, onOpenArtifact, onOpenAsArtifact, hideReceipts, onTransform, onQuote }: ChatListProps) {
+export function ChatList({ messages, isStreaming, modelLabel, onRegenerate, onRegenerateWith, regenModels, onRegenerateImage, onEdit, onOpenArtifact, onOpenAsArtifact, hideReceipts, onTransform, onQuote }: ChatListProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const [atBottom, setAtBottom] = useState(true);
@@ -83,6 +84,7 @@ export function ChatList({ messages, isStreaming, onRegenerate, onRegenerateWith
                   message={msg}
                   isLast={isLast}
                   isStreaming={isStreaming}
+                  modelLabel={modelLabel}
                   onRegenerate={!isStreaming ? onRegenerate : undefined}
                   onRegenerateWith={!isStreaming ? onRegenerateWith : undefined}
                   regenModels={regenModels}
@@ -97,10 +99,12 @@ export function ChatList({ messages, isStreaming, onRegenerate, onRegenerateWith
               </motion.div>
             );
           })}
+          {/* The pending label normally renders inside the assistant bubble
+              (see MessageBubble), so it occupies the answer's own slot. This
+              covers only the brief window before that bubble exists. */}
           {isStreaming &&
-            (messages[messages.length - 1]?.role !== "assistant" ||
-              !messages[messages.length - 1]?.content) && (
-              <TypingIndicator />
+            messages[messages.length - 1]?.role !== "assistant" && (
+              <TypingIndicator model={modelLabel} />
             )}
           <div ref={bottomRef} />
         </div>

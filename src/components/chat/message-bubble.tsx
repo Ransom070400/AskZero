@@ -21,6 +21,7 @@ import removeMarkdown from "remove-markdown";
 import { MermaidBlock } from "./mermaid-block";
 import { ChartBlock } from "./chart-block";
 import { ReceiptBadge } from "./receipt-badge";
+import { TypingIndicator } from "./typing-indicator";
 
 // Markdown paragraph that fades in when it first appears. As the last paragraph
 // grows during streaming its element persists (same position), so it fades once
@@ -450,6 +451,7 @@ export function MessageBubble({
   regenModels,
   onTransform,
   onQuote,
+  modelLabel,
 }: {
   message: Message;
   onRegenerate?: () => void;
@@ -466,6 +468,8 @@ export function MessageBubble({
   onTransform?: (instruction: string) => void;
   // Ask a follow-up about a highlighted span of this answer.
   onQuote?: (quotedText: string) => void;
+  // Name of the model answering, shown beside the pending label.
+  modelLabel?: string;
 }) {
   const isUser = message.role === "user";
   const { formatCost } = useCurrency();
@@ -684,6 +688,9 @@ export function MessageBubble({
   }
 
   const showCursor = isStreaming && isLast;
+  // Answer not started yet: this bubble is appended empty on send, so an empty
+  // last message during a stream is the pending state — not a blank answer.
+  const pending = isStreaming && isLast && !message.content;
   const assistantImages =
     message.attachments?.filter((a) => a.type.startsWith("image/")) ?? [];
 
@@ -706,6 +713,9 @@ export function MessageBubble({
         onMouseUp={handleSelect}
         onTouchEnd={handleSelect}
       >
+        {/* Pending answer: the label lives inside this same prose container,
+            so the first token replaces it rather than landing above it. */}
+        {pending && <TypingIndicator model={modelLabel} />}
         <PreContext.Provider
           value={
             onOpenAsArtifact

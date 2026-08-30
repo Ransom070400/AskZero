@@ -752,6 +752,13 @@ function ChatDetailContent() {
       <ChatList
         messages={messages}
         isStreaming={isStreaming}
+        modelLabel={
+          models.find(
+            (m) =>
+              m.provider === selectedModel?.provider &&
+              m.model === selectedModel?.model
+          )?.label
+        }
         onRegenerate={handleRegenerate}
         onRegenerateWith={handleRegenerateWith}
         regenModels={models.filter((m) => !m.comingSoon)}
