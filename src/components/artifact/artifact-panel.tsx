@@ -167,7 +167,7 @@ export function ArtifactPanel({
         </div>
       </header>
 
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto overscroll-contain">
         {error && (
           <div className="p-6 text-[13px] text-error">{error}</div>
         )}

@@ -345,7 +345,7 @@ function DepositContent() {
                 <ChevronDown className="h-4 w-4 text-text-tertiary group-hover:text-foreground transition-colors duration-fast" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-full max-h-72 overflow-y-auto">
+            <DropdownMenuContent className="w-full max-h-72 overflow-y-auto overscroll-contain">
               {APAC_CODES.map((code) => {
                 const m = APAC_CURRENCIES[code];
                 return (

@@ -265,7 +265,7 @@ export default function CodePage() {
               ))}
             </div>
           </div>
-          <div className="h-[440px] overflow-auto bg-white dark:bg-surface">
+          <div className="h-[440px] overflow-auto overscroll-contain bg-white dark:bg-surface">
             <ArtifactRenderer artifact={previewArtifact} view={view} />
           </div>
         </div>

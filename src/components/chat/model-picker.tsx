@@ -138,7 +138,7 @@ export function ModelPicker({
       <DropdownMenuContent
         align="start"
         side="top"
-        className="max-h-[min(70vh,32rem)] w-80 overflow-y-auto p-1"
+        className="max-h-[min(70vh,32rem)] w-80 overflow-y-auto overscroll-contain p-1"
       >
         {groups.map((group, gi) => (
           <div key={group.key}>

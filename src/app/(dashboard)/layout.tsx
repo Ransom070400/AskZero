@@ -42,7 +42,7 @@ export default function DashboardLayout({
           </div>
           <WelcomeCredits />
           <LowBalanceBanner />
-          <main className="flex-1 overflow-y-auto pb-[env(safe-area-inset-bottom)] md:pb-0">
+          <main className="flex-1 overflow-y-auto overscroll-contain pb-[env(safe-area-inset-bottom)] md:pb-0">
             {children}
           </main>
         </div>

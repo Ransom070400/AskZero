@@ -153,7 +153,7 @@ export function CommandPalette() {
           </kbd>
         </div>
 
-        <div className="max-h-[50vh] overflow-y-auto p-1.5">
+        <div className="max-h-[50vh] overflow-y-auto overscroll-contain p-1.5">
           {items.length === 0 && (
             <p className="px-3 py-6 text-center text-[13px] text-text-tertiary">
               No matches

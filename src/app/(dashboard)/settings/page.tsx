@@ -263,7 +263,7 @@ export default function SettingsPage() {
                   <ChevronDown className="h-3.5 w-3.5 text-text-tertiary group-hover:text-foreground transition-colors duration-fast" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="max-h-72 overflow-y-auto">
+              <DropdownMenuContent align="end" className="max-h-72 overflow-y-auto overscroll-contain">
                 {APAC_CODES.map((code) => {
                   const m = APAC_CURRENCIES[code];
                   return (

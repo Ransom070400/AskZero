@@ -694,7 +694,7 @@ export function ContentSidebar() {
       {/* Chat list */}
       <div className="relative flex-1 overflow-hidden">
         <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-3 bg-gradient-to-b from-surface to-transparent" />
-        <div className="h-full overflow-y-auto px-2">
+        <div className="h-full overflow-y-auto overscroll-contain px-2">
         {query.trim().length >= 2 && (
           <MessageHits hits={hits} loading={searching} chatId={pathname} />
         )}

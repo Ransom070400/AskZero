@@ -250,7 +250,7 @@ export function ReceiptBadge({
                 </button>
               </div>
 
-              <div className="overflow-y-auto px-5 py-4">
+              <div className="overflow-y-auto overscroll-contain px-5 py-4">
                 {state === "loading" && (
                   <div className="flex items-center justify-center gap-2 py-10 text-text-tertiary">
                     <Loader2 className="h-4 w-4 animate-spin" />

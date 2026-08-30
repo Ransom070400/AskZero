@@ -89,7 +89,7 @@ export function WhatsNew() {
                   </p>
                 </div>
 
-                <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto px-6 pt-1">
+                <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto overscroll-contain px-6 pt-1">
                   <Item
                     icon={<Gift className="h-5 w-5" />}
                     title="Free credits to start"
@@ -153,7 +153,7 @@ export function WhatsNew() {
                   </p>
                 </div>
 
-                <div className="min-h-0 flex-1 space-y-1 overflow-y-auto px-5 pt-1">
+                <div className="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain px-5 pt-1">
                   <Soon
                     icon={<BookLock className="h-4 w-4" />}
                     title="Private journaling"
