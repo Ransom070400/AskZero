@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { keccak256, toUtf8Bytes } from "ethers";
 import { cn } from "@/lib/utils";
+import { loadHashText } from "@/lib/keccak";
 import {
   ShieldCheck,
   ShieldAlert,
@@ -452,35 +452,54 @@ function TamperDemo({
   outputHash: string;
 }) {
   const [text, setText] = useState(original);
+  // ethers is loaded on demand (see lib/keccak), so hashing is unavailable for
+  // the first moment this demo is open. `null` means "not ready yet" — it must
+  // never be conflated with "hash didn't match", which would flash a false
+  // "Tampered" the instant someone opens a perfectly valid receipt.
+  const [hashText, setHashText] = useState<((t: string) => string) | null>(null);
 
   useEffect(() => {
     setText(original);
   }, [original]);
 
+  useEffect(() => {
+    let alive = true;
+    loadHashText().then((fn) => {
+      // Wrapped in a thunk: setState treats a bare function as an updater.
+      if (alive) setHashText(() => fn);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   const liveHash = useMemo(() => {
+    if (!hashText) return "";
     try {
-      return keccak256(toUtf8Bytes(text));
+      return hashText(text);
     } catch {
       return "";
     }
-  }, [text]);
+  }, [hashText, text]);
 
   const originalHash = useMemo(() => {
+    if (!hashText) return "";
     try {
-      return keccak256(toUtf8Bytes(original));
+      return hashText(original);
     } catch {
       return "";
     }
-  }, [original]);
+  }, [hashText, original]);
 
   // Normally the stored answer reproduces the anchored output_hash, so we match
   // against that (rigorous — the fingerprint is literally the one committed
   // on-chain). If it doesn't — a legacy/edited message whose text drifted from
   // what was hashed — fall back to the original's own hash so the untampered
   // state is never falsely flagged as tampered.
+  const ready = hashText !== null;
   const rigorous = originalHash.toLowerCase() === outputHash.toLowerCase();
   const baseline = rigorous ? outputHash : originalHash;
-  const matches = liveHash.toLowerCase() === baseline.toLowerCase();
+  const matches = ready && liveHash.toLowerCase() === baseline.toLowerCase();
   const tampered = text !== original;
   const shortHash =
     liveHash.length > 18 ? `${liveHash.slice(0, 10)}…${liveHash.slice(-8)}` : liveHash;
@@ -523,16 +542,22 @@ function TamperDemo({
 
       <div className="flex items-center justify-between gap-3">
         <span className="min-w-0 truncate font-mono text-[12px] text-text-tertiary">
-          {shortHash}
+          {ready ? shortHash : "…"}
         </span>
         <span
           className={
-            matches
+            !ready
+              ? "inline-flex shrink-0 items-center gap-1.5 rounded-full bg-surface px-2.5 py-1 text-[11px] font-semibold text-text-tertiary"
+              : matches
               ? "inline-flex shrink-0 items-center gap-1.5 rounded-full bg-success/15 px-2.5 py-1 text-[11px] font-semibold text-success"
               : "inline-flex shrink-0 items-center gap-1.5 rounded-full bg-error/15 px-2.5 py-1 text-[11px] font-semibold text-error"
           }
         >
-          {matches ? (
+          {!ready ? (
+            <>
+              <Loader2 className="h-3 w-3 animate-spin" /> Computing…
+            </>
+          ) : matches ? (
             <>
               <Check className="h-3 w-3" />{" "}
               {rigorous ? "Matches the on-chain hash" : "Matches the original"}

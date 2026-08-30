@@ -22,7 +22,20 @@ import {
   Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ZeroGPay } from "@/components/deposit/zero-g-pay";
+import dynamic from "next/dynamic";
+
+// Reown AppKit + ethers are ~all of this page's JS, and they are only needed
+// once someone actually chooses to pay in 0G. Deferring the component keeps
+// that weight off the first load for everyone paying by card.
+const ZeroGPay = dynamic(
+  () => import("@/components/deposit/zero-g-pay").then((m) => m.ZeroGPay),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[168px] animate-pulse rounded-2xl border border-border/70 bg-elevated/60" />
+    ),
+  }
+);
 import { SubscriptionAnchor } from "@/components/deposit/subscription-anchor";
 import {
   USD_TO_CREDITS_RATE,
