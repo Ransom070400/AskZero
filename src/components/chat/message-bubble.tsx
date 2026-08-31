@@ -687,10 +687,13 @@ export function MessageBubble({
     );
   }
 
-  const showCursor = isStreaming && isLast;
   // Answer not started yet: this bubble is appended empty on send, so an empty
   // last message during a stream is the pending state — not a blank answer.
   const pending = isStreaming && isLast && !message.content;
+  // The caret means "text is landing here", so it must not appear until there
+  // is text. While pending the shimmer label owns this slot; showing both put
+  // a blinking caret next to the word "Thinking".
+  const showCursor = isStreaming && isLast && !pending;
   const assistantImages =
     message.attachments?.filter((a) => a.type.startsWith("image/")) ?? [];
 
