@@ -27,7 +27,13 @@ export default function AuthLayout({
           home
         </Link>
         <span className="h-1 w-1 rounded-full bg-text-tertiary/40" />
-        <span>decentralized · private · TEE-attested</span>
+        <Link href="/privacy" className="hover:text-foreground transition-colors duration-fast">
+          privacy
+        </Link>
+        <span className="h-1 w-1 rounded-full bg-text-tertiary/40" />
+        <Link href="/terms" className="hover:text-foreground transition-colors duration-fast">
+          terms
+        </Link>
       </footer>
     </div>
   );

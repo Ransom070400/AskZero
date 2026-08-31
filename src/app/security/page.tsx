@@ -54,8 +54,13 @@ export default function SecurityPage() {
               verifiable logs.
             </li>
             <li>
-              You can permanently delete your account and all associated data at
-              any time from Settings.
+              You can permanently delete your account and everything we hold at
+              any time from Settings. Data already written to the 0G network is
+              immutable and cannot be removed — see the{" "}
+              <Link href="/privacy" className="text-accent hover:underline">
+                Privacy Policy
+              </Link>
+              .
             </li>
           </ul>
         </Block>
