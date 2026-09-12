@@ -6,6 +6,7 @@
   "author": "Eze Ransom",
   "scripts": {
     "dev": "next dev",
+    "test": "tsx --test 'tests/**/*.test.ts'",
     "build": "opennextjs-cloudflare build",
     "build:next": "next build",
     "start": "next start",
