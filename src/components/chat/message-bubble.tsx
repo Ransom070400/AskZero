@@ -808,19 +808,26 @@ export function MessageBubble({
             <button
               key={art.id}
               onClick={() => onOpenArtifact(art.id)}
-              className="press group/art inline-flex items-center gap-2 rounded-xl border border-border/70 bg-elevated/60 px-3 py-2 text-left transition-[border-color,background-color] duration-fast ease-out hover:border-border-strong hover:bg-elevated"
+              className="press group/art inline-flex min-w-[190px] max-w-full items-center gap-2 rounded-xl border border-border/70 bg-elevated/60 px-3 py-2.5 text-left transition-[border-color,background-color,transform] duration-fast ease-out hover:border-border-strong hover:bg-elevated"
             >
               <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent-muted text-accent">
-                <FileCode className="h-3.5 w-3.5" />
+                {art.type === "markdown" ? (
+                  <FileText className="h-3.5 w-3.5" />
+                ) : (
+                  <FileCode className="h-3.5 w-3.5" />
+                )}
               </span>
-              <span className="flex flex-col">
-                <span className="text-[13px] font-semibold text-foreground">
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className="truncate text-[13px] font-semibold text-foreground">
                   {art.title || "Artifact"}
                 </span>
-                <span className="text-[11px] uppercase tracking-wider text-text-tertiary">
+                <span className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-medium uppercase tracking-wider text-text-tertiary">
                   {art.type}
+                  <span className="h-1 w-1 rounded-full bg-border-strong" />
+                  Open workspace
                 </span>
               </span>
+              <ExternalLink className="h-3.5 w-3.5 shrink-0 text-text-tertiary transition-colors duration-fast group-hover/art:text-accent" />
             </button>
           ))}
         </div>
