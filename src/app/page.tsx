@@ -49,7 +49,7 @@ export default function LandingPage() {
             {...fade(0)}
             className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/40"
           >
-            decentralized AI
+            verifiable AI on 0G
           </motion.p>
 
           <motion.h1
@@ -57,16 +57,17 @@ export default function LandingPage() {
             className="font-display text-[44px] font-bold leading-[0.95] sm:text-6xl md:text-7xl lg:text-[112px]"
             style={{ letterSpacing: "-0.045em" }}
           >
-            the future of ai
+            AI answers
             <br />
-            <span style={{ color: "#CB8AFF" }}>is decentralized.</span>
+            <span style={{ color: "#CB8AFF" }}>you can verify.</span>
           </motion.h1>
 
           <motion.p
             {...fade(2)}
             className="mx-auto max-w-md text-[15px] leading-relaxed text-white/55 md:text-[17px]"
           >
-            private, verifiable AI. no subscriptions.
+            each response gets a tamper-evident receipt anchored on 0G. pay only
+            when you use it.
           </motion.p>
 
           <motion.div

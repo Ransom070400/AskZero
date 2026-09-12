@@ -21,10 +21,10 @@ const CATEGORIES = [
     label: "Explore",
     icon: Compass,
     prompts: [
+      "Answer a question, then show me how to verify the receipt",
       "Explain a hard topic in simple terms",
       "Help me draft a message I'm nervous to send",
       "Give me a study plan for this week",
-      "What can you help me with?",
     ],
   },
   {
