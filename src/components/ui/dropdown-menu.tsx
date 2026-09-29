@@ -15,17 +15,26 @@ const DropdownMenuContext = React.createContext<DropdownMenuContextValue>({
 
 function DropdownMenu({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = React.useState(false);
+  const rootRef = React.useRef<HTMLDivElement>(null);
 
+  // Close on presses outside the menu. Checked on pointerdown (not click):
+  // the App Router mounts React on `document`, so stopPropagation inside the
+  // menu can't shield a document click listener, and by click time a
+  // re-render may already have detached the pressed element.
   React.useEffect(() => {
     if (!open) return;
-    const handleClick = () => setOpen(false);
-    document.addEventListener("click", handleClick);
-    return () => document.removeEventListener("click", handleClick);
+    const handlePointerDown = (e: PointerEvent) => {
+      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
   }, [open]);
 
   return (
     <DropdownMenuContext.Provider value={{ open, setOpen }}>
-      <div className="relative">{children}</div>
+      <div ref={rootRef} className="relative">
+        {children}
+      </div>
     </DropdownMenuContext.Provider>
   );
 }

@@ -258,7 +258,7 @@ export function ModelPicker({
             </span>
           )}
           <span className="leading-none">
-            {active?.label ?? "Select model"}
+            {active?.label.split(" · ")[0] ?? "Select model"}
           </span>
           <ChevronDown className="h-3 w-3 text-text-tertiary group-hover:text-foreground transition-colors duration-fast" />
         </button>
