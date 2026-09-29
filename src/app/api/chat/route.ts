@@ -12,6 +12,13 @@ import {
   retailCostCredits,
 } from "@/lib/integrate-network";
 import { ogRetailCostCredits } from "@/lib/og-compute-models";
+import {
+  ROUTER_PREFIX,
+  findRouterModel,
+  loadRouterCatalog,
+  routerRetailCostCredits,
+  sendRouterPrompt,
+} from "@/lib/router";
 import { buildReceipt, makeNonce } from "@/lib/receipts";
 import { buildSystemPrompt, type ChatStyle } from "@/lib/system-prompt";
 import { runAgentLoop } from "@/lib/agent";
@@ -49,7 +56,9 @@ function costForTokens(
     : null;
   const dynamicCost = integrateId
     ? retailCostCredits(integrateId, inputTokens, outputTokens)
-    : ogRetailCostCredits(provider, inputTokens, outputTokens);
+    : provider.startsWith(ROUTER_PREFIX)
+      ? routerRetailCostCredits(provider, inputTokens, outputTokens)
+      : ogRetailCostCredits(provider, inputTokens, outputTokens);
   const cost =
     dynamicCost ??
     calculateCost(model || "default", inputTokens, outputTokens);
@@ -103,6 +112,19 @@ export async function POST(req: NextRequest) {
       JSON.stringify({ error: "No model selected. Please select a model." }),
       { status: 400 }
     );
+  }
+
+  // Router models are priced from the live catalog, and billing looks them up
+  // synchronously — load it first, and refuse ids the router doesn't list
+  // (otherwise they'd silently fall through to the cheap static price table).
+  if (provider.startsWith(ROUTER_PREFIX)) {
+    await loadRouterCatalog();
+    if (!findRouterModel(provider)) {
+      return new Response(
+        JSON.stringify({ error: "That model is no longer available." }),
+        { status: 400 }
+      );
+    }
   }
 
   // Check balance. The gate has to clear this answer's PROJECTED cost, not a
@@ -325,6 +347,12 @@ export async function POST(req: NextRequest) {
           ogResponse = await sendIntegratePrompt(integrateModel, messages, {
             stream: true,
           });
+        } else if (provider.startsWith(ROUTER_PREFIX)) {
+          ogResponse = await sendRouterPrompt(
+            findRouterModel(provider)!,
+            messages,
+            { stream: true }
+          );
         } else {
           const { sendPrompt } = await import("@/lib/og-compute");
           ogResponse = await sendPrompt(provider, messages, { stream: true });

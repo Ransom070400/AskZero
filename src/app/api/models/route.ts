@@ -6,6 +6,12 @@ import {
 } from "@/lib/integrate-network";
 import { IMAGE_PREFIX, listImageModels } from "@/lib/image-generation";
 import {
+  ROUTER_PREFIX,
+  isRouterConfigured,
+  loadRouterCatalog,
+  routerRetailCostCredits,
+} from "@/lib/router";
+import {
   OG_COMPUTE_MODELS,
   OG_COMPUTE_COMING_SOON,
   ogRetailCostCredits,
@@ -26,8 +32,13 @@ function per1k(
   };
 }
 
-// We expose two sets of chat models:
-//  · Integrate gateway models (TEE-verified OpenAI-compatible proxy), and
+// "openai/gpt-5.4-mini" / "GPT-5.4-Mini" → "gpt-5.4-mini", to spot the same
+// model offered by both the broker and the router.
+const normalizeId = (id: string) => id.toLowerCase().replace(/^.*\//, "");
+
+// We expose three sets of chat models:
+//  · Integrate gateway models (TEE-verified OpenAI-compatible proxy),
+//  · the 0G Router catalog (100+ models behind one API key), and
 //  · a hand-picked set of 0G Compute broker providers (on-chain settled).
 // The broker's full listService() is intentionally NOT auto-surfaced — those
 // providers vary in reliability/pricing — so we ship a verified curated set.
@@ -43,7 +54,34 @@ export async function GET() {
     pricePer1k: per1k((i, o) => retailCostCredits(m.id, i, o)),
   }));
 
-  const ogComputeModels = OG_COMPUTE_MODELS.map((m) => ({
+  // Until ROUTER_API_KEY is set the catalog still shows, as disabled "Soon"
+  // entries, so the picker previews what's coming.
+  const routerReady = isRouterConfigured();
+  const routerCatalog = await loadRouterCatalog();
+  const routerModels = routerCatalog.map((m) => ({
+    provider: `${ROUTER_PREFIX}${m.id}`,
+    model: m.id,
+    label: m.name,
+    description: m.description,
+    supportsImages: m.supportsImages,
+    kind: "chat" as const,
+    source: "router" as const,
+    trust: m.trust,
+    created: m.created,
+    pricePer1k: per1k((i, o) =>
+      routerRetailCostCredits(`${ROUTER_PREFIX}${m.id}`, i, o)
+    ),
+    ...(routerReady ? {} : { comingSoon: true as const }),
+  }));
+  // Once the router is live it's cheaper and needs no per-provider deposit,
+  // so it supersedes broker providers serving the same model.
+  const routerIds = new Set(
+    routerReady ? routerCatalog.map((m) => normalizeId(m.id)) : []
+  );
+
+  const ogComputeModels = OG_COMPUTE_MODELS.filter(
+    (m) => !routerIds.has(normalizeId(m.model))
+  ).map((m) => ({
     provider: m.provider, // raw 0x address → chat route routes to the broker
     model: m.model,
     label: m.label,
@@ -81,6 +119,7 @@ export async function GET() {
     models: [
       ...chatModels,
       ...ogComputeModels,
+      ...routerModels,
       ...comingSoonModels,
       ...imageModels,
     ],

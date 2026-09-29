@@ -131,6 +131,7 @@ Key variables (full list in `.env.example`):
 |---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY` | Supabase client + server |
 | `INTEGRATE_NETWORK_URL` / `INTEGRATE_NETWORK_KEY` | GLM 5.1 chat, embeddings, Whisper |
+| `ROUTER_API_KEY` | 0G Router (pc.0g.ai) — Claude, GPT, Gemini, DeepSeek, Kimi, Qwen… from a prepaid 0G balance |
 | `ZERO_G_PRIVATE_KEY` / `ZERO_G_CHAIN_RPC_URL` | 0G wallet + EVM RPC (`https://evmrpc.0g.ai`) |
 | `ZERO_G_STORAGE_INDEXER_URL` | 0G Storage indexer (mainnet: `https://indexer-storage-turbo.0g.ai`) |
 | `NEXT_PUBLIC_ZERO_G_CHAIN_ID` / `NEXT_PUBLIC_ZERO_G_RPC_URL` / `NEXT_PUBLIC_ZERO_G_EXPLORER_URL` | Client chain config |

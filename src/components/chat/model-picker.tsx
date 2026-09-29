@@ -7,6 +7,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ImageIcon,
+  Search,
   Sparkles,
 } from "lucide-react";
 import {
@@ -36,6 +37,10 @@ export interface ModelOption {
   comingSoon?: boolean;
   // Retail credits per 1K tokens (from /api/models).
   pricePer1k?: { input: number; output: number };
+  // 0G Router models: attestation level and when the router added the model
+  // (unix seconds).
+  trust?: "tee" | "tee-route" | "none";
+  created?: number;
 }
 
 // ── Vendors ────────────────────────────────────────────────────────────────
@@ -47,10 +52,17 @@ export interface ModelOption {
 type VendorKey =
   | "openai"
   | "anthropic"
+  | "google"
   | "zhipu"
   | "deepseek"
   | "qwen"
+  | "moonshot"
   | "minimax"
+  | "baidu"
+  | "tencent"
+  | "xiaomi"
+  | "stepfun"
+  | "meituan"
   | "og"
   | "other";
 
@@ -78,6 +90,13 @@ const VENDORS: Record<VendorKey, Vendor> = {
     mark: "A",
     avatar: "bg-[#D97757]/15 text-[#C15F3C]",
   },
+  google: {
+    key: "google",
+    name: "Google",
+    blurb: "Gemini models",
+    mark: "G",
+    avatar: "bg-sky-500/15 text-sky-600 dark:text-sky-400",
+  },
   zhipu: {
     key: "zhipu",
     name: "Z.ai",
@@ -99,12 +118,54 @@ const VENDORS: Record<VendorKey, Vendor> = {
     mark: "Q",
     avatar: "bg-violet-500/15 text-violet-600 dark:text-violet-400",
   },
+  moonshot: {
+    key: "moonshot",
+    name: "Moonshot AI",
+    blurb: "Kimi models",
+    mark: "K",
+    avatar: "bg-neutral-500/15 text-neutral-700 dark:text-neutral-300",
+  },
   minimax: {
     key: "minimax",
     name: "MiniMax",
     blurb: "MiniMax models",
     mark: "M",
     avatar: "bg-rose-500/15 text-rose-600 dark:text-rose-400",
+  },
+  baidu: {
+    key: "baidu",
+    name: "Baidu",
+    blurb: "ERNIE models",
+    mark: "B",
+    avatar: "bg-indigo-500/15 text-indigo-600 dark:text-indigo-400",
+  },
+  tencent: {
+    key: "tencent",
+    name: "Tencent",
+    blurb: "Hunyuan models",
+    mark: "T",
+    avatar: "bg-cyan-500/15 text-cyan-700 dark:text-cyan-400",
+  },
+  xiaomi: {
+    key: "xiaomi",
+    name: "Xiaomi",
+    blurb: "MiMo models",
+    mark: "X",
+    avatar: "bg-orange-500/15 text-orange-600 dark:text-orange-400",
+  },
+  stepfun: {
+    key: "stepfun",
+    name: "StepFun",
+    blurb: "Step models",
+    mark: "S",
+    avatar: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
+  },
+  meituan: {
+    key: "meituan",
+    name: "Meituan",
+    blurb: "LongCat models",
+    mark: "L",
+    avatar: "bg-yellow-500/15 text-yellow-700 dark:text-yellow-400",
   },
   og: {
     key: "og",
@@ -126,10 +187,17 @@ const VENDORS: Record<VendorKey, Vendor> = {
 const VENDOR_ORDER: VendorKey[] = [
   "openai",
   "anthropic",
-  "zhipu",
+  "google",
   "deepseek",
+  "zhipu",
   "qwen",
+  "moonshot",
   "minimax",
+  "baidu",
+  "tencent",
+  "xiaomi",
+  "stepfun",
+  "meituan",
   "og",
   "other",
 ];
@@ -141,7 +209,14 @@ function vendorOf(m: ModelOption): VendorKey {
   if (/glm|zai|z-image|zhipu/.test(id)) return "zhipu";
   if (/deepseek/.test(id)) return "deepseek";
   if (/qwen/.test(id)) return "qwen";
+  if (/gemini|gemma/.test(id)) return "google";
+  if (/kimi|moonshot/.test(id)) return "moonshot";
   if (/minimax/.test(id)) return "minimax";
+  if (/ernie|qianfan/.test(id)) return "baidu";
+  if (/hunyuan/.test(id)) return "tencent";
+  if (/mimo/.test(id)) return "xiaomi";
+  if (/\bstep[- ]?\d/.test(id)) return "stepfun";
+  if (/longcat/.test(id)) return "meituan";
   if (/0gm/.test(id)) return "og";
   return "other";
 }
@@ -152,6 +227,10 @@ function servedVia(m: ModelOption): string | null {
   if (m.kind === "image" || p.startsWith("image")) return "Image";
   if (p.startsWith("integrate")) return "TEE-verified";
   if (p.startsWith("0x")) return "On-chain";
+  // 0G Router: say exactly what is attested — nothing, for Claude/GPT/Gemini.
+  if (m.trust === "tee") return "TEE-verified";
+  if (m.trust === "tee-route") return "Verified route";
+  if (m.trust === "none") return "Unverified";
   return null;
 }
 
@@ -174,8 +253,13 @@ function groupByVendor(models: ModelOption[]): VendorGroup[] {
   }
   const list = Array.from(groups.values());
   for (const g of list) {
-    // Usable models first; keep API order otherwise.
-    g.models.sort((a, b) => Number(!!a.comingSoon) - Number(!!b.comingSoon));
+    // Usable models first, then most recently added to the router; our own
+    // curated entries (no `created`) lead within their tier.
+    g.models.sort(
+      (a, b) =>
+        Number(!!a.comingSoon) - Number(!!b.comingSoon) ||
+        (b.created ?? Infinity) - (a.created ?? Infinity)
+    );
   }
   // Vendors you can actually use float to the top.
   return list.sort(
@@ -296,6 +380,76 @@ export function ModelPicker({
   );
 }
 
+function ModelRow({
+  m,
+  models,
+  selected,
+  onSelect,
+  showVendor,
+}: {
+  m: ModelOption;
+  models: ModelOption[];
+  selected: { provider: string; model: string };
+  onSelect: (m: { provider: string; model: string }) => void;
+  showVendor?: boolean;
+}) {
+  const isActive =
+    m.provider === selected.provider && m.model === selected.model;
+  // The app defaults to the first model returned by /api/models.
+  const isDefault =
+    !!models[0] &&
+    m.provider === models[0].provider &&
+    m.model === models[0].model;
+  const isPremium = isPremiumModel(m);
+  const soon = m.comingSoon;
+  const via = servedVia(m);
+  return (
+    <DropdownMenuItem
+      onClick={() => {
+        if (soon) return;
+        onSelect({ provider: m.provider, model: m.model });
+        // Heads-up each time they switch to a premium model.
+        if (isPremium && !isActive) {
+          toast.info(premiumNotice(m, models[0]));
+        }
+      }}
+      className={cn(
+        "items-start gap-2.5 px-2 py-2.5",
+        !soon && "hover-lift",
+        isActive && "bg-accent-muted/50",
+        soon && "pointer-events-none opacity-55"
+      )}
+    >
+      {showVendor && (
+        <VendorAvatar
+          vendor={VENDORS[vendorOf(m)]}
+          size="sm"
+          image={m.kind === "image"}
+        />
+      )}
+      <div className="flex min-w-0 flex-1 flex-col items-start gap-1">
+        <span
+          className={cn(
+            "flex w-full flex-wrap items-center gap-1.5 text-left text-[13px] text-foreground",
+            isActive ? "font-semibold" : "font-medium"
+          )}
+        >
+          <span className="truncate">{m.label.split(" · ")[0]}</span>
+          {isDefault && <Tag>Default</Tag>}
+          {isPremium && !soon && <Tag tone="premium">Premium</Tag>}
+          {soon ? <Tag>Soon</Tag> : via && <Tag>{via}</Tag>}
+        </span>
+        {m.description && (
+          <span className="line-clamp-2 text-left text-[11px] font-normal leading-snug text-text-tertiary">
+            {m.description}
+          </span>
+        )}
+      </div>
+      {isActive && <Check className="mt-1 h-3.5 w-3.5 shrink-0 text-accent" />}
+    </DropdownMenuItem>
+  );
+}
+
 function PickerPanel({
   models,
   selected,
@@ -308,12 +462,10 @@ function PickerPanel({
   const groups = groupByVendor(models);
   const isSelected = (m: ModelOption) =>
     m.provider === selected.provider && m.model === selected.model;
-  // The app defaults to the first model returned by /api/models.
-  const defaultKey = models[0]
-    ? `${models[0].provider}|${models[0].model}`
-    : null;
+  const rowProps = { models, selected, onSelect };
 
   const [openVendor, setOpenVendor] = useState<VendorKey | null>(null);
+  const [query, setQuery] = useState("");
   const group = groups.find((g) => g.vendor.key === openVendor);
 
   // ── Level 2: one company's models ──
@@ -335,100 +487,99 @@ function PickerPanel({
           </span>
         </button>
         <div className="-mx-1 my-1 h-px bg-border/60" />
-
-        {group.models.map((m) => {
-          const isActive = isSelected(m);
-          const isDefault = `${m.provider}|${m.model}` === defaultKey;
-          const isPremium = isPremiumModel(m);
-          const soon = m.comingSoon;
-          const via = servedVia(m);
-          return (
-            <DropdownMenuItem
-              key={`${m.provider}|${m.model}`}
-              onClick={() => {
-                if (soon) return;
-                onSelect({ provider: m.provider, model: m.model });
-                // Heads-up each time they switch to a premium model.
-                if (isPremium && !isActive) {
-                  toast.info(premiumNotice(m, models[0]));
-                }
-              }}
-              className={cn(
-                "items-start gap-2.5 px-2 py-2.5",
-                !soon && "hover-lift",
-                isActive && "bg-accent-muted/50",
-                soon && "pointer-events-none opacity-55"
-              )}
-            >
-              <div className="flex min-w-0 flex-1 flex-col items-start gap-1">
-                <span
-                  className={cn(
-                    "flex w-full flex-wrap items-center gap-1.5 text-left text-[13px] text-foreground",
-                    isActive ? "font-semibold" : "font-medium"
-                  )}
-                >
-                  <span className="truncate">{m.label.split(" · ")[0]}</span>
-                  {isDefault && <Tag>Default</Tag>}
-                  {isPremium && !soon && <Tag tone="premium">Premium</Tag>}
-                  {soon ? <Tag>Soon</Tag> : via && <Tag>{via}</Tag>}
-                </span>
-                {m.description && (
-                  <span className="line-clamp-2 text-left text-[11px] font-normal leading-snug text-text-tertiary">
-                    {m.description}
-                  </span>
-                )}
-              </div>
-              {isActive && (
-                <Check className="mt-1 h-3.5 w-3.5 shrink-0 text-accent" />
-              )}
-            </DropdownMenuItem>
-          );
-        })}
+        {group.models.map((m) => (
+          <ModelRow key={`${m.provider}|${m.model}`} m={m} {...rowProps} />
+        ))}
       </div>
     );
   }
 
-  // ── Level 1: companies ──
+  // Search across every company: "opus", "gemini", "deepseek r1"…
+  const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
+  const matches = terms.length
+    ? groups.flatMap((g) =>
+        g.models.filter((m) => {
+          const hay = `${m.label} ${m.model} ${g.vendor.name}`.toLowerCase();
+          return terms.every((t) => hay.includes(t));
+        })
+      )
+    : null;
+
+  // ── Level 1: search + companies ──
   return (
     <div>
-      <p className="px-2.5 pb-1 pt-2 text-[10px] font-bold uppercase tracking-[0.14em] text-text-tertiary">
-        Choose a company
-      </p>
-      {groups.map(({ vendor, models: vm, available }) => {
-        const current = vm.find(isSelected);
-        const onlyImage = vm.every((m) => m.kind === "image");
-        return (
-          <button
-            key={vendor.key}
-            type="button"
-            onClick={() => setOpenVendor(vendor.key)}
-            className={cn(
-              "hover-lift flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors duration-fast hover:bg-elevated",
-              current && "bg-accent-muted/50"
-            )}
-          >
-            <VendorAvatar vendor={vendor} image={onlyImage} />
-            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <span className="flex items-center gap-1.5 text-[13px] font-semibold text-foreground">
-                {vendor.name}
-                {available === 0 && <Tag>Soon</Tag>}
-              </span>
-              <span className="truncate text-[11px] text-text-tertiary">
-                {current
-                  ? `Using ${current.label.split(" · ")[0]}`
-                  : available > 0
-                    ? `${vendor.blurb} · ${available} available`
-                    : `${vendor.blurb} · coming soon`}
-              </span>
-            </div>
-            {current && <Check className="h-3.5 w-3.5 shrink-0 text-accent" />}
-            <span className="shrink-0 text-[11px] tabular-nums text-text-tertiary">
-              {vm.length}
-            </span>
-            <ChevronRight className="h-3.5 w-3.5 shrink-0 text-text-tertiary" />
-          </button>
-        );
-      })}
+      <div className="sticky -top-1 z-10 -mx-1 -mt-1 bg-popover px-2 pb-1 pt-2">
+        <label className="flex items-center gap-2 rounded-lg border border-border/70 bg-elevated/60 px-2.5 py-1.5 focus-within:border-border-strong">
+          <Search className="h-3.5 w-3.5 shrink-0 text-text-tertiary" />
+          <input
+            autoFocus
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={`Search ${models.length} models`}
+            className="min-w-0 flex-1 bg-transparent text-[13px] text-foreground outline-none placeholder:text-text-tertiary"
+          />
+        </label>
+      </div>
+
+      {matches ? (
+        matches.length ? (
+          matches.map((m) => (
+            <ModelRow
+              key={`${m.provider}|${m.model}`}
+              m={m}
+              showVendor
+              {...rowProps}
+            />
+          ))
+        ) : (
+          <p className="px-2.5 py-6 text-center text-[12px] text-text-tertiary">
+            No models match &ldquo;{query}&rdquo;
+          </p>
+        )
+      ) : (
+        <>
+          <p className="px-2.5 pb-1 pt-2 text-[10px] font-bold uppercase tracking-[0.14em] text-text-tertiary">
+            Choose a company
+          </p>
+          {groups.map(({ vendor, models: vm, available }) => {
+            const current = vm.find(isSelected);
+            const onlyImage = vm.every((m) => m.kind === "image");
+            return (
+              <button
+                key={vendor.key}
+                type="button"
+                onClick={() => setOpenVendor(vendor.key)}
+                className={cn(
+                  "hover-lift flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors duration-fast hover:bg-elevated",
+                  current && "bg-accent-muted/50"
+                )}
+              >
+                <VendorAvatar vendor={vendor} image={onlyImage} />
+                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span className="flex items-center gap-1.5 text-[13px] font-semibold text-foreground">
+                    {vendor.name}
+                    {available === 0 && <Tag>Soon</Tag>}
+                  </span>
+                  <span className="truncate text-[11px] text-text-tertiary">
+                    {current
+                      ? `Using ${current.label.split(" · ")[0]}`
+                      : available > 0
+                        ? `${vendor.blurb} · ${available} available`
+                        : `${vendor.blurb} · coming soon`}
+                  </span>
+                </div>
+                {current && (
+                  <Check className="h-3.5 w-3.5 shrink-0 text-accent" />
+                )}
+                <span className="shrink-0 text-[11px] tabular-nums text-text-tertiary">
+                  {vm.length}
+                </span>
+                <ChevronRight className="h-3.5 w-3.5 shrink-0 text-text-tertiary" />
+              </button>
+            );
+          })}
+        </>
+      )}
     </div>
   );
 }
