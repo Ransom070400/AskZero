@@ -18,6 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import removeMarkdown from "remove-markdown";
+import { cn } from "@/lib/utils";
 import { MermaidBlock } from "./mermaid-block";
 import { ChartBlock } from "./chart-block";
 import { ReceiptBadge } from "./receipt-badge";
@@ -25,17 +26,17 @@ import { TypingIndicator } from "./typing-indicator";
 
 // Markdown paragraph that fades in when it first appears. As the last paragraph
 // grows during streaming its element persists (same position), so it fades once
-// rather than flickering per token.
-function FadeP(props: React.HTMLAttributes<HTMLParagraphElement>) {
-  const [shown, setShown] = useState(false);
-  useEffect(() => {
-    const r = requestAnimationFrame(() => setShown(true));
-    return () => cancelAnimationFrame(r);
-  }, []);
+// rather than flickering per token. A CSS animation, not a rAF-driven state
+// flip: rAF doesn't run in a background tab, which left whole answers stuck
+// at opacity 0 until the tab was repainted.
+function FadeP({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLParagraphElement>) {
   return (
     <p
       {...props}
-      style={{ opacity: shown ? 1 : 0, transition: "opacity 0.4s ease" }}
+      className={cn("animate-in fade-in-0 duration-500", className)}
     />
   );
 }
