@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import rehypeKatex from "rehype-katex";
@@ -9,8 +9,9 @@ import remarkMath from "remark-math";
 import remarkDirective from "remark-directive";
 import { remarkAlert } from "remark-github-blockquote-alert";
 import { remarkDetails } from "@/lib/remark-details";
+import { prepareMathMarkdown } from "@/lib/markdown-math";
 import { useCurrency } from "@/lib/currency";
-import { Copy, Check, Download, ExternalLink, FileText, FileCode, History, Pencil, RotateCw, X, Search, Calculator, Globe, Loader2, WrapText, ListOrdered, Share2, ChevronDown, Wand2, Quote } from "lucide-react";
+import { Copy, Check, Download, ExternalLink, FileText, FileCode, History, Pencil, RotateCw, X, Search, Calculator, Globe, Loader2, WrapText, ListOrdered, Share2, ChevronDown, Wand2, Quote, Brain } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,6 +39,86 @@ function FadeP({
       {...props}
       className={cn("animate-in fade-in-0 duration-500", className)}
     />
+  );
+}
+
+// The model's own reasoning. While it's thinking (no answer yet) the latest
+// lines stream in under a live timer; once the answer starts it collapses to
+// "Thought for Ns", expandable to the full trace.
+function ThinkingBlock({
+  text,
+  startedAt,
+  ms,
+  active,
+}: {
+  text: string;
+  startedAt?: number;
+  ms?: number;
+  active: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
+  const bodyRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!active) return;
+    const t = setInterval(() => setNow(Date.now()), 500);
+    return () => clearInterval(t);
+  }, [active]);
+
+  // Keep the newest reasoning in view while it streams.
+  useEffect(() => {
+    if (active && bodyRef.current) {
+      bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
+    }
+  }, [text, active]);
+
+  const elapsed = active ? now - (startedAt ?? now) : ms;
+  const secs = elapsed != null ? Math.max(1, Math.round(elapsed / 1000)) : null;
+
+  if (active) {
+    return (
+      <div className="mb-3" role="status" aria-live="polite">
+        <div className="flex items-center gap-2 text-[13px]">
+          <Brain className="h-3.5 w-3.5 text-accent" />
+          <span className="shimmer-text font-medium">Thinking</span>
+          {secs != null && (
+            <span className="tabular-nums text-text-tertiary">{secs}s</span>
+          )}
+        </div>
+        <div
+          ref={bodyRef}
+          className="mt-1.5 max-h-28 overflow-hidden whitespace-pre-wrap border-l-2 border-border pl-3 text-[13px] leading-relaxed text-text-tertiary [mask-image:linear-gradient(to_bottom,transparent,black_40%)]"
+        >
+          {text}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-2">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="press -ml-2 inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-[13px] text-text-tertiary transition-colors duration-fast hover:bg-surface hover:text-foreground"
+      >
+        <Brain className="h-3.5 w-3.5" />
+        {secs != null ? `Thought for ${secs}s` : "Thoughts"}
+        <ChevronDown
+          className={cn(
+            "h-3.5 w-3.5 transition-transform duration-fast",
+            open && "rotate-180"
+          )}
+        />
+      </button>
+      {open && (
+        <div className="mt-1.5 max-h-80 overflow-y-auto whitespace-pre-wrap border-l-2 border-border pl-3 text-[13px] leading-relaxed text-text-tertiary animate-in fade-in-0">
+          {text}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -125,6 +206,14 @@ export interface Message {
   artifacts?: ArtifactRef[];
   // Live agent "thinking" trace (search/reason steps) shown above the answer.
   steps?: AgentStep[];
+  // Model reasoning streamed before the answer (not persisted), when it
+  // started, and how long it ran — shown as a "Thought for Ns" panel.
+  reasoning?: string;
+  thinkingStartedAt?: number;
+  thinkingMs?: number;
+  // The model that produced this answer (live: the one it was sent to;
+  // history: from its inference receipt).
+  answeredBy?: { provider: string; model: string };
   // Set when this message was created by editing a previous user message.
   // The "view previous version" button surfaces the superseded thread.
   replacesId?: string;
@@ -453,6 +542,7 @@ export function MessageBubble({
   onTransform,
   onQuote,
   modelLabel,
+  modelName,
 }: {
   message: Message;
   onRegenerate?: () => void;
@@ -471,6 +561,8 @@ export function MessageBubble({
   onQuote?: (quotedText: string) => void;
   // Name of the model answering, shown beside the pending label.
   modelLabel?: string;
+  // Display name for the model that wrote an answer.
+  modelName?: (m: { provider: string; model: string }) => string;
 }) {
   const isUser = message.role === "user";
   const { formatCost } = useCurrency();
@@ -700,6 +792,14 @@ export function MessageBubble({
 
   return (
     <div id={`msg-${message.id}`} className="group scroll-mt-20">
+      {message.reasoning && (
+        <ThinkingBlock
+          text={message.reasoning}
+          startedAt={message.thinkingStartedAt}
+          ms={message.thinkingMs}
+          active={!!pending}
+        />
+      )}
       {message.steps && message.steps.length > 0 && (
         <StepsTrace steps={message.steps} active={!message.content} />
       )}
@@ -719,7 +819,9 @@ export function MessageBubble({
       >
         {/* Pending answer: the label lives inside this same prose container,
             so the first token replaces it rather than landing above it. */}
-        {pending && <TypingIndicator model={modelLabel} />}
+        {pending && !message.reasoning && (
+          <TypingIndicator model={modelLabel} />
+        )}
         <PreContext.Provider
           value={
             onOpenAsArtifact
@@ -732,7 +834,7 @@ export function MessageBubble({
             remarkPlugins={[remarkGfm, remarkMath, remarkAlert, remarkDirective, remarkDetails]}
             components={{ pre: PreBlock as never, p: FadeP as never }}
           >
-            {message.content}
+            {prepareMathMarkdown(message.content)}
           </ReactMarkdown>
         </PreContext.Provider>
         {showCursor && (
@@ -854,17 +956,22 @@ export function MessageBubble({
             isStreaming={isStreaming}
           />
         )}
-        {message.tokenCount != null && (
+        {(message.tokenCount != null || (message.answeredBy && modelName)) && (
           <span
-            className="ml-1 text-[11px] font-medium text-text-tertiary tabular-nums"
+            className="ml-1 truncate text-[11px] font-medium text-text-tertiary tabular-nums"
             title={
-              message.costCredits != null
+              message.tokenCount != null && message.costCredits != null
                 ? `${message.tokenCount} tokens · ${message.costCredits} credits`
-                : `${message.tokenCount} tokens`
+                : undefined
             }
           >
-            {message.tokenCount} tokens
-            {message.costCredits != null && ` · ${formatCost(message.costCredits)}`}
+            {[
+              message.answeredBy && modelName?.(message.answeredBy),
+              message.tokenCount != null && `${message.tokenCount} tokens`,
+              message.costCredits != null && formatCost(message.costCredits),
+            ]
+              .filter(Boolean)
+              .join(" · ")}
           </span>
         )}
       </div>

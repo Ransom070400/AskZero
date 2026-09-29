@@ -44,17 +44,20 @@ function anthropicToOpenAISSE(resp: Response): ReadableStream<Uint8Array> {
             if (!data || data === "[DONE]") continue;
             try {
               const ev = JSON.parse(data);
-              // Only the answer text — skip thinking / signature deltas.
-              if (
-                ev.type === "content_block_delta" &&
-                ev.delta?.type === "text_delta" &&
-                ev.delta.text
-              ) {
+              // Answer text → content; extended thinking → reasoning_content
+              // (the chat route shows it as a Thinking panel). Signature
+              // deltas are skipped.
+              if (ev.type !== "content_block_delta") continue;
+              const delta =
+                ev.delta?.type === "text_delta" && ev.delta.text
+                  ? { content: ev.delta.text }
+                  : ev.delta?.type === "thinking_delta" && ev.delta.thinking
+                    ? { reasoning_content: ev.delta.thinking }
+                    : null;
+              if (delta) {
                 controller.enqueue(
                   encoder.encode(
-                    `data: ${JSON.stringify({
-                      choices: [{ delta: { content: ev.delta.text } }],
-                    })}\n\n`
+                    `data: ${JSON.stringify({ choices: [{ delta }] })}\n\n`
                   )
                 );
               }

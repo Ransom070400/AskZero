@@ -10,6 +10,7 @@ interface ChatListProps {
   messages: Message[];
   isStreaming?: boolean;
   modelLabel?: string;
+  modelName?: (m: { provider: string; model: string }) => string;
   onRegenerate?: () => void;
   onRegenerateWith?: (m: { provider: string; model: string }) => void;
   regenModels?: { provider: string; model: string; label: string; kind?: string }[];
@@ -28,7 +29,7 @@ interface ChatListProps {
 // How close to the bottom (px) still counts as "following the conversation".
 const NEAR_BOTTOM_PX = 120;
 
-export function ChatList({ messages, isStreaming, modelLabel, onRegenerate, onRegenerateWith, regenModels, onRegenerateImage, onEdit, onOpenArtifact, onOpenAsArtifact, hideReceipts, onTransform, onQuote }: ChatListProps) {
+export function ChatList({ messages, isStreaming, modelLabel, modelName, onRegenerate, onRegenerateWith, regenModels, onRegenerateImage, onEdit, onOpenArtifact, onOpenAsArtifact, hideReceipts, onTransform, onQuote }: ChatListProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const [atBottom, setAtBottom] = useState(true);
@@ -85,6 +86,7 @@ export function ChatList({ messages, isStreaming, modelLabel, onRegenerate, onRe
                   isLast={isLast}
                   isStreaming={isStreaming}
                   modelLabel={modelLabel}
+                  modelName={modelName}
                   onRegenerate={!isStreaming ? onRegenerate : undefined}
                   onRegenerateWith={!isStreaming ? onRegenerateWith : undefined}
                   regenModels={regenModels}

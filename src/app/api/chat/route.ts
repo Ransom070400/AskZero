@@ -24,6 +24,7 @@ import { buildSystemPrompt, type ChatStyle } from "@/lib/system-prompt";
 import { runAgentLoop } from "@/lib/agent";
 import { detectArtifacts } from "@/lib/artifact-detect";
 import { TYPICAL_OUTPUT_TOKENS } from "@/lib/estimate";
+import { ThinkSplitter } from "@/lib/think-split";
 import {
   recallMemories,
   formatMemoriesForPrompt,
@@ -367,6 +368,24 @@ export async function POST(req: NextRequest) {
       }
 
       let fullResponse = "";
+      // Model reasoning is streamed to the UI as `{ reasoning }` events but is
+      // not part of the answer: it isn't saved or hashed into the receipt. It
+      // IS billed — providers charge reasoning as output tokens. It arrives as
+      // delta.reasoning_content / .reasoning, or inline as <think>…</think>
+      // (split out here).
+      let reasoningText = "";
+      const sendReasoning = (text: string) => {
+        reasoningText += text;
+        send({ reasoning: text });
+      };
+      const think = new ThinkSplitter();
+      const emit = ({ content, reasoning }: { content: string; reasoning: string }) => {
+        if (reasoning) sendReasoning(reasoning);
+        if (content) {
+          fullResponse += content;
+          send({ content });
+        }
+      };
       const reader = ogResponse.body!.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
@@ -388,12 +407,13 @@ export async function POST(req: NextRequest) {
 
             try {
               const parsed = JSON.parse(data);
-              const content = parsed.choices?.[0]?.delta?.content || "";
-              if (content) {
-                fullResponse += content;
-                const chunk = JSON.stringify({ content });
-                controller.enqueue(encoder.encode(`data: ${chunk}\n\n`));
+              const delta = parsed.choices?.[0]?.delta ?? {};
+              const reasoning = delta.reasoning_content || delta.reasoning || "";
+              if (typeof reasoning === "string" && reasoning) {
+                sendReasoning(reasoning);
               }
+              const content = delta.content || "";
+              if (content) emit(think.push(content));
             } catch {
               // skip malformed chunks
             }
@@ -409,8 +429,10 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // Calculate cost and settle.
-      const outputTokens = estimateTokens(fullResponse);
+      emit(think.flush());
+
+      // Calculate cost and settle. Reasoning counts as output.
+      const outputTokens = estimateTokens(fullResponse + reasoningText);
       const actualCost = costForTokens(
         provider,
         model,

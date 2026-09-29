@@ -102,6 +102,18 @@ function ChatDetailContent() {
     localStorage.setItem("askzero:image-size", next);
   }, []);
 
+  // Short display name for the model that wrote an answer; falls back to the
+  // raw id (minus any vendor prefix) for models no longer listed.
+  const modelName = useCallback(
+    (m: { provider: string; model: string }) => {
+      const found =
+        models.find((x) => x.provider === m.provider && x.model === m.model) ??
+        models.find((x) => x.model === m.model);
+      return found ? found.label.split(" · ")[0] : m.model.replace(/^.*\//, "");
+    },
+    [models]
+  );
+
   // The active model's vision capability — drives the input gate and the
   // image-attachment cleanup when the user switches to a text-only model.
   const activeModelSupportsImages = (() => {
@@ -180,7 +192,20 @@ function ChatDetailContent() {
         .from("artifacts")
         .select("id, message_id, type, title")
         .eq("chat_id", chatId),
-    ]).then(([msgRes, artRes]) => {
+      // Which model wrote each answer — the receipt records it.
+      supabase
+        .from("inference_receipts")
+        .select("message_id, provider, model")
+        .eq("chat_id", chatId),
+    ]).then(([msgRes, artRes, receiptRes]) => {
+      const answeredBy = new Map<string, { provider: string; model: string }>();
+      for (const r of (receiptRes.data ?? []) as {
+        message_id: string;
+        provider: string;
+        model: string;
+      }[]) {
+        answeredBy.set(r.message_id, { provider: r.provider, model: r.model });
+      }
       const data = msgRes.data as
         | {
             id: string;
@@ -215,6 +240,7 @@ function ChatDetailContent() {
             attachments: m.metadata?.attachments,
             artifacts: byMessage.get(m.id),
             replacesId: m.replaces_id ?? undefined,
+            answeredBy: answeredBy.get(m.id),
           }))
         );
       }
@@ -370,7 +396,12 @@ function ChatDetailContent() {
       const assistantId = crypto.randomUUID();
       setMessages((prev) => [
         ...prev,
-        { id: assistantId, role: "assistant", content: "" },
+        {
+          id: assistantId,
+          role: "assistant",
+          content: "",
+          answeredBy: opts.model ?? selectedModel,
+        },
       ]);
 
       const controller = new AbortController();
@@ -491,11 +522,33 @@ function ChatDetailContent() {
                   )
                 );
               }
+              if (typeof parsed.reasoning === "string") {
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === assistantId
+                      ? {
+                          ...m,
+                          reasoning: (m.reasoning ?? "") + parsed.reasoning,
+                          thinkingStartedAt: m.thinkingStartedAt ?? Date.now(),
+                        }
+                      : m
+                  )
+                );
+              }
               if (parsed.content) {
                 setMessages((prev) =>
                   prev.map((m) =>
                     m.id === assistantId
-                      ? { ...m, content: m.content + parsed.content }
+                      ? {
+                          ...m,
+                          content: m.content + parsed.content,
+                          // First answer token ends the thinking phase.
+                          thinkingMs:
+                            m.thinkingMs ??
+                            (m.thinkingStartedAt
+                              ? Date.now() - m.thinkingStartedAt
+                              : undefined),
+                        }
                       : m
                   )
                 );
@@ -740,6 +793,7 @@ function ChatDetailContent() {
         messages={messages}
         isStreaming={isStreaming}
         modelLabel={activeModel?.label}
+        modelName={modelName}
         onRegenerate={handleRegenerate}
         onRegenerateWith={handleRegenerateWith}
         regenModels={models.filter((m) => !m.comingSoon)}
