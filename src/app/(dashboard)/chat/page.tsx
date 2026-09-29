@@ -75,6 +75,7 @@ export default function ChatPage() {
             onChange={setMessage}
             onSend={handleSend}
             disabled={sending}
+            menuSide="bottom"
             placeholder={
               incognito
                 ? "Ask privately — not saved, not remembered"
@@ -126,6 +127,7 @@ export default function ChatPage() {
                   selected={selected}
                   disabled={sending}
                   onSelect={select}
+                  side="bottom"
                   settings={[
                     {
                       id: "style",

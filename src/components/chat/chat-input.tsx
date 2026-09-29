@@ -54,6 +54,8 @@ interface ChatInputProps {
   // A mode token after the "+" (e.g. Incognito), removable with its ×.
   badge?: { label: string; icon?: LucideIcon; onClear: () => void };
   placeholder?: string;
+  // Which way the "+" menu opens — "bottom" for a mid-page composer (home).
+  menuSide?: "top" | "bottom";
   // When false, images are filtered from attempted attachments and the
   // UI hints that the active model is text-only.
   allowImages?: boolean;
@@ -84,6 +86,7 @@ export function ChatInput({
   toolbarRight,
   badge,
   placeholder = "Message AskZero…",
+  menuSide = "top",
   allowImages = true,
   commands,
 }: ChatInputProps) {
@@ -402,7 +405,7 @@ export function ChatInput({
                 <Plus className="h-[18px] w-[18px]" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" side="top" className="w-[19rem] p-1">
+            <DropdownMenuContent align="start" side={menuSide} className="w-[19rem] p-1">
               {onAttach && (
                 <DropdownMenuItem
                   onClick={() => fileInputRef.current?.click()}

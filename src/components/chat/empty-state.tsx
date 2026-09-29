@@ -101,7 +101,12 @@ export function EmptyState({ composer, onSuggestionClick }: EmptyStateProps) {
         <Logo size={52} animated />
       </div>
 
-      <div className={cn(enter, "w-full delay-100")}>{composer}</div>
+      {/* relative z-10: the entrance transform makes each block its own
+          stacking context, so without it the suggestions below would paint
+          over the composer's menus. */}
+      <div className={cn(enter, "relative z-10 w-full delay-100")}>
+        {composer}
+      </div>
 
       {/* Suggestions: category tabs + prompts for the active one */}
       <div className={cn(enter, "mt-6 w-full delay-200")}>

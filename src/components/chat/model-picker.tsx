@@ -342,12 +342,16 @@ export function ModelPicker({
   disabled,
   onSelect,
   settings = [],
+  side = "top",
 }: {
   models: ModelOption[];
   selected: { provider: string; model: string };
   disabled?: boolean;
   onSelect: (m: { provider: string; model: string }) => void;
   settings?: PickerSetting[];
+  // "bottom" when the composer sits mid-page (home), so the menu isn't
+  // clipped by the header.
+  side?: "top" | "bottom";
 }) {
   const active = models.find(
     (m) => m.provider === selected.provider && m.model === selected.model
@@ -370,7 +374,7 @@ export function ModelPicker({
 
       <DropdownMenuContent
         align="end"
-        side="top"
+        side={side}
         className="max-h-[min(70vh,32rem)] w-80 overflow-y-auto overscroll-contain p-1"
       >
         {/* Mounted only while open, so the drill-down resets on every open. */}
