@@ -10,6 +10,7 @@ import remarkDirective from "remark-directive";
 import { remarkAlert } from "remark-github-blockquote-alert";
 import { remarkDetails } from "@/lib/remark-details";
 import { prepareMathMarkdown } from "@/lib/markdown-math";
+import { copyAnswer, copyAnswerPlain, copyTable } from "@/lib/copy-answer";
 import { useCurrency } from "@/lib/currency";
 import { Copy, Check, Download, ExternalLink, FileText, FileCode, History, Pencil, RotateCw, X, Search, Calculator, Globe, Loader2, WrapText, ListOrdered, Share2, ChevronDown, Wand2, Quote, Brain } from "lucide-react";
 import {
@@ -32,8 +33,10 @@ import { TypingIndicator } from "./typing-indicator";
 // at opacity 0 until the tab was repainted.
 function FadeP({
   className,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  node: _node, // react-markdown's AST node — not a DOM attribute
   ...props
-}: React.HTMLAttributes<HTMLParagraphElement>) {
+}: React.HTMLAttributes<HTMLParagraphElement> & { node?: unknown }) {
   return (
     <p
       {...props}
@@ -405,6 +408,116 @@ function extractText(node: React.ReactNode): string {
   return "";
 }
 
+// Markdown table with a "Copy table" action underneath — pastes into Google
+// Sheets / Excel as real cells (tab-separated) and into Docs as a table.
+function TableBlock({
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  node: _node, // react-markdown's AST node — not a DOM attribute
+  ...props
+}: React.TableHTMLAttributes<HTMLTableElement> & { node?: unknown }) {
+  const ref = useRef<HTMLTableElement>(null);
+  const [copied, setCopied] = useState(false);
+  return (
+    <div className="group/table">
+      <table ref={ref} {...props} />
+      <div
+        data-copy-skip
+        className="-mt-2 mb-3 flex justify-end opacity-100 transition-opacity duration-fast md:opacity-0 md:group-hover/table:opacity-100"
+      >
+        <button
+          type="button"
+          onClick={async () => {
+            if (!ref.current) return;
+            await copyTable(ref.current);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1200);
+          }}
+          className="press inline-flex h-6 items-center gap-1 rounded-md px-1.5 text-[11px] font-medium text-text-tertiary transition-colors duration-fast hover:bg-surface hover:text-foreground"
+        >
+          {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+          {copied ? "Copied" : "Copy table"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// The answer's main Copy: formatted HTML + readable plain text in one go, so
+// it pastes cleanly into Docs/email and WhatsApp alike. The chevron offers
+// plain text only, or the raw Markdown.
+function AnswerCopy({
+  getRoot,
+  markdown,
+}: {
+  getRoot: () => HTMLElement | null;
+  markdown: string;
+}) {
+  const [copied, setCopied] = useState(false);
+  const done = () => {
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1200);
+  };
+  const run = async (how: "rich" | "plain" | "markdown") => {
+    const root = getRoot();
+    if (how === "markdown" || !root) {
+      await navigator.clipboard.writeText(markdown);
+    } else if (how === "plain") {
+      await copyAnswerPlain(root);
+    } else {
+      await copyAnswer(root);
+    }
+    done();
+  };
+  return (
+    <span className="inline-flex items-center">
+      <button
+        type="button"
+        onClick={() => run("rich")}
+        aria-label={copied ? "Copied" : "Copy answer"}
+        className="press inline-flex h-7 items-center gap-1.5 rounded-l-full py-0 pl-2.5 pr-1.5 text-[12px] font-medium text-text-tertiary transition-colors duration-fast ease-out hover:bg-surface hover:text-foreground"
+      >
+        {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+        {copied ? "Copied" : "Copy"}
+      </button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            aria-label="More copy options"
+            className="press inline-flex h-7 items-center rounded-r-full pl-0.5 pr-2 text-text-tertiary transition-colors duration-fast hover:bg-surface hover:text-foreground"
+          >
+            <ChevronDown className="h-3 w-3" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" side="top" className="w-56 p-1">
+          <DropdownMenuItem
+            onClick={() => run("plain")}
+            className="flex flex-col items-start gap-0.5 py-2"
+          >
+            <span className="text-[13px] font-medium text-foreground">
+              Copy as plain text
+            </span>
+            <span className="text-[11px] text-text-tertiary">
+              For WhatsApp, SMS, plain editors
+            </span>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => run("markdown")}
+            className="flex flex-col items-start gap-0.5 py-2"
+          >
+            <span className="text-[13px] font-medium text-foreground">
+              Copy as Markdown
+            </span>
+            <span className="text-[11px] text-text-tertiary">
+              For GitHub, Notion, docs-as-code
+            </span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </span>
+  );
+}
+
 function PreBlock({ children }: { children?: React.ReactNode }) {
   const ctx = useContext(PreContext);
   const [wrap, setWrap] = useState(false);
@@ -447,7 +560,10 @@ function PreBlock({ children }: { children?: React.ReactNode }) {
 
   return (
     <div className="my-4 overflow-hidden rounded-xl border border-border/70 bg-surface">
-      <div className="flex items-center justify-between gap-2 border-b border-border/70 bg-elevated/40 px-3 py-1">
+      <div
+        data-copy-skip
+        className="flex items-center justify-between gap-2 border-b border-border/70 bg-elevated/40 px-3 py-1"
+      >
         <span className="min-w-0 truncate text-[11px] font-medium text-text-tertiary">
           {filename ? (
             <span className="font-mono">{filename}</span>
@@ -489,6 +605,7 @@ function PreBlock({ children }: { children?: React.ReactNode }) {
         {showGutter && (
           <pre
             aria-hidden
+            data-copy-skip
             className="select-none border-r border-border/60 py-4 pl-4 pr-3 text-right text-[13px] leading-relaxed text-text-tertiary/50 tabular-nums"
           >
             {Array.from({ length: lineCount }, (_, i) => i + 1).join("\n")}
@@ -566,6 +683,8 @@ export function MessageBubble({
 }) {
   const isUser = message.role === "user";
   const { formatCost } = useCurrency();
+  // The rendered answer, for formatted copy (see lib/copy-answer.ts).
+  const answerRef = useRef<HTMLDivElement>(null);
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState("");
   const [showPrev, setShowPrev] = useState(false);
@@ -805,6 +924,7 @@ export function MessageBubble({
       )}
       <div
         className="answer prose max-w-none"
+        ref={answerRef}
         onMouseUp={handleSelect}
         onTouchEnd={handleSelect}
       >
@@ -823,7 +943,11 @@ export function MessageBubble({
           <ReactMarkdown
             rehypePlugins={[rehypeHighlight, rehypeKatex]}
             remarkPlugins={[remarkGfm, remarkMath, remarkAlert, remarkDirective, remarkDetails]}
-            components={{ pre: PreBlock as never, p: FadeP as never }}
+            components={{
+              pre: PreBlock as never,
+              p: FadeP as never,
+              table: TableBlock as never,
+            }}
           >
             {prepareMathMarkdown(message.content)}
           </ReactMarkdown>
@@ -926,8 +1050,21 @@ export function MessageBubble({
           ))}
         </div>
       )}
-      <div className="mt-2 flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-base ease-out">
-        <CopyBtn text={message.content} markdown />
+      {/* Actions: always visible on the latest answer (where people copy
+          most); on older ones they appear on hover (desktop). */}
+      <div
+        className={cn(
+          "mt-2 flex items-center gap-1 transition-opacity duration-base ease-out",
+          !isLast && "opacity-100 md:opacity-0 md:group-hover:opacity-100",
+          pending && "invisible"
+        )}
+      >
+        {message.content && (
+          <AnswerCopy
+            getRoot={() => answerRef.current}
+            markdown={message.content}
+          />
+        )}
         {message.content && <ShareBtn text={message.content} />}
         {isLast && onRegenerate && (
           <RegenerateMenu

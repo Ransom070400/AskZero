@@ -274,6 +274,16 @@ html {
   overflow-wrap: anywhere;
 }
 .answer > :first-child { margin-top: 0; }
+/* Comfortable line length (~70 characters) for reading; tables, code and
+   charts still use the full column. */
+.answer p,
+.answer h1,
+.answer h2,
+.answer h3,
+.answer h4,
+.answer blockquote,
+.answer ul,
+.answer ol { max-width: 70ch; }
 .answer > :last-child { margin-bottom: 0; }
 
 .answer p { margin: 0.8em 0; }
