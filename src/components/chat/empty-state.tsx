@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
 import { Logo } from "@/components/ui/logo";
 import {
   ArrowUpRight,
@@ -82,129 +81,92 @@ const WHY = [
   },
 ];
 
-const container = {
-  animate: { transition: { staggerChildren: 0.07, delayChildren: 0.12 } },
-};
-
-const item = {
-  initial: { opacity: 0, y: 12 },
-  animate: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] as const },
-  },
-};
-
-const prompts = {
-  initial: {},
-  animate: { transition: { staggerChildren: 0.05 } },
-};
-
 interface EmptyStateProps {
+  // The composer, rendered centred under the wordmark (Kimi-style).
+  composer: React.ReactNode;
   onSuggestionClick: (text: string) => void;
 }
 
-export function EmptyState({ onSuggestionClick }: EmptyStateProps) {
+// Entrance animation — CSS (tailwindcss-animate), so content is never stuck
+// invisible if JS animation frames are throttled (e.g. a background tab).
+const enter = "animate-in fade-in-0 slide-in-from-bottom-2 duration-700 fill-mode-both";
+
+export function EmptyState({ composer, onSuggestionClick }: EmptyStateProps) {
   const [active, setActive] = useState(CATEGORIES[0].id);
   const category = CATEGORIES.find((c) => c.id === active) ?? CATEGORIES[0];
 
   return (
-    <motion.div
-      initial="initial"
-      animate="animate"
-      variants={container}
-      className="mx-auto flex w-full max-w-chat flex-1 flex-col items-center justify-center px-5 py-12"
-    >
-      <motion.div variants={item} className="mb-7">
-        <Logo size={40} animated />
-      </motion.div>
+    <div className="mx-auto flex w-full max-w-chat flex-1 flex-col items-center justify-center px-1 py-10 md:py-16">
+      <div className={cn(enter, "mb-8")}>
+        <Logo size={52} animated />
+      </div>
 
-      <motion.h1
-        variants={item}
-        className="font-display text-3xl md:text-5xl font-bold tracking-[-0.03em] text-center text-foreground"
-      >
-        what can i help you with?
-      </motion.h1>
+      <div className={cn(enter, "w-full delay-100")}>{composer}</div>
 
-      <motion.p
-        variants={item}
-        className="mt-3 text-center text-[15px] text-text-tertiary"
-      >
-        Ask anything. Private by design — we don&apos;t sell your data or train on your chats.
-      </motion.p>
-
-      {/* Category tabs */}
-      <motion.div
-        variants={item}
-        className="mt-9 flex flex-wrap items-center justify-center gap-1.5"
-      >
-        {CATEGORIES.map((c) => {
-          const Icon = c.icon;
-          const isActive = c.id === active;
-          return (
-            <button
-              key={c.id}
-              onClick={() => setActive(c.id)}
-              className={cn(
-                "press inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors duration-fast",
-                isActive
-                  ? "bg-accent-muted text-accent"
-                  : "text-text-tertiary hover:bg-elevated hover:text-foreground"
-              )}
-            >
-              <Icon className="h-3.5 w-3.5" />
-              {c.label}
-            </button>
-          );
-        })}
-      </motion.div>
-
-      {/* Example prompts for the active category */}
-      <motion.div
-        key={category.id}
-        variants={prompts}
-        initial="initial"
-        animate="animate"
-        className="mt-4 grid w-full grid-cols-1 gap-2 md:grid-cols-2 md:gap-3"
-      >
-        {category.prompts.map((s) => (
-          <motion.button
-            key={s}
-            variants={item}
-            onClick={() => onSuggestionClick(s)}
-            className="press hover-lift group flex items-center justify-between gap-3 rounded-2xl border border-border/70 bg-elevated/60 px-4 py-3.5 text-left text-[14px] text-text-secondary hover:border-border-strong hover:bg-elevated hover:text-foreground"
-          >
-            <span className="leading-snug">{s}</span>
-            <ArrowUpRight className="h-4 w-4 shrink-0 text-text-tertiary transition-colors duration-fast group-hover:text-accent" />
-          </motion.button>
-        ))}
-      </motion.div>
-
-      {/* Why AskZero — the pitch, once, for a first-time user */}
-      <motion.div variants={item} className="mt-10 w-full">
-        <p className="mb-3 text-center text-[11px] font-semibold uppercase tracking-[0.16em] text-text-tertiary">
-          Why AskZero
-        </p>
-        <div className="grid w-full grid-cols-1 gap-2.5 sm:grid-cols-3">
-          {WHY.map((w) => {
-            const Icon = w.icon;
+      {/* Suggestions: category tabs + prompts for the active one */}
+      <div className={cn(enter, "mt-6 w-full delay-200")}>
+        <div className="flex flex-wrap items-center justify-center gap-1.5">
+          {CATEGORIES.map((c) => {
+            const Icon = c.icon;
+            const isActive = c.id === active;
             return (
-              <div
-                key={w.title}
-                className="rounded-2xl border border-border/60 bg-elevated/40 p-4"
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => setActive(c.id)}
+                className={cn(
+                  "press inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[13px] font-medium transition-colors duration-fast",
+                  isActive
+                    ? "border-border-strong bg-elevated text-foreground"
+                    : "border-border/70 text-text-tertiary hover:bg-elevated hover:text-foreground"
+                )}
               >
-                <div className="mb-2.5 flex h-8 w-8 items-center justify-center rounded-lg bg-accent-muted text-accent">
-                  <Icon className="h-4 w-4" />
-                </div>
-                <p className="text-[13px] font-semibold text-foreground">{w.title}</p>
-                <p className="mt-1 text-[12px] leading-relaxed text-text-tertiary">
-                  {w.desc}
-                </p>
-              </div>
+                <Icon className="h-3.5 w-3.5" />
+                {c.label}
+              </button>
             );
           })}
         </div>
-      </motion.div>
-    </motion.div>
+
+        <div
+          key={category.id}
+          className="mt-3 grid w-full grid-cols-1 gap-2 animate-in fade-in-0 duration-300 md:grid-cols-2"
+        >
+          {category.prompts.map((p) => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => onSuggestionClick(p)}
+              className="press group flex items-center justify-between gap-3 rounded-2xl px-4 py-3 text-left text-[14px] text-text-secondary transition-colors duration-fast hover:bg-elevated hover:text-foreground"
+            >
+              <span className="leading-snug">{p}</span>
+              <ArrowUpRight className="h-4 w-4 shrink-0 text-text-tertiary transition-colors duration-fast group-hover:text-accent" />
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Why AskZero — one quiet line instead of three cards */}
+      <div
+        className={cn(
+          enter,
+          "mt-8 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 delay-300"
+        )}
+      >
+        {WHY.map((w) => {
+          const Icon = w.icon;
+          return (
+            <span
+              key={w.title}
+              title={w.desc}
+              className="inline-flex items-center gap-1.5 text-[12px] text-text-tertiary"
+            >
+              <Icon className="h-3.5 w-3.5 text-accent" />
+              {w.title}
+            </span>
+          );
+        })}
+      </div>
+    </div>
   );
 }

@@ -1,9 +1,18 @@
 "use client";
 
 import { useRef, useEffect, useState } from "react";
-import { ArrowUp, ChevronDown, ImageIcon, Loader2, Mic, Paperclip, Sparkles, Square, X } from "lucide-react";
+import {
+  ArrowUp,
+  Loader2,
+  Mic,
+  Paperclip,
+  Plus,
+  Sparkles,
+  Square,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
-import { CHAT_STYLES, type ChatStyle } from "@/lib/system-prompt";
 import { blobToWav } from "@/lib/audio-wav";
 import {
   DropdownMenu,
@@ -19,6 +28,8 @@ export interface SlashCommand {
   label: string;
   description: string;
   run: () => void;
+  // Shown in the "+" menu; commands without one get a generic mark.
+  icon?: LucideIcon;
 }
 
 export const IMAGE_SIZES: { id: ImageSize; label: string; hint: string }[] = [
@@ -37,14 +48,17 @@ interface ChatInputProps {
   attachments?: File[];
   onAttach?: (files: File[]) => void;
   onRemoveAttachment?: (index: number) => void;
-  style?: ChatStyle;
-  onStyleChange?: (style: ChatStyle) => void;
-  imageSize?: ImageSize;
-  onImageSizeChange?: (size: ImageSize) => void;
+  // Right side of the toolbar, before mic/send — the model picker and cost
+  // meter live here, inside the composer (so they can't fall off-screen).
+  toolbarRight?: React.ReactNode;
+  // A mode token after the "+" (e.g. Incognito), removable with its ×.
+  badge?: { label: string; icon?: LucideIcon; onClear: () => void };
+  placeholder?: string;
   // When false, images are filtered from attempted attachments and the
   // UI hints that the active model is text-only.
   allowImages?: boolean;
-  // Slash commands — shown as a menu when the input starts with "/".
+  // Slash commands — shown as a menu when the input starts with "/", and in
+  // the "+" menu.
   commands?: SlashCommand[];
 }
 
@@ -67,16 +81,12 @@ export function ChatInput({
   attachments = [],
   onAttach,
   onRemoveAttachment,
-  style = "default",
-  onStyleChange,
-  imageSize = "1024x1024",
-  onImageSizeChange,
+  toolbarRight,
+  badge,
+  placeholder = "Message AskZero…",
   allowImages = true,
   commands,
 }: ChatInputProps) {
-  const currentStyle = CHAT_STYLES.find((s) => s.id === style) ?? CHAT_STYLES[0];
-  const currentImageSize =
-    IMAGE_SIZES.find((s) => s.id === imageSize) ?? IMAGE_SIZES[0];
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -352,91 +362,148 @@ export function ChatInput({
         </div>
       )}
 
-      <div className="flex items-end gap-1 px-2 py-2">
-        {onAttach && (
+      <textarea
+        ref={textareaRef}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={handleKeyDown}
+        onPaste={handlePaste}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        placeholder={placeholder}
+        rows={1}
+        disabled={disabled}
+        className="block w-full resize-none bg-transparent px-4 pb-1 pt-3.5 text-[16px] leading-[1.5] text-foreground caret-accent outline-none placeholder:text-text-tertiary disabled:opacity-50 max-h-[200px]"
+      />
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        className="hidden"
+        accept={accept}
+        multiple
+        onChange={(e) => {
+          if (e.target.files) addFiles(e.target.files);
+          e.target.value = "";
+        }}
+      />
+
+      {/* Toolbar: actions on the left; model, cost, mic and send on the right */}
+      <div className="flex items-center gap-1 px-2 pb-2">
+        {(onAttach || (commands && commands.length > 0)) && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                aria-label="Add files and more"
+                disabled={disabled}
+                className="press shrink-0 flex h-9 w-9 items-center justify-center rounded-full text-text-secondary hover:bg-surface hover:text-foreground transition-colors duration-fast disabled:opacity-50"
+              >
+                <Plus className="h-[18px] w-[18px]" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" side="top" className="w-[19rem] p-1">
+              {onAttach && (
+                <DropdownMenuItem
+                  onClick={() => fileInputRef.current?.click()}
+                  className="gap-2.5 py-2"
+                >
+                  <Paperclip className="h-4 w-4 shrink-0 text-text-secondary" />
+                  <span className="text-[13px] font-medium text-foreground">
+                    {allowImages ? "Add files & images" : "Add PDFs"}
+                  </span>
+                  <span className="truncate text-[12px] font-normal text-text-tertiary">
+                    {allowImages ? "From this device" : "This model can't read images"}
+                  </span>
+                </DropdownMenuItem>
+              )}
+              {commands?.map((cmd) => {
+                const Icon = cmd.icon ?? Sparkles;
+                return (
+                  <DropdownMenuItem
+                    key={cmd.id}
+                    onClick={() => runCommand(cmd)}
+                    className="gap-2.5 py-2"
+                  >
+                    <Icon className="h-4 w-4 shrink-0 text-text-secondary" />
+                    <span className="text-[13px] font-medium text-foreground">
+                      {cmd.label}
+                    </span>
+                    <span className="truncate text-[12px] font-normal text-text-tertiary">
+                      {cmd.description}
+                    </span>
+                  </DropdownMenuItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+
+        {badge && (
+          <span className="inline-flex h-8 min-w-0 items-center gap-1.5 rounded-full bg-accent-muted pl-2.5 pr-1 text-[12.5px] font-medium text-accent">
+            {badge.icon && <badge.icon className="h-3.5 w-3.5 shrink-0" />}
+            <span className="truncate">{badge.label}</span>
+            <button
+              type="button"
+              onClick={badge.onClear}
+              aria-label={`Turn off ${badge.label}`}
+              className="press flex h-6 w-6 items-center justify-center rounded-full hover:bg-accent/15"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </span>
+        )}
+
+        <div className="ml-auto flex min-w-0 items-center gap-1">
+          {toolbarRight}
+
           <button
             type="button"
-            onClick={() => fileInputRef.current?.click()}
-            aria-label="Attach file"
-            className="press shrink-0 flex h-9 w-9 items-center justify-center rounded-full text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast"
-            disabled={disabled}
-          >
-            <Paperclip className="h-[18px] w-[18px]" />
-          </button>
-        )}
-
-        <textarea
-          ref={textareaRef}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          onKeyDown={handleKeyDown}
-          onPaste={handlePaste}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          placeholder="Message AskZero…"
-          rows={1}
-          disabled={disabled}
-          className="flex-1 resize-none bg-transparent px-2 py-2 text-[16px] leading-[1.5] text-foreground caret-accent outline-none placeholder:text-text-tertiary disabled:opacity-50 max-h-[200px]"
-        />
-
-        <input
-          ref={fileInputRef}
-          type="file"
-          className="hidden"
-          accept={accept}
-          multiple
-          onChange={(e) => {
-            if (e.target.files) addFiles(e.target.files);
-            e.target.value = "";
-          }}
-        />
-
-        <button
-          type="button"
-          onClick={recording ? stopRecording : startRecording}
-          disabled={disabled || transcribing}
-          aria-label={recording ? "Stop recording" : "Record voice message"}
-          title={recording ? "Stop recording" : "Voice input"}
-          className={cn(
-            "press shrink-0 flex h-9 w-9 items-center justify-center rounded-full transition-colors duration-fast",
-            recording
-              ? "bg-error/15 text-error animate-pulse"
-              : "text-text-tertiary hover:bg-surface hover:text-foreground",
-            transcribing && "opacity-60"
-          )}
-        >
-          {transcribing ? (
-            <Loader2 className="h-[18px] w-[18px] animate-spin" />
-          ) : recording ? (
-            <Square className="h-[14px] w-[14px] fill-current" />
-          ) : (
-            <Mic className="h-[18px] w-[18px]" />
-          )}
-        </button>
-
-        {isStreaming && onStop ? (
-          <button
-            aria-label="Stop generating"
-            onClick={onStop}
-            className="press shrink-0 flex h-9 w-9 items-center justify-center rounded-full bg-foreground text-background shadow-sm hover:opacity-90 transition-[opacity,box-shadow] duration-fast ease-out"
-          >
-            <Square className="h-[14px] w-[14px] fill-current" />
-          </button>
-        ) : (
-          <button
-            aria-label="Send message"
-            onClick={triggerSend}
-            disabled={!canSend}
+            onClick={recording ? stopRecording : startRecording}
+            disabled={disabled || transcribing}
+            aria-label={recording ? "Stop recording" : "Record voice message"}
+            title={recording ? "Stop recording" : "Voice input"}
             className={cn(
-              "press shrink-0 flex h-9 w-9 items-center justify-center rounded-full transition-[background-color,opacity,transform,box-shadow] duration-fast ease-out",
-              canSend
-                ? "bg-accent text-white shadow-sm hover:bg-accent-hover hover:shadow-md"
-                : "bg-surface text-text-tertiary opacity-60"
+              "press shrink-0 flex h-9 w-9 items-center justify-center rounded-full transition-colors duration-fast",
+              recording
+                ? "bg-error/15 text-error animate-pulse"
+                : "text-text-tertiary hover:bg-surface hover:text-foreground",
+              transcribing && "opacity-60"
             )}
           >
-            <ArrowUp className="h-[18px] w-[18px]" />
+            {transcribing ? (
+              <Loader2 className="h-[18px] w-[18px] animate-spin" />
+            ) : recording ? (
+              <Square className="h-[14px] w-[14px] fill-current" />
+            ) : (
+              <Mic className="h-[18px] w-[18px]" />
+            )}
           </button>
-        )}
+
+          {isStreaming && onStop ? (
+            <button
+              aria-label="Stop generating"
+              onClick={onStop}
+              className="press shrink-0 flex h-9 w-9 items-center justify-center rounded-full bg-foreground text-background shadow-sm hover:opacity-90 transition-[opacity,box-shadow] duration-fast ease-out"
+            >
+              <Square className="h-[14px] w-[14px] fill-current" />
+            </button>
+          ) : (
+            <button
+              aria-label="Send message"
+              onClick={triggerSend}
+              disabled={!canSend}
+              className={cn(
+                "press shrink-0 flex h-9 w-9 items-center justify-center rounded-full transition-[background-color,opacity,transform,box-shadow] duration-fast ease-out",
+                canSend
+                  ? "bg-accent text-white shadow-sm hover:bg-accent-hover hover:shadow-md"
+                  : "bg-surface text-text-tertiary opacity-60"
+              )}
+            >
+              <ArrowUp className="h-[18px] w-[18px]" />
+            </button>
+          )}
+        </div>
       </div>
 
       {rejectedImage && (
@@ -457,73 +524,6 @@ export function ChatInput({
         </div>
       )}
 
-      {(onStyleChange || onImageSizeChange) && (
-        <div className="flex items-center gap-1 px-3 pb-2">
-          {onStyleChange && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  className="press inline-flex h-8 items-center gap-1 rounded-full px-2.5 text-[12px] font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
-                  aria-label="Choose response style"
-                >
-                  <Sparkles className="h-3 w-3" />
-                  {currentStyle.label}
-                  <ChevronDown className="h-3 w-3" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" side="top" className="w-56">
-                {CHAT_STYLES.map((s) => (
-                  <DropdownMenuItem
-                    key={s.id}
-                    onClick={() => onStyleChange(s.id)}
-                    className="flex flex-col items-start gap-0.5 py-2"
-                  >
-                    <span className="text-[13px] font-medium text-foreground">
-                      {s.label}
-                    </span>
-                    <span className="text-[11px] text-text-tertiary">
-                      {s.description}
-                    </span>
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-          {onImageSizeChange && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  className="press inline-flex h-8 items-center gap-1 rounded-full px-2.5 text-[12px] font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
-                  aria-label="Choose image aspect ratio"
-                  title="Aspect ratio for /image"
-                >
-                  <ImageIcon className="h-3 w-3" />
-                  {currentImageSize.hint}
-                  <ChevronDown className="h-3 w-3" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" side="top" className="w-44">
-                {IMAGE_SIZES.map((s) => (
-                  <DropdownMenuItem
-                    key={s.id}
-                    onClick={() => onImageSizeChange(s.id)}
-                    className="flex items-center justify-between gap-2 py-2"
-                  >
-                    <span className="text-[13px] font-medium text-foreground">
-                      {s.label}
-                    </span>
-                    <span className="text-[11px] text-text-tertiary">
-                      {s.hint}
-                    </span>
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-        </div>
-      )}
     </div>
   );
 }

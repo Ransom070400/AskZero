@@ -2,18 +2,24 @@
 
 import { Suspense, useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
-import { EyeOff } from "lucide-react";
+import { EyeOff, ImageIcon, Telescope } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { ChatList } from "@/components/chat/chat-list";
 import { ChatSkeleton } from "@/components/chat/chat-skeleton";
 import { toast } from "@/lib/toast";
-import { ChatInput, type ImageSize, type SlashCommand } from "@/components/chat/chat-input";
-import { ModelPicker, type ModelOption } from "@/components/chat/model-picker";
+import {
+  ChatInput,
+  IMAGE_SIZES,
+  type ImageSize,
+  type SlashCommand,
+} from "@/components/chat/chat-input";
+import { ModelPicker } from "@/components/chat/model-picker";
 import { CostMeter } from "@/components/chat/cost-meter";
 import type { Message, Attachment, ArtifactRef } from "@/components/chat/message-bubble";
-import type { ChatStyle } from "@/lib/system-prompt";
+import { CHAT_STYLES, type ChatStyle } from "@/lib/system-prompt";
 import { ArtifactPanel } from "@/components/artifact/artifact-panel";
 import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
+import { useModelSelection } from "@/hooks/use-model-selection";
 import { cn } from "@/lib/utils";
 
 // Detect natural-language image requests. Returns the cleaned prompt
@@ -53,11 +59,12 @@ function ChatDetailContent() {
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
-  const [models, setModels] = useState<ModelOption[]>([]);
-  const [selectedModel, setSelectedModel] = useState<{
-    provider: string;
-    model: string;
-  } | null>(null);
+  const {
+    models,
+    selected: selectedModel,
+    select: setSelectedModel,
+    active: activeModel,
+  } = useModelSelection();
   const [attachments, setAttachments] = useState<File[]>([]);
   const [style, setStyle] = useState<ChatStyle>("default");
   const [imageSize, setImageSize] = useState<ImageSize>("1024x1024");
@@ -95,31 +102,11 @@ function ChatDetailContent() {
     localStorage.setItem("askzero:image-size", next);
   }, []);
 
-  // Load models
-  useEffect(() => {
-    fetch("/api/models")
-      .then((r) => r.json())
-      .then((data) => {
-        setModels(data.models);
-        if (data.models.length > 0 && !selectedModel) {
-          setSelectedModel({
-            provider: data.models[0].provider,
-            model: data.models[0].model,
-          });
-        }
-      })
-      .catch(() => {});
-  }, []);
-
   // The active model's vision capability — drives the input gate and the
   // image-attachment cleanup when the user switches to a text-only model.
   const activeModelSupportsImages = (() => {
     if (!selectedModel) return true; // permissive until we know
-    const found = models.find(
-      (m) =>
-        m.provider === selectedModel.provider && m.model === selectedModel.model
-    );
-    return found?.supportsImages ?? false;
+    return activeModel?.supportsImages ?? false;
   })();
 
   // If the user picks a text-only model while images are queued, drop them
@@ -752,13 +739,7 @@ function ChatDetailContent() {
       <ChatList
         messages={messages}
         isStreaming={isStreaming}
-        modelLabel={
-          models.find(
-            (m) =>
-              m.provider === selectedModel?.provider &&
-              m.model === selectedModel?.model
-          )?.label
-        }
+        modelLabel={activeModel?.label}
         onRegenerate={handleRegenerate}
         onRegenerateWith={handleRegenerateWith}
         regenModels={models.filter((m) => !m.comingSoon)}
@@ -776,7 +757,7 @@ function ChatDetailContent() {
         className="px-4 pt-3 pb-3 md:px-6 md:pt-4 md:pb-5"
         style={keyboardInset ? { marginBottom: keyboardInset } : undefined}
       >
-        <div className="mx-auto max-w-chat space-y-3">
+        <div className="mx-auto max-w-chat">
           <ChatInput
             value={input}
             onChange={setInput}
@@ -787,70 +768,72 @@ function ChatDetailContent() {
             attachments={attachments}
             onAttach={(files) => setAttachments((prev) => [...prev, ...files].slice(0, 5))}
             onRemoveAttachment={(i) => setAttachments((prev) => prev.filter((_, idx) => idx !== i))}
-            style={style}
-            onStyleChange={updateStyle}
-            imageSize={imageSize}
-            onImageSizeChange={updateImageSize}
             allowImages={activeModelSupportsImages}
+            toolbarRight={
+              <>
+                <span className="hidden min-w-0 sm:inline-flex">
+                  <CostMeter
+                    promptText={input}
+                    model={selectedModel?.model}
+                    rate={activeModel?.pricePer1k}
+                    hasAttachments={attachments.length > 0}
+                    isStreaming={isStreaming}
+                  />
+                </span>
+                {models.length > 0 && selectedModel && (
+                  <ModelPicker
+                    models={models}
+                    selected={selectedModel}
+                    disabled={isStreaming}
+                    onSelect={setSelectedModel}
+                    settings={[
+                      {
+                        id: "style",
+                        label: "Answer style",
+                        value: style,
+                        options: CHAT_STYLES,
+                        onChange: (v) => updateStyle(v as ChatStyle),
+                      },
+                      {
+                        id: "image-size",
+                        label: "Image size",
+                        value: imageSize,
+                        options: IMAGE_SIZES.map((sz) => ({
+                          id: sz.id,
+                          label: `${sz.label} · ${sz.hint}`,
+                        })),
+                        onChange: (v) => updateImageSize(v as ImageSize),
+                      },
+                    ]}
+                  />
+                )}
+              </>
+            }
             commands={[
               {
                 id: "research",
                 label: "Research",
-                description: "Autonomous, cited multi-source research",
+                description: "Cited multi-source report",
+                icon: Telescope,
                 run: () => router.push("/research"),
               },
               {
                 id: "incognito",
                 label: "Incognito",
-                description: "Ephemeral chat — not saved, not remembered",
+                description: "Not saved, not remembered",
+                icon: EyeOff,
                 run: () => router.push("/chat/incognito"),
               },
               {
                 id: "image",
                 label: "Image",
-                description: "Generate an image from a prompt",
+                description: "Generate a picture",
+                icon: ImageIcon,
                 run: () => setInput("generate an image of "),
               },
             ] satisfies SlashCommand[]}
           />
 
-          {/* Status row — model picker + cost meter + helper text */}
-          <div className="flex items-center justify-between gap-3 px-2">
-            <div className="flex min-w-0 items-center gap-2.5">
-              {models.length > 0 && selectedModel ? (
-                <ModelPicker
-                  models={models}
-                  selected={selectedModel}
-                  disabled={isStreaming}
-                  onSelect={setSelectedModel}
-                />
-              ) : (
-                <span />
-              )}
-              <CostMeter
-                promptText={input}
-                model={selectedModel?.model}
-                rate={
-                  models.find(
-                    (m) =>
-                      m.provider === selectedModel?.provider &&
-                      m.model === selectedModel?.model
-                  )?.pricePer1k
-                }
-                hasAttachments={attachments.length > 0}
-                isStreaming={isStreaming}
-              />
-            </div>
-
-            <p className="hidden md:block text-[11px] text-text-tertiary">
-              <kbd className="mr-1 rounded bg-elevated/80 px-1 py-0.5 text-[10px] font-medium">⌘/</kbd>
-              focus ·{" "}
-              <kbd className="mx-1 rounded bg-elevated/80 px-1 py-0.5 text-[10px] font-medium">↵</kbd>
-              send ·{" "}
-              <code className="rounded bg-elevated/80 px-1 py-0.5 text-[10px] font-medium font-mono">/image</code>{" "}
-              to generate
-            </p>
-          </div>
         </div>
       </div>
       </div>

@@ -8,7 +8,6 @@ import {
   ChevronRight,
   ImageIcon,
   Search,
-  Sparkles,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -41,6 +40,16 @@ export interface ModelOption {
   // (unix seconds).
   trust?: "tee" | "tee-route" | "none";
   created?: number;
+}
+
+// A composer setting shown at the foot of the menu, Kimi-style
+// ("Answer style  Default ›"), drilling into its options.
+export interface PickerSetting {
+  id: string;
+  label: string;
+  value: string;
+  options: { id: string; label: string; description?: string }[];
+  onChange: (id: string) => void;
 }
 
 // ── Vendors ────────────────────────────────────────────────────────────────
@@ -332,49 +341,45 @@ export function ModelPicker({
   selected,
   disabled,
   onSelect,
+  settings = [],
 }: {
   models: ModelOption[];
   selected: { provider: string; model: string };
   disabled?: boolean;
   onSelect: (m: { provider: string; model: string }) => void;
+  settings?: PickerSetting[];
 }) {
   const active = models.find(
     (m) => m.provider === selected.provider && m.model === selected.model
   );
-  const activeVendor = active ? VENDORS[vendorOf(active)] : null;
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
           disabled={disabled}
-          className="press group inline-flex items-center gap-2 rounded-full border border-border/70 bg-elevated/60 py-1 pl-1 pr-3 text-[12px] font-semibold text-foreground transition-[border-color,background-color] duration-fast ease-out hover:border-border-strong disabled:opacity-50"
+          aria-label="Choose model"
+          className="press group inline-flex h-8 min-w-0 items-center gap-1 rounded-full px-2.5 text-[13px] font-medium text-text-secondary transition-colors duration-fast ease-out hover:bg-surface hover:text-foreground disabled:opacity-50"
         >
-          {active && activeVendor ? (
-            <VendorAvatar
-              vendor={activeVendor}
-              size="sm"
-              image={active.kind === "image"}
-            />
-          ) : (
-            <span className="ml-1 inline-flex h-6 w-6 items-center justify-center rounded-full bg-accent-muted text-accent">
-              <Sparkles className="h-3 w-3" />
-            </span>
-          )}
-          <span className="leading-none">
+          <span className="truncate">
             {active?.label.split(" · ")[0] ?? "Select model"}
           </span>
-          <ChevronDown className="h-3 w-3 text-text-tertiary group-hover:text-foreground transition-colors duration-fast" />
+          <ChevronDown className="h-3 w-3 shrink-0 text-text-tertiary transition-colors duration-fast group-hover:text-foreground" />
         </button>
       </DropdownMenuTrigger>
 
       <DropdownMenuContent
-        align="start"
+        align="end"
         side="top"
         className="max-h-[min(70vh,32rem)] w-80 overflow-y-auto overscroll-contain p-1"
       >
         {/* Mounted only while open, so the drill-down resets on every open. */}
-        <PickerPanel models={models} selected={selected} onSelect={onSelect} />
+        <PickerPanel
+          models={models}
+          selected={selected}
+          onSelect={onSelect}
+          settings={settings}
+        />
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -454,10 +459,12 @@ function PickerPanel({
   models,
   selected,
   onSelect,
+  settings,
 }: {
   models: ModelOption[];
   selected: { provider: string; model: string };
   onSelect: (m: { provider: string; model: string }) => void;
+  settings: PickerSetting[];
 }) {
   const groups = groupByVendor(models);
   const isSelected = (m: ModelOption) =>
@@ -466,27 +473,82 @@ function PickerPanel({
 
   const [openVendor, setOpenVendor] = useState<VendorKey | null>(null);
   const [query, setQuery] = useState("");
+  const [openSetting, setOpenSetting] = useState<string | null>(null);
   const group = groups.find((g) => g.vendor.key === openVendor);
+  const setting = settings.find((st) => st.id === openSetting);
+
+  const backRow = (onBack: () => void, children: React.ReactNode) => (
+    <>
+      <button
+        type="button"
+        onClick={onBack}
+        className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left transition-colors duration-fast hover:bg-elevated"
+      >
+        <ChevronLeft className="h-4 w-4 text-text-tertiary" />
+        {children}
+      </button>
+      <div className="-mx-1 my-1 h-px bg-border/60" />
+    </>
+  );
+
+  // ── Level 2: one setting's options ──
+  if (setting) {
+    return (
+      <div>
+        {backRow(
+          () => setOpenSetting(null),
+          <span className="text-[13px] font-semibold text-foreground">
+            {setting.label}
+          </span>
+        )}
+        {setting.options.map((o) => (
+          <button
+            key={o.id}
+            type="button"
+            onClick={() => {
+              setting.onChange(o.id);
+              setOpenSetting(null);
+            }}
+            className={cn(
+              "flex w-full items-start gap-2.5 rounded-lg px-2 py-2 text-left transition-colors duration-fast hover:bg-elevated",
+              o.id === setting.value && "bg-accent-muted/50"
+            )}
+          >
+            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+              <span className="text-[13px] font-medium text-foreground">
+                {o.label}
+              </span>
+              {o.description && (
+                <span className="text-[11px] leading-snug text-text-tertiary">
+                  {o.description}
+                </span>
+              )}
+            </div>
+            {o.id === setting.value && (
+              <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent" />
+            )}
+          </button>
+        ))}
+      </div>
+    );
+  }
 
   // ── Level 2: one company's models ──
   if (group) {
     return (
       <div>
-        <button
-          type="button"
-          onClick={() => setOpenVendor(null)}
-          className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left transition-colors duration-fast hover:bg-elevated"
-        >
-          <ChevronLeft className="h-4 w-4 text-text-tertiary" />
-          <VendorAvatar vendor={group.vendor} size="sm" />
-          <span className="text-[13px] font-semibold text-foreground">
-            {group.vendor.name}
-          </span>
-          <span className="ml-auto text-[11px] text-text-tertiary">
-            All companies
-          </span>
-        </button>
-        <div className="-mx-1 my-1 h-px bg-border/60" />
+        {backRow(
+          () => setOpenVendor(null),
+          <>
+            <VendorAvatar vendor={group.vendor} size="sm" />
+            <span className="text-[13px] font-semibold text-foreground">
+              {group.vendor.name}
+            </span>
+            <span className="ml-auto text-[11px] text-text-tertiary">
+              All companies
+            </span>
+          </>
+        )}
         {group.models.map((m) => (
           <ModelRow key={`${m.provider}|${m.model}`} m={m} {...rowProps} />
         ))}
@@ -578,6 +640,28 @@ function PickerPanel({
               </button>
             );
           })}
+
+          {settings.length > 0 && (
+            <>
+              <div className="-mx-1 my-1 h-px bg-border/60" />
+              {settings.map((st) => (
+                <button
+                  key={st.id}
+                  type="button"
+                  onClick={() => setOpenSetting(st.id)}
+                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-colors duration-fast hover:bg-elevated"
+                >
+                  <span className="text-[13px] font-medium text-foreground">
+                    {st.label}
+                  </span>
+                  <span className="ml-auto text-[12px] text-text-tertiary">
+                    {st.options.find((o) => o.id === st.value)?.label}
+                  </span>
+                  <ChevronRight className="h-3.5 w-3.5 shrink-0 text-text-tertiary" />
+                </button>
+              ))}
+            </>
+          )}
         </>
       )}
     </div>
