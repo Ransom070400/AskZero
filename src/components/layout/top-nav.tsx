@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { LogOut, Settings, CreditCard, Plus, EyeOff, Flame } from "lucide-react";
 import { useCurrency } from "@/lib/currency";
+import { cn } from "@/lib/utils";
 import { useEffect, useState, useCallback, useRef } from "react";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 
@@ -57,6 +58,7 @@ function useCountUp(target: number | null, duration = 700): number {
 
 export function TopNav() {
   const router = useRouter();
+  const inIncognito = usePathname()?.startsWith("/chat/incognito") ?? false;
   const supabase = createClient();
   const { formatBalance } = useCurrency();
   const [user, setUser] = useState<SupabaseUser | null>(null);
@@ -135,12 +137,23 @@ export function TopNav() {
       </Link>
 
       <div className="ml-auto flex items-center gap-1.5 md:gap-2">
-        {/* Incognito — start an ephemeral chat (not saved, not remembered) */}
+        {/* Incognito toggle — start an ephemeral chat (not saved, not
+            remembered), or leave one back to a normal chat. */}
         <button
-          onClick={() => router.push("/chat/incognito")}
-          title="Incognito chat — not saved, not remembered"
-          aria-label="Start incognito chat"
-          className="press flex h-8 w-8 items-center justify-center rounded-full border border-border/70 bg-elevated/80 text-text-tertiary transition-[color,border-color] duration-fast ease-out hover:border-border-strong hover:text-foreground"
+          onClick={() => router.push(inIncognito ? "/chat" : "/chat/incognito")}
+          title={
+            inIncognito
+              ? "Exit incognito"
+              : "Incognito chat — not saved, not remembered"
+          }
+          aria-label={inIncognito ? "Exit incognito" : "Start incognito chat"}
+          aria-pressed={inIncognito}
+          className={cn(
+            "press flex h-8 w-8 items-center justify-center rounded-full border transition-[color,border-color,background-color] duration-fast ease-out",
+            inIncognito
+              ? "border-accent/50 bg-accent-muted text-accent hover:border-accent"
+              : "border-border/70 bg-elevated/80 text-text-tertiary hover:border-border-strong hover:text-foreground"
+          )}
         >
           <EyeOff className="h-4 w-4" />
         </button>

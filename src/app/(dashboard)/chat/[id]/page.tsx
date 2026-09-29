@@ -777,13 +777,24 @@ function ChatDetailContent() {
         )}
       >
       {isIncognito && (
-        <div className="flex items-center justify-center gap-2 border-b border-border/60 bg-surface/60 px-4 py-2 text-center text-[12px] text-text-secondary">
+        <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 border-b border-border/60 bg-surface/60 px-4 py-2 text-center text-[12px] text-text-secondary">
           <EyeOff className="h-3.5 w-3.5 shrink-0 text-text-tertiary" />
-          <span>
-            <b className="font-semibold text-foreground">Incognito</b> — this chat
-            isn&apos;t saved and won&apos;t be remembered. You&apos;re still charged
-            per message, and your prompt is processed privately in a secure enclave.
+          <span title="You're still charged per message, and your prompt is processed privately in a secure enclave.">
+            <b className="font-semibold text-foreground">Incognito</b> — not saved,
+            not remembered. Still charged per message.
           </span>
+          <button
+            type="button"
+            onClick={() => router.push("/chat")}
+            title={
+              messages.length > 0
+                ? "Leave incognito — this conversation will be discarded"
+                : "Leave incognito"
+            }
+            className="press ml-1 shrink-0 rounded-full border border-border/70 bg-elevated px-2.5 py-1 text-[12px] font-semibold text-foreground transition-colors duration-fast hover:border-border-strong"
+          >
+            Exit
+          </button>
         </div>
       )}
       {loadingHistory && messages.length === 0 ? (
