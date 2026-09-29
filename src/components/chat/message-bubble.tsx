@@ -804,16 +804,7 @@ export function MessageBubble({
         <StepsTrace steps={message.steps} active={!message.content} />
       )}
       <div
-        className="prose prose-sm dark:prose-invert max-w-none text-[15px] leading-[1.7] text-foreground
-          [&_p]:my-3
-          [&_h1]:font-display [&_h2]:font-display [&_h3]:font-display
-          [&_h1]:tracking-tight [&_h2]:tracking-tight [&_h3]:tracking-tight
-          [&_code]:rounded-md [&_code]:bg-surface [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-[0.9em] [&_code]:font-medium
-          [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_pre_code]:font-normal
-          [&_a]:text-accent [&_a]:no-underline hover:[&_a]:underline
-          [&_blockquote]:border-l-2 [&_blockquote]:border-accent/40 [&_blockquote]:pl-4 [&_blockquote]:text-text-secondary [&_blockquote]:italic
-          [&_ul]:my-3 [&_ol]:my-3 [&_li]:my-1
-          [&_table]:block [&_table]:w-full [&_table]:overflow-x-auto [&_table]:border-collapse [&_th]:whitespace-nowrap [&_th]:text-left [&_th]:p-2 [&_th]:border-b [&_th]:border-border [&_td]:p-2 [&_td]:border-b [&_td]:border-border/40"
+        className="answer prose max-w-none"
         onMouseUp={handleSelect}
         onTouchEnd={handleSelect}
       >
