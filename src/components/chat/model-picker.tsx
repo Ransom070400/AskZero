@@ -18,8 +18,13 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
 
-// Frontier-but-pricey models get a heads-up + badge when selected.
-const isPremiumModel = (model: string) => /claude/i.test(model);
+// Pricey models (≥ 50 credits per 1K output tokens, ~5¢) get a heads-up +
+// badge when selected. Falls back to the model family when unpriced.
+const PREMIUM_OUTPUT_PER_1K = 50;
+const isPremiumModel = (m: ModelOption) =>
+  m.pricePer1k
+    ? m.pricePer1k.output >= PREMIUM_OUTPUT_PER_1K
+    : /claude/i.test(m.model);
 
 export interface ModelOption {
   provider: string;
@@ -29,6 +34,8 @@ export interface ModelOption {
   supportsImages?: boolean;
   kind?: "chat" | "image";
   comingSoon?: boolean;
+  // Retail credits per 1K tokens (from /api/models).
+  pricePer1k?: { input: number; output: number };
 }
 
 // ── Vendors ────────────────────────────────────────────────────────────────
@@ -178,6 +185,19 @@ function groupByVendor(models: ModelOption[]): VendorGroup[] {
   );
 }
 
+// "Claude Opus 5 is premium — about 22× GLM 5.1's cost per reply."
+function premiumNotice(m: ModelOption, base?: ModelOption): string {
+  const name = m.label.split(" · ")[0];
+  const reasons = /claude/i.test(m.model) ? ", and it reasons before replying" : "";
+  const ratio =
+    m.pricePer1k && base?.pricePer1k?.output
+      ? Math.round(m.pricePer1k.output / base.pricePer1k.output)
+      : null;
+  return ratio && ratio > 1
+    ? `${name} is premium — about ${ratio}× ${base!.label.split(" · ")[0]}'s cost per reply${reasons}.`
+    : `${name} is a premium model — replies cost more than the default${reasons}.`;
+}
+
 function VendorAvatar({
   vendor,
   size = "md",
@@ -319,7 +339,7 @@ function PickerPanel({
         {group.models.map((m) => {
           const isActive = isSelected(m);
           const isDefault = `${m.provider}|${m.model}` === defaultKey;
-          const isPremium = isPremiumModel(m.model);
+          const isPremium = isPremiumModel(m);
           const soon = m.comingSoon;
           const via = servedVia(m);
           return (
@@ -330,9 +350,7 @@ function PickerPanel({
                 onSelect({ provider: m.provider, model: m.model });
                 // Heads-up each time they switch to a premium model.
                 if (isPremium && !isActive) {
-                  toast.info(
-                    `${m.label.split(" · ")[0]} — the most capable model here, but premium: roughly 20× GLM's per-token cost, and it reasons before replying.`
-                  );
+                  toast.info(premiumNotice(m, models[0]));
                 }
               }}
               className={cn(

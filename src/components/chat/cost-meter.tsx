@@ -10,11 +10,13 @@ import { estimateCredits } from "@/lib/estimate";
 export function CostMeter({
   promptText,
   model,
+  rate,
   hasAttachments,
   isStreaming,
 }: {
   promptText: string;
   model?: string;
+  rate?: { input: number; output: number };
   hasAttachments?: boolean;
   isStreaming?: boolean;
 }) {
@@ -43,7 +45,7 @@ export function CostMeter({
   }, [isStreaming]);
 
   const hasDraft = !!promptText.trim() || !!hasAttachments;
-  const estimate = hasDraft ? estimateCredits(model ?? "", promptText) : 0;
+  const estimate = hasDraft ? estimateCredits(model ?? "", promptText, rate) : 0;
 
   if (!hasDraft && creditsToday == null) return null;
 

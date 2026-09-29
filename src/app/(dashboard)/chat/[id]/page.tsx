@@ -830,6 +830,13 @@ function ChatDetailContent() {
               <CostMeter
                 promptText={input}
                 model={selectedModel?.model}
+                rate={
+                  models.find(
+                    (m) =>
+                      m.provider === selectedModel?.provider &&
+                      m.model === selectedModel?.model
+                  )?.pricePer1k
+                }
                 hasAttachments={attachments.length > 0}
                 isStreaming={isStreaming}
               />
