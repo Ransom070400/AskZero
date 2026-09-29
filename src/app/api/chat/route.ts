@@ -287,7 +287,9 @@ export async function POST(req: NextRequest) {
       let observations = "";
       if (message.trim()) {
         try {
-          observations = await runAgentLoop(message, (s) => send(s));
+          observations = await runAgentLoop(message, (s) => send(s), {
+            hasAttachments,
+          });
         } catch {
           observations = "";
         }

@@ -49,7 +49,13 @@ export async function complete(
     throw new Error(`LLM ${res.status}: ${text.slice(0, 200)}`);
   }
   const data = await res.json();
-  return (data?.choices?.[0]?.message?.content as string) ?? "";
+  const content = (data?.choices?.[0]?.message?.content as string) ?? "";
+  // glm-5.1-fp8 reasons even with enable_thinking:false, writing the trace
+  // into content and closing it with </think>. Callers parse this output
+  // (THINKING:/ACTION: lines, JSON), and the trace can echo the requested
+  // format or contain stray braces — so keep only what follows it.
+  const end = content.lastIndexOf("</think>");
+  return end === -1 ? content : content.slice(end + "</think>".length).trim();
 }
 
 // Pull a JSON array/object out of an LLM response that may wrap it in prose or
