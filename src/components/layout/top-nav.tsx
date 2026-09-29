@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { LogOut, Settings, CreditCard, Plus, EyeOff, Flame } from "lucide-react";
 import { useCurrency } from "@/lib/currency";
-import { cn } from "@/lib/utils";
+import { ExitIncognito } from "@/components/chat/exit-incognito";
 import { useEffect, useState, useCallback, useRef } from "react";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 
@@ -138,25 +138,29 @@ export function TopNav() {
 
       <div className="ml-auto flex items-center gap-1.5 md:gap-2">
         {/* Incognito toggle — start an ephemeral chat (not saved, not
-            remembered), or leave one back to a normal chat. */}
-        <button
-          onClick={() => router.push(inIncognito ? "/chat" : "/chat/incognito")}
-          title={
-            inIncognito
-              ? "Exit incognito"
-              : "Incognito chat — not saved, not remembered"
-          }
-          aria-label={inIncognito ? "Exit incognito" : "Start incognito chat"}
-          aria-pressed={inIncognito}
-          className={cn(
-            "press flex h-8 w-8 items-center justify-center rounded-full border transition-[color,border-color,background-color] duration-fast ease-out",
-            inIncognito
-              ? "border-accent/50 bg-accent-muted text-accent hover:border-accent"
-              : "border-border/70 bg-elevated/80 text-text-tertiary hover:border-border-strong hover:text-foreground"
-          )}
-        >
-          <EyeOff className="h-4 w-4" />
-        </button>
+            remembered), or leave one (confirming first if it has messages). */}
+        {inIncognito ? (
+          <ExitIncognito>
+            <button
+              title="Exit incognito"
+              aria-label="Exit incognito"
+              aria-pressed
+              className="press flex h-8 w-8 items-center justify-center rounded-full border border-accent/50 bg-accent-muted text-accent transition-[border-color] duration-fast ease-out hover:border-accent"
+            >
+              <EyeOff className="h-4 w-4" />
+            </button>
+          </ExitIncognito>
+        ) : (
+          <button
+            onClick={() => router.push("/chat/incognito")}
+            title="Incognito chat — not saved, not remembered"
+            aria-label="Start incognito chat"
+            aria-pressed={false}
+            className="press flex h-8 w-8 items-center justify-center rounded-full border border-border/70 bg-elevated/80 text-text-tertiary transition-[color,border-color] duration-fast ease-out hover:border-border-strong hover:text-foreground"
+          >
+            <EyeOff className="h-4 w-4" />
+          </button>
+        )}
 
         {/* Streak + balance — one unified account cluster: 🔥 streak · + balance */}
         <div className="flex items-center overflow-hidden rounded-full border border-border/70 bg-elevated/80">

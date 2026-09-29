@@ -20,6 +20,8 @@ import { CHAT_STYLES, type ChatStyle } from "@/lib/system-prompt";
 import { ArtifactPanel } from "@/components/artifact/artifact-panel";
 import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
 import { useModelSelection } from "@/hooks/use-model-selection";
+import { setIncognitoHasMessages } from "@/lib/incognito-state";
+import { ExitIncognito } from "@/components/chat/exit-incognito";
 import { cn } from "@/lib/utils";
 
 // Detect natural-language image requests. Returns the cleaned prompt
@@ -101,6 +103,14 @@ function ChatDetailContent() {
     setImageSize(next);
     localStorage.setItem("askzero:image-size", next);
   }, []);
+
+  // Let the exit-incognito controls know whether leaving would discard
+  // anything, so they can confirm first.
+  const hasConversation = isIncognito && messages.length > 0;
+  useEffect(() => {
+    setIncognitoHasMessages(hasConversation);
+  }, [hasConversation]);
+  useEffect(() => () => setIncognitoHasMessages(false), []);
 
   // Short display name for the model that wrote an answer; falls back to the
   // raw id (minus any vendor prefix) for models no longer listed.
@@ -783,18 +793,14 @@ function ChatDetailContent() {
             <b className="font-semibold text-foreground">Incognito</b> — not saved,
             not remembered. Still charged per message.
           </span>
-          <button
-            type="button"
-            onClick={() => router.push("/chat")}
-            title={
-              messages.length > 0
-                ? "Leave incognito — this conversation will be discarded"
-                : "Leave incognito"
-            }
-            className="press ml-1 shrink-0 rounded-full border border-border/70 bg-elevated px-2.5 py-1 text-[12px] font-semibold text-foreground transition-colors duration-fast hover:border-border-strong"
-          >
-            Exit
-          </button>
+          <ExitIncognito>
+            <button
+              type="button"
+              className="press ml-1 shrink-0 rounded-full border border-border/70 bg-elevated px-2.5 py-1 text-[12px] font-semibold text-foreground transition-colors duration-fast hover:border-border-strong"
+            >
+              Exit
+            </button>
+          </ExitIncognito>
         </div>
       )}
       {loadingHistory && messages.length === 0 ? (
