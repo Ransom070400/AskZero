@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 import { ThinkSplitter } from "../src/lib/think-split";
 
 // Feed chunks through a fresh splitter and join what comes out.
-function run(chunks: string[]) {
-  const s = new ThinkSplitter();
+function run(chunks: string[], opts?: { startInThink?: boolean }) {
+  const s = new ThinkSplitter(opts);
   let content = "";
   let reasoning = "";
   for (const c of [...chunks.map((c) => s.push(c)), s.flush()]) {
@@ -47,4 +47,22 @@ test("unclosed think at end of stream stays reasoning", () => {
     content: "",
     reasoning: "still going",
   });
+});
+
+test("implicit open: reasoning until </think>, then the answer", () => {
+  const s = new ThinkSplitter({ startInThink: true });
+  const a = s.push("The user wants X. Let me ");
+  const b = s.push("think.</thi");
+  const c = s.push("nk>Lagos has ~15M people.");
+  const d = s.flush();
+  assert.equal(a.reasoning + b.reasoning + c.reasoning + d.reasoning, "The user wants X. Let me think.");
+  assert.equal(a.content + b.content + c.content + d.content, "Lagos has ~15M people.");
+  assert.equal(s.sawClose, true);
+});
+
+test("implicit open without a close is flagged (it was the answer)", () => {
+  const s = new ThinkSplitter({ startInThink: true });
+  s.push("Just the answer.");
+  s.flush();
+  assert.equal(s.sawClose, false);
 });

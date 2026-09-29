@@ -13,8 +13,22 @@ export interface SplitResult {
 }
 
 export class ThinkSplitter {
-  private inThink = false;
+  private inThink: boolean;
   private carry = "";
+  private closed = false;
+
+  // startInThink: for models that open their reasoning implicitly (no
+  // <think>) and only close it — e.g. glm-5.1-fp8, which ignores
+  // enable_thinking:false and streams "…reasoning…</think>answer".
+  constructor(opts: { startInThink?: boolean } = {}) {
+    this.inThink = opts.startInThink ?? false;
+  }
+
+  // Whether a </think> was ever seen. With startInThink, a stream that ends
+  // without one never reasoned — its "reasoning" was really the answer.
+  get sawClose(): boolean {
+    return this.closed;
+  }
 
   push(chunk: string): SplitResult {
     let text = this.carry + chunk;
@@ -27,6 +41,7 @@ export class ThinkSplitter {
       if (at !== -1) {
         this.emit(out, text.slice(0, at));
         text = text.slice(at + tag.length);
+        if (this.inThink) this.closed = true;
         this.inThink = !this.inThink;
         continue;
       }

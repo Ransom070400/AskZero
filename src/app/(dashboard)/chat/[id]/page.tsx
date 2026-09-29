@@ -532,6 +532,22 @@ function ChatDetailContent() {
                   )
                 );
               }
+              if (parsed.promoteReasoning) {
+                // The server decided the "reasoning" was really the answer.
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === assistantId
+                      ? {
+                          ...m,
+                          content: (m.reasoning ?? "") + m.content,
+                          reasoning: undefined,
+                          thinkingStartedAt: undefined,
+                          thinkingMs: undefined,
+                        }
+                      : m
+                  )
+                );
+              }
               if (typeof parsed.reasoning === "string") {
                 setMessages((prev) =>
                   prev.map((m) =>

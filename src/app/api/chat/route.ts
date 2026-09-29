@@ -380,7 +380,11 @@ export async function POST(req: NextRequest) {
         reasoningText += text;
         send({ reasoning: text });
       };
-      const think = new ThinkSplitter();
+      // glm-5.1-fp8 (Integrate) ignores enable_thinking:false and streams its
+      // reasoning as plain content up to a bare </think> — treat everything
+      // before that as reasoning rather than showing it as the answer.
+      const implicitThink = provider.startsWith(INTEGRATE_PREFIX);
+      const think = new ThinkSplitter({ startInThink: implicitThink });
       const emit = ({ content, reasoning }: { content: string; reasoning: string }) => {
         if (reasoning) sendReasoning(reasoning);
         if (content) {
@@ -432,6 +436,13 @@ export async function POST(req: NextRequest) {
       }
 
       emit(think.flush());
+      // No </think> ever came, so there was no reasoning: what streamed as
+      // "reasoning" was the answer. Move it back (server + client).
+      if (implicitThink && !think.sawClose && reasoningText) {
+        fullResponse = reasoningText + fullResponse;
+        reasoningText = "";
+        send({ promoteReasoning: true });
+      }
 
       // Calculate cost and settle. Reasoning counts as output.
       const outputTokens = estimateTokens(fullResponse + reasoningText);
