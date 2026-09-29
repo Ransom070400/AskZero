@@ -8,9 +8,14 @@
 // chat models bill at ~the default rate; GLM-5.1 and premium models cost more.
 const DEFAULT_RATE = { input: 1, output: 2 };
 const GLM51_RATE = { input: 1.5, output: 6 };
-// Frontier models (Claude) run ~15× GLM's per-token cost — matches the heads-up
-// in model-picker.tsx.
-const PREMIUM_MULTIPLIER = 15;
+// Frontier models (Claude on 0G Compute) — retail credits per 1K tokens at the
+// listed wholesale × markup (og-compute-models.ts) and ZERO_G_USD_RATE=0.50,
+// the same basis GLM51_RATE uses. ~20×+ GLM's cost — matches the heads-up in
+// model-picker.tsx.
+const PREMIUM_RATES: [RegExp, { input: number; output: number }][] = [
+  [/claude-opus/i, { input: 58, output: 175 }],
+  [/claude/i, { input: 131, output: 491 }],
+];
 
 // A typical answer's length. Output dominates cost, and we can't know it before
 // generating, so we assume a normal-sized reply. The estimate is shown as "~".
@@ -23,10 +28,9 @@ export function estimateInputTokens(text: string): number {
 
 // Estimated credits for the pending message, given the selected model id.
 export function estimateCredits(model: string, promptText: string): number {
-  let rate = /glm-?5[.\-]?1/i.test(model) ? GLM51_RATE : DEFAULT_RATE;
-  if (/claude/i.test(model)) {
-    rate = { input: rate.input * PREMIUM_MULTIPLIER, output: rate.output * PREMIUM_MULTIPLIER };
-  }
+  const rate =
+    PREMIUM_RATES.find(([re]) => re.test(model))?.[1] ??
+    (/glm-?5[.\-]?1/i.test(model) ? GLM51_RATE : DEFAULT_RATE);
   const inTok = estimateInputTokens(promptText);
   const credits =
     (inTok / 1000) * rate.input + (TYPICAL_OUTPUT_TOKENS / 1000) * rate.output;

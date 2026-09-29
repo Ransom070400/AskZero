@@ -35,6 +35,17 @@ export const OG_COMPUTE_MODELS: OGComputeModel[] = [
     description: "On-chain settled inference · decentralized 0G provider",
     wholesaleNeuron: { input: 4_800_000_000_000, output: 16_020_000_000_000 },
   },
+  {
+    // Anthropic-format provider (Messages API) — served via the broker, settled
+    // on-chain. Standard (not TEE) verifiability; see og-compute.ts adapter.
+    provider: "0xd3f02c1a04160389d98D2192AE2034159f731011",
+    model: "claude-opus-5",
+    label: "Claude Opus 5 · 0G Compute",
+    description:
+      "Frontier reasoning — strongest here, premium price · on-chain settled on 0G Compute",
+    wholesaleNeuron: { input: 38_960_000_000_000, output: 175_340_000_000_000 },
+    multimodal: true,
+  },
 ];
 
 // Live 0G Compute chatbot providers we haven't wired up yet. Shown in the

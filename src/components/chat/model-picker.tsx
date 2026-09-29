@@ -331,7 +331,7 @@ function PickerPanel({
                 // Heads-up each time they switch to a premium model.
                 if (isPremium && !isActive) {
                   toast.info(
-                    `${m.label.split(" · ")[0]} — the most capable model here, but premium: roughly 15× GLM's per-token cost, and it reasons before replying.`
+                    `${m.label.split(" · ")[0]} — the most capable model here, but premium: roughly 20× GLM's per-token cost, and it reasons before replying.`
                   );
                 }
               }}
