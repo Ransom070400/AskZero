@@ -320,7 +320,7 @@ function MessageHits({
 }) {
   if (loading && hits.length === 0) {
     return (
-      <p className="px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+      <p className="px-3 py-2 text-[12px] font-medium text-text-tertiary">
         Searching…
       </p>
     );
@@ -328,7 +328,7 @@ function MessageHits({
   if (hits.length === 0) return null;
   return (
     <div className="border-b border-border/70 pb-3 mb-2">
-      <p className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+      <p className="px-3 pt-2 pb-1 text-[12px] font-medium text-text-tertiary">
         Messages · {hits.length}
       </p>
       <div className="space-y-px">
@@ -712,10 +712,10 @@ export function ContentSidebar() {
         <div className="space-y-5 py-1">
           {pinnedChats.length > 0 && (
             <div>
-              <div className="flex w-full items-center gap-1 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+              <div className="flex w-full items-center gap-1 px-3 py-1 text-[12px] font-medium text-text-tertiary">
                 <Pin className="h-3 w-3" />
                 <span>Pinned</span>
-                <span className="ml-auto font-medium normal-case tracking-normal text-text-tertiary/70">
+                <span className="ml-auto font-medium text-text-tertiary/70">
                   {pinnedChats.length}
                 </span>
               </div>
@@ -739,7 +739,7 @@ export function ContentSidebar() {
               <div key={label}>
                 <button
                   onClick={() => toggleGroup(label)}
-                  className="flex w-full items-center gap-1 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-tertiary hover:text-text-secondary transition-colors duration-fast"
+                  className="flex w-full items-center gap-1 px-3 py-1 text-[12px] font-medium text-text-tertiary hover:text-text-secondary transition-colors duration-fast"
                 >
                   <ChevronDown
                     className={cn(
@@ -748,7 +748,7 @@ export function ContentSidebar() {
                     )}
                   />
                   <span>{label}</span>
-                  <span className="ml-auto font-medium normal-case tracking-normal text-text-tertiary/70">
+                  <span className="ml-auto font-medium text-text-tertiary/70">
                     {dateChats.length}
                   </span>
                 </button>

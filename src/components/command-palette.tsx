@@ -161,7 +161,7 @@ export function CommandPalette() {
           )}
 
           {filteredActions.length > 0 && (
-            <p className="px-2.5 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+            <p className="px-2.5 pb-1 pt-2 text-[12px] font-medium text-text-tertiary">
               Actions
             </p>
           )}
@@ -180,7 +180,7 @@ export function CommandPalette() {
           })}
 
           {filteredChats.length > 0 && (
-            <p className="px-2.5 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+            <p className="px-2.5 pb-1 pt-2 text-[12px] font-medium text-text-tertiary">
               Chats
             </p>
           )}

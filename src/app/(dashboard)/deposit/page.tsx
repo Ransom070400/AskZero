@@ -278,7 +278,7 @@ function DepositContent() {
 
       {/* Balance hero */}
       <div className="rounded-3xl border border-border/70 bg-gradient-to-br from-elevated to-surface p-6 md:p-8 shadow-md">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+        <p className="text-[12px] font-medium text-text-tertiary">
           Current balance
         </p>
         <div className="mt-2 flex items-end gap-3">
@@ -304,7 +304,7 @@ function DepositContent() {
 
       {/* Currency selector */}
       <section className="space-y-3">
-        <h2 className="text-[12px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+        <h2 className="text-[13px] font-medium text-text-tertiary">
           Pay with
         </h2>
         <div className="inline-flex w-full rounded-2xl border border-border/70 bg-elevated/60 p-1">
@@ -388,7 +388,7 @@ function DepositContent() {
       {/* Pay with 0G tokens */}
       {pay0G && (
         <section className="space-y-3">
-          <h2 className="text-[12px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+          <h2 className="text-[13px] font-medium text-text-tertiary">
             Pay with 0G
           </h2>
           <ZeroGPay onCredited={fetchData} />
@@ -398,7 +398,7 @@ function DepositContent() {
       {/* Amount */}
       {!pay0G && (
       <section className="space-y-3">
-        <h2 className="text-[12px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+        <h2 className="text-[13px] font-medium text-text-tertiary">
           Amount
         </h2>
 
@@ -479,7 +479,7 @@ function DepositContent() {
       {/* Transaction history */}
       {transactions.length > 0 && (
         <section className="space-y-3">
-          <h2 className="text-[12px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+          <h2 className="text-[13px] font-medium text-text-tertiary">
             Recent activity
           </h2>
           <div className="overflow-hidden rounded-2xl border border-border/70 divide-y divide-border/50">

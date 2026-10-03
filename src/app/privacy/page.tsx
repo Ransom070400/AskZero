@@ -24,8 +24,8 @@ export default function PrivacyPage() {
 
       <div className="mb-3 flex items-center gap-2 text-accent">
         <Lock className="h-5 w-5" />
-        <span className="text-[12px] font-semibold uppercase tracking-[0.14em]">
-          Privacy Policy
+        <span className="text-[13px] font-medium">
+          Privacy policy
         </span>
       </div>
       <h1 className="text-3xl font-bold tracking-tight text-foreground">

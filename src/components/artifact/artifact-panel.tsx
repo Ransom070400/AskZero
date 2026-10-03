@@ -223,7 +223,7 @@ export function ArtifactPanel({
       <div className="flex min-h-0 flex-1">
         {showVersions && artifact && versions.length > 1 && (
           <aside className="hidden w-44 shrink-0 border-r border-border/70 bg-surface/40 p-2 md:block">
-            <p className="px-2 pb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+            <p className="px-2 pb-2 text-[12px] font-medium text-text-tertiary">
               Versions
             </p>
             <div className="space-y-1">

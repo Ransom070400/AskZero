@@ -190,7 +190,7 @@ export default function ResearchPage() {
           </article>
           {sources.length > 0 && (
             <div className="rounded-2xl border border-border/70 bg-elevated/40 p-4">
-              <h2 className="mb-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+              <h2 className="mb-2 text-[13px] font-medium text-text-tertiary">
                 Sources
               </h2>
               <ol className="space-y-1.5">

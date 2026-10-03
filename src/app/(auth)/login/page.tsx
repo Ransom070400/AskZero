@@ -59,7 +59,7 @@ export default function LoginPage() {
       {/* Divider */}
       <div className="relative flex items-center">
         <div className="flex-1 border-t border-border/70" />
-        <span className="px-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+        <span className="px-3 text-[12px] font-medium text-text-tertiary">
           or with email
         </span>
         <div className="flex-1 border-t border-border/70" />

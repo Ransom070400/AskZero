@@ -796,7 +796,7 @@ export function MessageBubble({
       <div id={`msg-${message.id}`} className="group/user flex flex-col items-end scroll-mt-20">
         {showPrev && prevMessages && prevMessages.length > 0 && (
           <div className="mb-2 w-full max-w-[85%] md:max-w-[72%] space-y-2 rounded-2xl border border-dashed border-border/70 bg-surface/60 p-3">
-            <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+            <div className="flex items-center justify-between text-[12px] font-medium text-text-tertiary">
               <span className="flex items-center gap-1.5">
                 <History className="h-3 w-3" /> Previous version
               </span>
@@ -818,7 +818,7 @@ export function MessageBubble({
                 }
               >
                 {pm.role !== "user" && (
-                  <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
+                  <span className="mb-1 block text-[12px] font-medium text-text-tertiary">
                     Assistant
                   </span>
                 )}
@@ -1039,7 +1039,7 @@ export function MessageBubble({
                 <span className="truncate text-[13px] font-semibold text-foreground">
                   {art.title || "Artifact"}
                 </span>
-                <span className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-medium uppercase tracking-wider text-text-tertiary">
+                <span className="mt-0.5 inline-flex items-center gap-1 text-[12px] font-medium text-text-tertiary">
                   {art.type}
                   <span className="h-1 w-1 rounded-full bg-border-strong" />
                   Open workspace

@@ -58,7 +58,7 @@ export function SavingsCalculator() {
           transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
           className="space-y-3 text-center"
         >
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/40">
+          <p className="text-[12px] font-medium text-white/40">
             pay by the question, not the month
           </p>
           <h2 className="font-display text-3xl font-bold tracking-[-0.03em] sm:text-4xl md:text-5xl">
@@ -112,7 +112,7 @@ export function SavingsCalculator() {
           {/* Result */}
           <div className="mt-8 grid grid-cols-2 gap-3">
             <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/40">
+              <p className="text-[12px] font-medium text-white/40">
                 You, pay-as-you-go
               </p>
               <p
@@ -123,7 +123,7 @@ export function SavingsCalculator() {
               </p>
             </div>
             <div className="rounded-2xl border border-white/10 bg-transparent p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/40">
+              <p className="text-[12px] font-medium text-white/40">
                 Flat subscription
               </p>
               <p className="mt-1.5 font-display text-2xl font-bold tabular-nums text-white/45 line-through decoration-white/25 md:text-3xl">

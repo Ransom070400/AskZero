@@ -594,7 +594,7 @@ function TamperDemo({
 function Group({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+      <p className="mb-2 text-[12px] font-medium text-text-tertiary">
         {label}
       </p>
       <div className="space-y-1.5">{children}</div>

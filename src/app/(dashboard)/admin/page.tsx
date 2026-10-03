@@ -153,7 +153,7 @@ export default function AdminPage() {
                 <Wallet className="h-4 w-4 text-accent" />
               </div>
               <div>
-                <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+                <p className="text-[13px] font-medium text-text-tertiary">
                   Treasury wallet
                 </p>
                 <p className="text-[12px] text-text-tertiary leading-snug">
@@ -179,7 +179,7 @@ export default function AdminPage() {
           </div>
 
           <div className="mt-6 space-y-2">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+            <p className="text-[12px] font-medium text-text-tertiary">
               Address
             </p>
             <div className="flex items-stretch gap-2">
@@ -230,7 +230,7 @@ export default function AdminPage() {
 
       {/* Stats grid */}
       <section className="space-y-3">
-        <h2 className="px-1 text-[12px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+        <h2 className="px-1 text-[13px] font-medium text-text-tertiary">
           Metrics
         </h2>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
@@ -266,7 +266,7 @@ export default function AdminPage() {
       {/* Funnel: signed up → activated → paid */}
       {cohorts && (
         <section className="space-y-3">
-          <h2 className="px-1 text-[12px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+          <h2 className="px-1 text-[13px] font-medium text-text-tertiary">
             Funnel
           </h2>
           <div className="flex flex-col gap-2 rounded-2xl border border-border/70 bg-elevated/40 p-4 sm:flex-row sm:items-stretch">
@@ -295,7 +295,7 @@ export default function AdminPage() {
       {/* Cohort health */}
       {cohorts && (
         <section className="space-y-3">
-          <h2 className="px-1 text-[12px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+          <h2 className="px-1 text-[13px] font-medium text-text-tertiary">
             Health
           </h2>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
@@ -360,7 +360,7 @@ export default function AdminPage() {
 
       {/* Recent transactions */}
       <section className="space-y-3">
-        <h2 className="px-1 text-[12px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+        <h2 className="px-1 text-[13px] font-medium text-text-tertiary">
           Recent activity
         </h2>
         {transactions.length === 0 ? (
@@ -393,7 +393,7 @@ function StatCard({
   return (
     <div className="rounded-2xl border border-border/70 bg-elevated/60 p-4 shadow-sm">
       <div className="flex items-center justify-between">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+        <p className="text-[12px] font-medium text-text-tertiary">
           {label}
         </p>
         <span className="text-text-tertiary">{icon}</span>
@@ -432,7 +432,7 @@ function FunnelStep({
     >
       <div className="flex items-center justify-center gap-1.5 text-text-tertiary">
         {icon}
-        <span className="text-[11px] font-semibold uppercase tracking-[0.12em]">
+        <span className="text-[12px] font-medium">
           {label}
         </span>
       </div>
@@ -471,7 +471,7 @@ function Breakdown({
 }) {
   return (
     <div className="space-y-3">
-      <h2 className="px-1 text-[12px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+      <h2 className="px-1 text-[13px] font-medium text-text-tertiary">
         {title}
       </h2>
       {rows.length === 0 ? (

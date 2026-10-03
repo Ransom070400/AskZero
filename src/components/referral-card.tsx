@@ -78,7 +78,7 @@ export function ReferralCard() {
 
   return (
     <section className="space-y-2.5">
-      <h2 className="px-1 text-[12px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+      <h2 className="px-1 text-[13px] font-medium text-text-tertiary">
         Refer &amp; earn
       </h2>
       <div className="overflow-hidden rounded-2xl border border-accent/30 bg-gradient-to-b from-accent-muted/40 to-elevated/40 p-5 space-y-4">

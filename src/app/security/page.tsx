@@ -20,8 +20,8 @@ export default function SecurityPage() {
 
       <div className="mb-3 flex items-center gap-2 text-accent">
         <ShieldCheck className="h-5 w-5" />
-        <span className="text-[12px] font-semibold uppercase tracking-[0.14em]">
-          Security &amp; Privacy
+        <span className="text-[13px] font-medium">
+          Security &amp; privacy
         </span>
       </div>
       <h1 className="text-3xl font-bold tracking-tight text-foreground">

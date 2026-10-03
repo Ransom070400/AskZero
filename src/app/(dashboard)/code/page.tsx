@@ -275,7 +275,7 @@ export default function CodePage() {
       {answer && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-[12px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+            <h2 className="text-[13px] font-medium text-text-tertiary">
               Deliverable
             </h2>
             <button

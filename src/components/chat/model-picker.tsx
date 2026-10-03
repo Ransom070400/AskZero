@@ -604,7 +604,7 @@ function PickerPanel({
         )
       ) : (
         <>
-          <p className="px-2.5 pb-1 pt-2 text-[10px] font-bold uppercase tracking-[0.14em] text-text-tertiary">
+          <p className="px-2.5 pb-1 pt-2 text-[12px] font-medium text-text-tertiary">
             Choose a company
           </p>
           {groups.map(({ vendor, models: vm, available }) => {

@@ -47,7 +47,7 @@ export default function LandingPage() {
         <div className="w-full max-w-3xl space-y-8 md:space-y-10">
           <motion.p
             {...fade(0)}
-            className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/40"
+            className="text-[12px] font-medium text-white/40"
           >
             verifiable AI on 0G
           </motion.p>

@@ -123,7 +123,7 @@ export function Sidebar() {
         <div className="space-y-5 py-1">
           {Object.entries(grouped).map(([date, dateChats]) => (
             <div key={date}>
-              <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+              <p className="mb-1 px-3 text-[12px] font-medium text-text-tertiary">
                 {date}
               </p>
               <div className="space-y-px">

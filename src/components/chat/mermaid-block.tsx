@@ -92,7 +92,7 @@ export function MermaidBlock({ code }: { code: string }) {
     return (
       <div className="my-4 overflow-hidden rounded-xl border border-border/70 bg-surface">
         <div className="flex items-center justify-between border-b border-border/70 bg-elevated/40 px-3 py-1">
-          <span className="text-[11px] font-medium uppercase tracking-wider text-text-tertiary">
+          <span className="text-[12px] font-medium text-text-tertiary">
             mermaid
           </span>
         </div>
@@ -106,7 +106,7 @@ export function MermaidBlock({ code }: { code: string }) {
   return (
     <div className="my-4 overflow-hidden rounded-xl border border-border/70 bg-surface">
       <div className="flex items-center justify-between border-b border-border/70 bg-elevated/40 px-3 py-1">
-        <span className="text-[11px] font-medium uppercase tracking-wider text-text-tertiary">
+        <span className="text-[12px] font-medium text-text-tertiary">
           mermaid
         </span>
       </div>

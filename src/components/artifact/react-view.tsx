@@ -54,7 +54,7 @@ export function ReactView({ code }: { code: string }) {
   if (transformError) {
     return (
       <div className="m-4 rounded-xl border border-error/30 bg-error/5 p-4">
-        <p className="text-[12px] font-semibold uppercase tracking-wider text-error">
+        <p className="text-[13px] font-medium text-error">
           Transform error
         </p>
         <pre className="mt-2 overflow-x-auto text-[12px] leading-relaxed text-text-secondary">

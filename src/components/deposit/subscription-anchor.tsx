@@ -60,7 +60,7 @@ export function SubscriptionAnchor() {
           <PiggyBank className="h-5 w-5" />
         </div>
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+          <p className="text-[12px] font-medium text-text-tertiary">
             Pay only for what you ask
           </p>
           <p className="mt-1 text-[15px] font-bold text-foreground">

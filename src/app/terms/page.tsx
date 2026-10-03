@@ -22,8 +22,8 @@ export default function TermsPage() {
 
       <div className="mb-3 flex items-center gap-2 text-accent">
         <FileText className="h-5 w-5" />
-        <span className="text-[12px] font-semibold uppercase tracking-[0.14em]">
-          Terms of Service
+        <span className="text-[13px] font-medium">
+          Terms of service
         </span>
       </div>
       <h1 className="text-3xl font-bold tracking-tight text-foreground">

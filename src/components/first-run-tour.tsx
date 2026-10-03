@@ -76,7 +76,7 @@ export function FirstRunTour() {
           <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-accent-muted text-accent">
             <Icon className="h-7 w-7" />
           </div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+          <p className="text-[12px] font-medium text-text-tertiary">
             Welcome to AskZero
           </p>
           <h2 className="mt-1 font-display text-xl font-bold tracking-tight text-foreground">

@@ -329,7 +329,7 @@ export default function SettingsPage() {
 
       {/* Danger zone — separate, never grouped with normal settings */}
       <section className="space-y-2.5">
-        <h2 className="px-1 text-[12px] font-semibold uppercase tracking-[0.14em] text-error/80">
+        <h2 className="px-1 text-[13px] font-medium text-error/80">
           Danger zone
         </h2>
         <div className="overflow-hidden rounded-2xl border border-error/30 bg-error/5">
@@ -363,7 +363,7 @@ export default function SettingsPage() {
                 </p>
               </div>
               <div className="space-y-1.5">
-                <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+                <label className="text-[12px] font-medium text-text-tertiary">
                   Type <span className="font-mono">DELETE</span> to confirm
                 </label>
                 <Input
@@ -426,7 +426,7 @@ function PremiumCard() {
 
   return (
     <section className="space-y-2.5">
-      <h2 className="px-1 text-[12px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+      <h2 className="px-1 text-[13px] font-medium text-text-tertiary">
         Plan
       </h2>
       <div className="overflow-hidden rounded-2xl border border-accent/30 bg-gradient-to-b from-accent-muted/40 to-elevated/40 p-5 space-y-4">
@@ -549,7 +549,7 @@ function MemorySection() {
           <span className="flex h-5 w-5 items-center justify-center rounded-md bg-accent-muted text-accent">
             <Sparkles className="h-3 w-3" />
           </span>
-          <h2 className="text-[12px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+          <h2 className="text-[13px] font-medium text-text-tertiary">
             Memory
           </h2>
         </div>
@@ -629,7 +629,7 @@ function Section({
 }) {
   return (
     <section className="space-y-2.5">
-      <h2 className="px-1 text-[12px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+      <h2 className="px-1 text-[13px] font-medium text-text-tertiary">
         {title}
       </h2>
       <div className="overflow-hidden rounded-2xl border border-border/70 bg-elevated/40 divide-y divide-border/50">
