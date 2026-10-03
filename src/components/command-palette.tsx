@@ -131,7 +131,7 @@ export function CommandPalette() {
   const actionCount = filteredActions.length;
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-start justify-center p-4 pt-[14vh]">
+    <div className="fixed inset-0 z-command flex items-start justify-center p-4 pt-[14vh]">
       <button
         aria-label="Close"
         onClick={close}

@@ -69,12 +69,12 @@ function SheetContent({
   return (
     <>
       <div
-        className="fixed inset-0 z-50 bg-black/80"
+        className="fixed inset-0 z-overlay bg-black/80"
         onClick={() => onOpenChange?.(false)}
       />
       <div
         className={cn(
-          "fixed inset-y-0 z-50 flex flex-col bg-background shadow-lg transition-transform",
+          "fixed inset-y-0 z-overlay flex flex-col bg-background shadow-lg transition-transform",
           side === "left" ? "left-0" : "right-0",
           className
         )}

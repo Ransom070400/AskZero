@@ -57,7 +57,7 @@ export function FirstRunTour() {
   const last = step === STEPS.length - 1;
 
   return (
-    <div className="fixed inset-0 z-[95] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-tour flex items-center justify-center p-4">
       <button
         aria-label="Close"
         onClick={finish}

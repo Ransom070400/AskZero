@@ -46,7 +46,7 @@ export function ShortcutsHelp() {
   ];
 
   return (
-    <div className="fixed inset-0 z-[85] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-command-help flex items-center justify-center p-4">
       <button
         aria-label="Close"
         onClick={() => setOpen(false)}

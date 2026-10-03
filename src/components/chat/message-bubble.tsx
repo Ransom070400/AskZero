@@ -974,7 +974,7 @@ export function MessageBubble({
             top: Math.max(8, quote.y - 44),
             transform: "translateX(-50%)",
           }}
-          className="press z-[60] inline-flex items-center gap-1.5 rounded-full bg-foreground px-3 py-1.5 text-[12px] font-semibold text-background shadow-lg animate-in fade-in-0 zoom-in-95"
+          className="press z-floating inline-flex items-center gap-1.5 rounded-full bg-foreground px-3 py-1.5 text-[12px] font-semibold text-background shadow-lg animate-in fade-in-0 zoom-in-95"
         >
           <Quote className="h-3.5 w-3.5" />
           Ask about this

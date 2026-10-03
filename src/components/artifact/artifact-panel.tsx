@@ -116,7 +116,7 @@ export function ArtifactPanel({
     <div
       className={cn(
         "flex h-full flex-col bg-background",
-        fullscreen && "fixed inset-0 z-[80]"
+        fullscreen && "fixed inset-0 z-command"
       )}
     >
       <header className="flex flex-col gap-3 border-b border-border/70 px-4 py-3">

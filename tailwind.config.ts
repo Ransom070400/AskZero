@@ -102,6 +102,17 @@ const config: Config = {
         base: "var(--duration-base)",
         slow: "var(--duration-slow)",
       },
+      // One stacking scale for everything that floats. Low numbers (z-10/z-20)
+      // stay local to a component; anything fixed or portalled uses a name.
+      zIndex: {
+        overlay: "50", // sheets, dropdowns, mobile nav, mobile artifact panel
+        floating: "60", // selection popover, daily reward card
+        modal: "70", // what's new, receipt dialog
+        command: "80", // command palette, fullscreen artifact
+        "command-help": "85", // shortcuts help (opens from the palette)
+        toast: "90",
+        tour: "95", // first-run tour sits above everything
+      },
       maxWidth: {
         chat: "720px",
         form: "640px",
