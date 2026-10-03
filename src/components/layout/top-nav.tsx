@@ -4,7 +4,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Logo } from "@/components/ui/logo";
 import Link from "next/link";
 import {
@@ -14,105 +13,26 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, Settings, CreditCard, Plus, EyeOff, Flame } from "lucide-react";
-import { useCurrency } from "@/lib/currency";
+import { LogOut, Settings, CreditCard, EyeOff, Sun, Moon, Monitor } from "lucide-react";
+import { useTheme } from "next-themes";
+import { cn } from "@/lib/utils";
+import { AccountPill } from "@/components/layout/account-pill";
 import { ExitIncognito } from "@/components/chat/exit-incognito";
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState } from "react";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
-
-// Smoothly tick a number toward its target (e.g. balance after a top-up).
-// Snaps on first value and when the user prefers reduced motion.
-function useCountUp(target: number | null, duration = 700): number {
-  const [display, setDisplay] = useState(0);
-  const prevRef = useRef<number | null>(null);
-  useEffect(() => {
-    if (target === null) return;
-    const from = prevRef.current;
-    const reduce =
-      typeof window !== "undefined" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (from === null || reduce) {
-      setDisplay(target);
-      prevRef.current = target;
-      return;
-    }
-    if (from === target) return;
-    let raf = 0;
-    const start = performance.now();
-    const tick = (now: number) => {
-      const t = Math.min(1, (now - start) / duration);
-      const eased = 1 - Math.pow(1 - t, 3);
-      setDisplay(from + (target - from) * eased);
-      if (t < 1) {
-        raf = requestAnimationFrame(tick);
-      } else {
-        setDisplay(target);
-        prevRef.current = target;
-      }
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [target, duration]);
-  return display;
-}
 
 export function TopNav() {
   const router = useRouter();
   const inIncognito = usePathname()?.startsWith("/chat/incognito") ?? false;
   const supabase = createClient();
-  const { formatBalance } = useCurrency();
   const [user, setUser] = useState<SupabaseUser | null>(null);
-  const [balance, setBalance] = useState<number | null>(null);
-  const shownBalance = useCountUp(balance);
   const [avatarError, setAvatarError] = useState(false);
-
-  const fetchBalance = useCallback(async () => {
-    try {
-      const res = await fetch("/api/balance");
-      if (res.ok) {
-        const data = await res.json();
-        setBalance(data.balance);
-      }
-    } catch {
-      // silently fail
-    }
-  }, []);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }: { data: { user: SupabaseUser | null } }) => {
       setUser(user);
     });
-    fetchBalance();
-  }, [supabase.auth, fetchBalance]);
-
-  // Realtime balance — poll instead of realtime to avoid channel conflicts
-  useEffect(() => {
-    const interval = setInterval(fetchBalance, 10000);
-    return () => clearInterval(interval);
-  }, [fetchBalance]);
-
-  // Login streak badge. A live streak (claimed today, or yesterday and still
-  // claimable) shows the count; a broken streak shows nothing.
-  const [streak, setStreak] = useState(0);
-  const fetchStreak = useCallback(async () => {
-    try {
-      const res = await fetch("/api/daily");
-      if (!res.ok) return;
-      const d = await res.json();
-      const alive = d.claimed_today || d.next_streak === d.current_streak + 1;
-      setStreak(alive ? d.current_streak ?? 0 : 0);
-    } catch {
-      // silently fail
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchStreak();
-    // Refresh the badge the moment the daily reward is claimed.
-    const onClaim = () => fetchStreak();
-    window.addEventListener("askzero:daily-claimed", onClaim);
-    return () => window.removeEventListener("askzero:daily-claimed", onClaim);
-  }, [fetchStreak]);
+  }, [supabase.auth]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -156,41 +76,13 @@ export function TopNav() {
             title="Incognito chat — not saved, not remembered"
             aria-label="Start incognito chat"
             aria-pressed={false}
-            className="press flex h-8 w-8 items-center justify-center rounded-full border border-border/70 bg-elevated/80 text-text-tertiary transition-[color,border-color] duration-fast ease-out hover:border-border-strong hover:text-foreground"
+            className="press flex h-8 w-8 items-center justify-center rounded-full text-text-tertiary transition-colors duration-fast ease-out hover:bg-elevated hover:text-foreground"
           >
             <EyeOff className="h-4 w-4" />
           </button>
         )}
 
-        {/* Streak + balance — one unified account cluster: 🔥 streak · + balance */}
-        <div className="flex items-center overflow-hidden rounded-full border border-border/70 bg-elevated/80">
-          {streak > 0 && (
-            <>
-              <div
-                title={`${streak}-day streak — claim your daily reward to keep it going`}
-                className="flex items-center gap-1 py-1 pl-2.5 pr-2 text-sm font-semibold text-foreground"
-              >
-                <Flame className="h-3.5 w-3.5 text-accent" />
-                <span className="tabular-nums">{streak}</span>
-              </div>
-              <span className="h-4 w-px bg-border/70" />
-            </>
-          )}
-          <button
-            onClick={() => router.push("/deposit")}
-            aria-label="Add credits"
-            className="press group flex items-center gap-1.5 py-1 pl-2.5 pr-3 text-sm font-semibold text-foreground transition-colors duration-fast ease-out hover:bg-elevated"
-          >
-            <Plus className="h-3 w-3 text-text-tertiary group-hover:text-accent transition-colors duration-fast" />
-            <span className="tabular-nums">
-              {balance !== null ? formatBalance(Math.round(shownBalance)) : "—"}
-            </span>
-          </button>
-        </div>
-
-        <span className="hidden md:block">
-          <ThemeToggle />
-        </span>
+        <AccountPill />
 
         {/* User menu */}
         <DropdownMenu>
@@ -231,6 +123,7 @@ export function TopNav() {
               <CreditCard className="mr-2 h-4 w-4 text-text-tertiary" />
               Deposit
             </DropdownMenuItem>
+            <ThemeRow />
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleSignOut}>
               <LogOut className="mr-2 h-4 w-4 text-text-tertiary" />
@@ -240,5 +133,46 @@ export function TopNav() {
         </DropdownMenu>
       </div>
     </header>
+  );
+}
+
+const THEMES = [
+  { value: "system", label: "System", icon: Monitor },
+  { value: "light", label: "Light", icon: Sun },
+  { value: "dark", label: "Dark", icon: Moon },
+] as const;
+
+// Theme lives in the account menu as a segmented row rather than taking a
+// top-bar slot of its own.
+function ThemeRow() {
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const current = mounted ? theme ?? "system" : null;
+
+  return (
+    <div className="flex items-center justify-between gap-2 px-2.5 py-1.5">
+      <span className="text-sm font-medium text-foreground">Theme</span>
+      <div className="flex rounded-lg bg-surface p-0.5">
+        {THEMES.map(({ value, label, icon: Icon }) => (
+          <button
+            key={value}
+            type="button"
+            onClick={() => setTheme(value)}
+            aria-label={label}
+            aria-pressed={current === value}
+            title={label}
+            className={cn(
+              "press flex h-6 w-7 items-center justify-center rounded-md transition-colors duration-fast",
+              current === value
+                ? "bg-elevated text-foreground shadow-sm"
+                : "text-text-tertiary hover:text-foreground"
+            )}
+          >
+            <Icon className="h-3.5 w-3.5" />
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
