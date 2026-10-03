@@ -76,10 +76,3 @@ export const easeInOutCubic = (t: number) =>
 /** 0→1 progress of `t` through the window [start, end], clamped. */
 export const span = (t: number, start: number, end: number) =>
   Math.min(1, Math.max(0, (t - start) / (end - start)));
-
-export function prefersReducedMotion() {
-  return (
-    typeof window !== "undefined" &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches
-  );
-}

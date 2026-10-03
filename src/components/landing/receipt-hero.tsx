@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useInView } from "framer-motion";
-import { prefersReducedMotion } from "./canvas-kit";
+import { prefersReducedMotion } from "./reduced-motion";
 
 // three.js loads after the hero text has painted — the headline and CTA never
 // wait on WebGL.
