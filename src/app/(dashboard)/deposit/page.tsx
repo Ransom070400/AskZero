@@ -20,6 +20,7 @@ import {
   ShieldCheck,
   Sparkles,
   Loader2,
+  AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import dynamic from "next/dynamic";
@@ -93,6 +94,7 @@ function DepositContent() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [payError, setPayError] = useState<string | null>(null);
   const [ngnRate, setNgnRate] = useState(1500);
   const [pay0G, setPay0G] = useState(false);
   const { formatBalance: formatBal } = useCurrency();
@@ -202,6 +204,7 @@ function DepositContent() {
   const handleFiatDeposit = async () => {
     const numAmount = parseFloat(amount);
     if (!numAmount || numAmount <= 0) return;
+    setPayError(null);
     setLoading(true);
     try {
       if (currency === "NGN") {
@@ -212,7 +215,7 @@ function DepositContent() {
         });
         if (!res.ok) {
           const data = await res.json();
-          alert(data.error || "Failed to initialize payment");
+          setPayError(data.error || "We couldn't start the payment. Please try again.");
           setLoading(false);
           return;
         }
@@ -226,7 +229,7 @@ function DepositContent() {
         });
         if (!res.ok) {
           const data = await res.json();
-          alert(data.error || "Failed to initialize payment");
+          setPayError(data.error || "We couldn't start the payment. Please try again.");
           setLoading(false);
           return;
         }
@@ -234,7 +237,7 @@ function DepositContent() {
         window.location.href = url;
       }
     } catch {
-      alert("Failed to initialize payment");
+      setPayError("We couldn't reach the payment provider. Check your connection and try again.");
       setLoading(false);
     }
   };
@@ -458,6 +461,13 @@ function DepositContent() {
             `Fund account${numericAmount > 0 ? ` · ${formatAny(numericAmount, currency)}` : ""}`
           )}
         </Button>
+
+        {payError && (
+          <p role="alert" className="flex items-start gap-2 rounded-xl border border-error/30 bg-error/5 px-3.5 py-2.5 text-[13px] font-medium text-error">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            {payError}
+          </p>
+        )}
 
         <p className="flex items-center justify-center gap-1.5 text-[11px] font-medium text-text-tertiary">
           <ShieldCheck className="h-3 w-3" />

@@ -40,6 +40,7 @@ export default function SettingsPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [avatarError, setAvatarError] = useState(false);
   const { currency: displayCurrency, setCurrency: setDisplayCurrency, formatBalance } = useCurrency();
 
@@ -86,6 +87,7 @@ export default function SettingsPage() {
 
   const handleDeleteAccount = async () => {
     if (deleteConfirmText !== "DELETE") return;
+    setDeleteError(null);
     setDeleting(true);
     try {
       const res = await fetch("/api/account/delete", { method: "DELETE" });
@@ -94,10 +96,10 @@ export default function SettingsPage() {
         router.refresh();
       } else {
         const data = await res.json();
-        alert(data.error || "Failed to delete account");
+        setDeleteError(data.error || "We couldn't delete your account. Please try again.");
       }
     } catch {
-      alert("Failed to delete account");
+      setDeleteError("We couldn't reach the server. Check your connection and try again.");
     }
     setDeleting(false);
   };
@@ -371,6 +373,11 @@ export default function SettingsPage() {
                   className="border-error/40 focus:border-error focus:shadow-[0_0_0_3px_hsl(var(--error)/0.18)]"
                 />
               </div>
+              {deleteError && (
+                <p role="alert" className="text-[13px] font-medium text-error">
+                  {deleteError}
+                </p>
+              )}
               <div className="flex gap-2 pt-1">
                 <Button
                   variant="destructive"
@@ -384,6 +391,7 @@ export default function SettingsPage() {
                   onClick={() => {
                     setShowDeleteConfirm(false);
                     setDeleteConfirmText("");
+                    setDeleteError(null);
                   }}
                 >
                   Cancel
