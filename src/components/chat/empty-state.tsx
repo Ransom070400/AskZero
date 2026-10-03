@@ -120,7 +120,7 @@ export function EmptyState({ composer, onSuggestionClick }: EmptyStateProps) {
                 type="button"
                 onClick={() => setActive(c.id)}
                 className={cn(
-                  "press inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[13px] font-medium transition-colors duration-fast",
+                  "press inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors duration-fast",
                   isActive
                     ? "border-border-strong bg-elevated text-foreground"
                     : "border-border/70 text-text-tertiary hover:bg-elevated hover:text-foreground"
@@ -142,7 +142,7 @@ export function EmptyState({ composer, onSuggestionClick }: EmptyStateProps) {
               key={p}
               type="button"
               onClick={() => onSuggestionClick(p)}
-              className="press group flex items-center justify-between gap-3 rounded-2xl px-4 py-3 text-left text-[14px] text-text-secondary transition-colors duration-fast hover:bg-elevated hover:text-foreground"
+              className="press group flex items-center justify-between gap-3 rounded-2xl px-4 py-3 text-left text-md text-text-secondary transition-colors duration-fast hover:bg-elevated hover:text-foreground"
             >
               <span className="leading-snug">{p}</span>
               <ArrowUpRight className="h-4 w-4 shrink-0 text-text-tertiary transition-colors duration-fast group-hover:text-accent" />
@@ -164,7 +164,7 @@ export function EmptyState({ composer, onSuggestionClick }: EmptyStateProps) {
             <span
               key={w.title}
               title={w.desc}
-              className="inline-flex items-center gap-1.5 text-[12px] text-text-tertiary"
+              className="inline-flex items-center gap-1.5 text-xs text-text-tertiary"
             >
               <Icon className="h-3.5 w-3.5 text-accent" />
               {w.title}

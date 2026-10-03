@@ -42,7 +42,7 @@ export function Toaster() {
           )}
         >
           <span className="shrink-0">{ICON[t.variant]}</span>
-          <span className="flex-1 text-[13px] text-foreground">{t.message}</span>
+          <span className="flex-1 text-sm text-foreground">{t.message}</span>
           <button
             onClick={() => dismiss(t.id)}
             aria-label="Dismiss"

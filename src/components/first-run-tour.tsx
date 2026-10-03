@@ -76,13 +76,13 @@ export function FirstRunTour() {
           <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-accent-muted text-accent">
             <Icon className="h-7 w-7" />
           </div>
-          <p className="text-[12px] font-medium text-text-tertiary">
+          <p className="text-xs font-medium text-text-tertiary">
             Welcome to AskZero
           </p>
           <h2 className="mt-1 font-display text-xl font-bold tracking-tight text-foreground">
             {s.title}
           </h2>
-          <p className="mt-2 text-[14px] leading-relaxed text-text-secondary">
+          <p className="mt-2 text-md leading-relaxed text-text-secondary">
             {s.body}
           </p>
         </div>
@@ -103,14 +103,14 @@ export function FirstRunTour() {
             {step > 0 && (
               <button
                 onClick={() => setStep((s) => s - 1)}
-                className="press rounded-full px-3 py-1.5 text-[13px] font-medium text-text-secondary hover:bg-surface hover:text-foreground transition-colors"
+                className="press rounded-full px-3 py-1.5 text-sm font-medium text-text-secondary hover:bg-surface hover:text-foreground transition-colors"
               >
                 Back
               </button>
             )}
             <button
               onClick={() => (last ? finish() : setStep((s) => s + 1))}
-              className="press rounded-full bg-accent px-4 py-1.5 text-[13px] font-semibold text-white hover:bg-accent-hover transition-colors"
+              className="press rounded-full bg-accent px-4 py-1.5 text-sm font-semibold text-white hover:bg-accent-hover transition-colors"
             >
               {last ? "Start chatting" : "Next"}
             </button>

@@ -261,7 +261,7 @@ function DepositContent() {
         <h1 className="font-display text-3xl md:text-4xl font-bold tracking-[-0.025em]">
           Add credits
         </h1>
-        <p className="text-[15px] text-text-secondary">
+        <p className="text-base text-text-secondary">
           Top up to keep chatting. No subscription, pay only for what you use.
         </p>
       </div>
@@ -270,7 +270,7 @@ function DepositContent() {
       {successMessage && (
         <div className="flex items-start gap-3 rounded-2xl border border-success/30 bg-success/10 px-4 py-3.5">
           <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-success" />
-          <p className="text-[14px] font-medium leading-relaxed text-success">
+          <p className="text-md font-medium leading-relaxed text-success">
             {successMessage}
           </p>
         </div>
@@ -278,7 +278,7 @@ function DepositContent() {
 
       {/* Balance hero */}
       <div className="rounded-3xl border border-border/70 bg-gradient-to-br from-elevated to-surface p-6 md:p-8 shadow-md">
-        <p className="text-[12px] font-medium text-text-tertiary">
+        <p className="text-xs font-medium text-text-tertiary">
           Current balance
         </p>
         <div className="mt-2 flex items-end gap-3">
@@ -286,13 +286,13 @@ function DepositContent() {
             {balance !== null ? formatBal(balance) : "—"}
           </p>
           {balance !== null && (
-            <p className="pb-1.5 text-[13px] font-medium text-text-tertiary tabular-nums">
+            <p className="pb-1.5 text-sm font-medium text-text-tertiary tabular-nums">
               {formatCredits(balance)} credits
             </p>
           )}
         </div>
         {balance !== null && balance > 0 && (
-          <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-accent-muted/50 px-2.5 py-1 text-[12px] font-medium text-accent tabular-nums">
+          <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-accent-muted/50 px-2.5 py-1 text-xs font-medium text-accent tabular-nums">
             <Sparkles className="h-3 w-3" />
             ≈ {formatCredits(approxQuestions(balance))} questions left
           </p>
@@ -304,7 +304,7 @@ function DepositContent() {
 
       {/* Currency selector */}
       <section className="space-y-3">
-        <h2 className="text-[13px] font-medium text-text-tertiary">
+        <h2 className="text-sm font-medium text-text-tertiary">
           Pay with
         </h2>
         <div className="inline-flex w-full rounded-2xl border border-border/70 bg-elevated/60 p-1">
@@ -348,7 +348,7 @@ function DepositContent() {
         {!pay0G && isApac(currency) && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="press group flex h-11 w-full items-center justify-between rounded-xl border border-border bg-background px-4 text-[14px] font-medium text-foreground transition-[border-color,background-color] duration-fast ease-out hover:border-border-strong">
+              <button className="press group flex h-11 w-full items-center justify-between rounded-xl border border-border bg-background px-4 text-md font-medium text-foreground transition-[border-color,background-color] duration-fast ease-out hover:border-border-strong">
                 <span className="flex items-center gap-2">
                   <span className="text-text-tertiary">
                     {APAC_CURRENCIES[currency].symbol}
@@ -388,7 +388,7 @@ function DepositContent() {
       {/* Pay with 0G tokens */}
       {pay0G && (
         <section className="space-y-3">
-          <h2 className="text-[13px] font-medium text-text-tertiary">
+          <h2 className="text-sm font-medium text-text-tertiary">
             Pay with 0G
           </h2>
           <ZeroGPay onCredited={fetchData} />
@@ -398,7 +398,7 @@ function DepositContent() {
       {/* Amount */}
       {!pay0G && (
       <section className="space-y-3">
-        <h2 className="text-[13px] font-medium text-text-tertiary">
+        <h2 className="text-sm font-medium text-text-tertiary">
           Amount
         </h2>
 
@@ -419,11 +419,11 @@ function DepositContent() {
 
         {estimatedCredits > 0 && (
           <div className="flex items-center justify-between rounded-xl border border-accent/20 bg-accent-muted/30 px-4 py-2.5">
-            <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-foreground tabular-nums">
+            <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground tabular-nums">
               <Sparkles className="h-3.5 w-3.5 text-accent" />
               {formatCredits(estimatedCredits)} credits
             </span>
-            <span className="text-[12px] font-medium text-accent tabular-nums">
+            <span className="text-xs font-medium text-accent tabular-nums">
               ≈ {formatCredits(approxQuestions(estimatedCredits))} questions
             </span>
           </div>
@@ -435,7 +435,7 @@ function DepositContent() {
               key={preset}
               onClick={() => setAmount(String(preset))}
               className={cn(
-                "press rounded-full border px-3.5 py-1.5 text-[13px] font-semibold transition-[border-color,background-color,color] duration-fast ease-out",
+                "press rounded-full border px-3.5 py-1.5 text-sm font-semibold transition-[border-color,background-color,color] duration-fast ease-out",
                 amount === String(preset)
                   ? "border-foreground bg-foreground text-background"
                   : "border-border/70 bg-elevated/60 text-text-secondary hover:border-border-strong hover:text-foreground"
@@ -463,13 +463,13 @@ function DepositContent() {
         </Button>
 
         {payError && (
-          <p role="alert" className="flex items-start gap-2 rounded-xl border border-error/30 bg-error/5 px-3.5 py-2.5 text-[13px] font-medium text-error">
+          <p role="alert" className="flex items-start gap-2 rounded-xl border border-error/30 bg-error/5 px-3.5 py-2.5 text-sm font-medium text-error">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
             {payError}
           </p>
         )}
 
-        <p className="flex items-center justify-center gap-1.5 text-[11px] font-medium text-text-tertiary">
+        <p className="flex items-center justify-center gap-1.5 text-2xs font-medium text-text-tertiary">
           <ShieldCheck className="h-3 w-3" />
           Payments secured by Paystack · funds custodied on-chain
         </p>
@@ -479,7 +479,7 @@ function DepositContent() {
       {/* Transaction history */}
       {transactions.length > 0 && (
         <section className="space-y-3">
-          <h2 className="text-[13px] font-medium text-text-tertiary">
+          <h2 className="text-sm font-medium text-text-tertiary">
             Recent activity
           </h2>
           <div className="overflow-hidden rounded-2xl border border-border/70 divide-y divide-border/50">
@@ -511,7 +511,7 @@ function CurrencyTab({
       aria-disabled={comingSoon || undefined}
       title={comingSoon ? "Coming soon" : undefined}
       className={cn(
-        "press flex-1 rounded-xl px-3 py-2 text-[13px] font-semibold transition-[background-color,color,box-shadow] duration-fast ease-out",
+        "press flex-1 rounded-xl px-3 py-2 text-sm font-semibold transition-[background-color,color,box-shadow] duration-fast ease-out",
         comingSoon
           ? "cursor-not-allowed text-text-tertiary/60"
           : active
@@ -522,7 +522,7 @@ function CurrencyTab({
       <span className="inline-flex items-center justify-center gap-1.5">
         {label}
         {comingSoon && (
-          <span className="rounded-full border border-border/70 bg-elevated/80 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-text-tertiary">
+          <span className="rounded-full border border-border/70 bg-elevated/80 px-1.5 py-0.5 text-2xs font-semibold uppercase tracking-[0.08em] text-text-tertiary">
             Soon
           </span>
         )}
@@ -552,10 +552,10 @@ function TransactionRow({ tx }: { tx: Transaction }) {
       <div className="flex min-w-0 items-center gap-3">
         <StatusIcon className={cn("h-4 w-4 shrink-0", statusColor)} />
         <div className="min-w-0">
-          <p className="text-[13px] font-semibold text-foreground">
+          <p className="text-sm font-semibold text-foreground">
             {TX_LABELS[tx.type] ?? tx.type}
           </p>
-          <p className="text-[11px] text-text-tertiary">
+          <p className="text-2xs text-text-tertiary">
             {new Date(tx.created_at).toLocaleString(undefined, {
               month: "short",
               day: "numeric",
@@ -568,7 +568,7 @@ function TransactionRow({ tx }: { tx: Transaction }) {
       <div className="text-right">
         <p
           className={cn(
-            "text-[13px] font-semibold tabular-nums",
+            "text-sm font-semibold tabular-nums",
             isUsage ? "text-text-secondary" : "text-success"
           )}
         >
@@ -576,7 +576,7 @@ function TransactionRow({ tx }: { tx: Transaction }) {
           {formatCredits(Math.abs(tx.amount))} credits
         </p>
         {tx.original_amount > 0 && (
-          <p className="text-[11px] text-text-tertiary tabular-nums">
+          <p className="text-2xs text-text-tertiary tabular-nums">
             {tx.currency === "NGN" || tx.currency === "USD"
               ? formatCurrency(tx.original_amount, tx.currency)
               : APAC_CODES.includes(tx.currency as ApacCurrency)

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans, Bricolage_Grotesque } from "next/font/google";
+import { Plus_Jakarta_Sans, Bricolage_Grotesque, JetBrains_Mono } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { ViewTransitions } from "next-view-transitions";
 import { ThemeProvider } from "@/components/providers/theme-provider";
@@ -18,6 +18,14 @@ const display = Bricolage_Grotesque({
   subsets: ["latin"],
   variable: "--font-display",
   weight: ["500", "600", "700", "800"],
+  display: "swap",
+});
+
+// Hashes, tx ids, amounts — the "proof" surfaces read as machine output.
+const mono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+  weight: ["400", "500"],
   display: "swap",
 });
 
@@ -58,7 +66,8 @@ export default function RootLayout({
         className={cn(
           "min-h-screen bg-background font-sans antialiased",
           sans.variable,
-          display.variable
+          display.variable,
+          mono.variable
         )}
       >
         <ViewTransitions>

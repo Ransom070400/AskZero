@@ -100,7 +100,7 @@ export default function ResearchPage() {
           <Sparkles className="h-6 w-6 text-accent" />
           Research
         </h1>
-        <p className="text-[15px] text-text-secondary">
+        <p className="text-base text-text-secondary">
           Ask a question — AskZero searches the web, reads the sources, cross-checks
           them, and writes a cited report with confidence.
         </p>
@@ -114,7 +114,7 @@ export default function ResearchPage() {
           placeholder="e.g. What are the tradeoffs between 0G, Filecoin, and Arweave for storage?"
           rows={3}
           disabled={running}
-          className="w-full resize-none bg-transparent text-[15px] text-foreground placeholder:text-text-tertiary outline-none"
+          className="w-full resize-none bg-transparent text-base text-foreground placeholder:text-text-tertiary outline-none"
         />
         <div className="flex items-center justify-between gap-3">
           <div className="inline-flex items-center rounded-xl bg-surface p-0.5">
@@ -123,7 +123,7 @@ export default function ResearchPage() {
                 key={d}
                 onClick={() => setDepth(d)}
                 disabled={running}
-                className={`rounded-lg px-3 py-1.5 text-[12px] font-semibold capitalize transition-colors ${
+                className={`rounded-lg px-3 py-1.5 text-xs font-semibold capitalize transition-colors ${
                   depth === d
                     ? "bg-elevated text-foreground shadow-sm"
                     : "text-text-tertiary hover:text-foreground"
@@ -145,7 +145,7 @@ export default function ResearchPage() {
       </div>
 
       {error && (
-        <div className="rounded-xl border border-error/30 bg-error/5 px-4 py-3 text-[13px] text-error">
+        <div className="rounded-xl border border-error/30 bg-error/5 px-4 py-3 text-sm text-error">
           {error}
         </div>
       )}
@@ -185,17 +185,17 @@ export default function ResearchPage() {
       {/* Report */}
       {report && (
         <div className="space-y-4">
-          <article className="prose prose-invert max-w-none rounded-2xl border border-border/70 bg-elevated/40 p-5 text-[15px] leading-relaxed">
+          <article className="prose prose-invert max-w-none rounded-2xl border border-border/70 bg-elevated/40 p-5 text-base leading-relaxed">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{report}</ReactMarkdown>
           </article>
           {sources.length > 0 && (
             <div className="rounded-2xl border border-border/70 bg-elevated/40 p-4">
-              <h2 className="mb-2 text-[13px] font-medium text-text-tertiary">
+              <h2 className="mb-2 text-sm font-medium text-text-tertiary">
                 Sources
               </h2>
               <ol className="space-y-1.5">
                 {sources.map((s) => (
-                  <li key={s.n} className="flex items-baseline gap-2 text-[13px]">
+                  <li key={s.n} className="flex items-baseline gap-2 text-sm">
                     <span className="text-text-tertiary tabular-nums">[{s.n}]</span>
                     <a
                       href={s.url}
@@ -240,11 +240,11 @@ function ProgressLine({
         )}
       </div>
       <div className="min-w-0">
-        <p className={`text-[13px] font-medium ${active || done ? "text-foreground" : "text-text-tertiary"}`}>
+        <p className={`text-sm font-medium ${active || done ? "text-foreground" : "text-text-tertiary"}`}>
           {label}
         </p>
         {children ? (
-          <p className="text-[12px] text-text-tertiary leading-relaxed truncate">{children}</p>
+          <p className="text-xs text-text-tertiary leading-relaxed truncate">{children}</p>
         ) : null}
       </div>
     </div>

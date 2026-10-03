@@ -12,7 +12,7 @@ export default function NotFound() {
             <h1 className="font-display text-2xl font-bold tracking-[-0.02em] text-foreground">
               Page not found
             </h1>
-            <p className="text-[14px] leading-relaxed text-text-secondary">
+            <p className="text-md leading-relaxed text-text-secondary">
               That link doesn&apos;t go anywhere.
             </p>
           </div>

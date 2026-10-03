@@ -59,7 +59,7 @@ export function WelcomeCredits() {
   if (!show || amount === null) return null;
 
   return (
-    <div className="flex items-center justify-center gap-2 border-b border-accent/20 bg-accent/10 px-4 py-2 text-[12.5px]">
+    <div className="flex items-center justify-center gap-2 border-b border-accent/20 bg-accent/10 px-4 py-2 text-xs">
       <Gift className="h-3.5 w-3.5 shrink-0 text-accent" />
       <span className="text-foreground/90">
         <b className="font-semibold text-foreground">Welcome!</b> You&apos;ve got{" "}

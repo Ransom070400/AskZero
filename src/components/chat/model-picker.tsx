@@ -305,8 +305,8 @@ function VendorAvatar({
       className={cn(
         "inline-flex shrink-0 items-center justify-center font-bold",
         size === "sm"
-          ? "h-6 w-6 rounded-full text-[11px]"
-          : "h-8 w-8 rounded-lg text-[13px]",
+          ? "h-6 w-6 rounded-full text-2xs"
+          : "h-8 w-8 rounded-lg text-sm",
         vendor.avatar
       )}
     >
@@ -325,7 +325,7 @@ function Tag({
   return (
     <span
       className={cn(
-        "shrink-0 rounded-full px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide",
+        "shrink-0 rounded-full px-1.5 py-px text-2xs font-semibold uppercase tracking-wide",
         tone === "premium"
           ? "bg-amber-500/15 text-amber-600 dark:text-amber-400"
           : "border border-border/70 text-text-tertiary"
@@ -363,7 +363,7 @@ export function ModelPicker({
         <button
           disabled={disabled}
           aria-label="Choose model"
-          className="press group inline-flex h-8 min-w-0 items-center gap-1 rounded-full px-2.5 text-[13px] font-medium text-text-secondary transition-colors duration-fast ease-out hover:bg-surface hover:text-foreground disabled:opacity-50"
+          className="press group inline-flex h-8 min-w-0 items-center gap-1 rounded-full px-2.5 text-sm font-medium text-text-secondary transition-colors duration-fast ease-out hover:bg-surface hover:text-foreground disabled:opacity-50"
         >
           <span className="truncate">
             {active?.label.split(" · ")[0] ?? "Select model"}
@@ -439,7 +439,7 @@ function ModelRow({
       <div className="flex min-w-0 flex-1 flex-col items-start gap-1">
         <span
           className={cn(
-            "flex w-full flex-wrap items-center gap-1.5 text-left text-[13px] text-foreground",
+            "flex w-full flex-wrap items-center gap-1.5 text-left text-sm text-foreground",
             isActive ? "font-semibold" : "font-medium"
           )}
         >
@@ -449,7 +449,7 @@ function ModelRow({
           {soon ? <Tag>Soon</Tag> : via && <Tag>{via}</Tag>}
         </span>
         {m.description && (
-          <span className="line-clamp-2 text-left text-[11px] font-normal leading-snug text-text-tertiary">
+          <span className="line-clamp-2 text-left text-2xs font-normal leading-snug text-text-tertiary">
             {m.description}
           </span>
         )}
@@ -501,7 +501,7 @@ function PickerPanel({
       <div>
         {backRow(
           () => setOpenSetting(null),
-          <span className="text-[13px] font-semibold text-foreground">
+          <span className="text-sm font-semibold text-foreground">
             {setting.label}
           </span>
         )}
@@ -519,11 +519,11 @@ function PickerPanel({
             )}
           >
             <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <span className="text-[13px] font-medium text-foreground">
+              <span className="text-sm font-medium text-foreground">
                 {o.label}
               </span>
               {o.description && (
-                <span className="text-[11px] leading-snug text-text-tertiary">
+                <span className="text-2xs leading-snug text-text-tertiary">
                   {o.description}
                 </span>
               )}
@@ -545,10 +545,10 @@ function PickerPanel({
           () => setOpenVendor(null),
           <>
             <VendorAvatar vendor={group.vendor} size="sm" />
-            <span className="text-[13px] font-semibold text-foreground">
+            <span className="text-sm font-semibold text-foreground">
               {group.vendor.name}
             </span>
-            <span className="ml-auto text-[11px] text-text-tertiary">
+            <span className="ml-auto text-2xs text-text-tertiary">
               All companies
             </span>
           </>
@@ -582,7 +582,7 @@ function PickerPanel({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={`Search ${models.length} models`}
-            className="min-w-0 flex-1 bg-transparent text-[13px] text-foreground outline-none placeholder:text-text-tertiary"
+            className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-text-tertiary"
           />
         </label>
       </div>
@@ -598,13 +598,13 @@ function PickerPanel({
             />
           ))
         ) : (
-          <p className="px-2.5 py-6 text-center text-[12px] text-text-tertiary">
+          <p className="px-2.5 py-6 text-center text-xs text-text-tertiary">
             No models match &ldquo;{query}&rdquo;
           </p>
         )
       ) : (
         <>
-          <p className="px-2.5 pb-1 pt-2 text-[12px] font-medium text-text-tertiary">
+          <p className="px-2.5 pb-1 pt-2 text-xs font-medium text-text-tertiary">
             Choose a company
           </p>
           {groups.map(({ vendor, models: vm, available }) => {
@@ -622,11 +622,11 @@ function PickerPanel({
               >
                 <VendorAvatar vendor={vendor} image={onlyImage} />
                 <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                  <span className="flex items-center gap-1.5 text-[13px] font-semibold text-foreground">
+                  <span className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
                     {vendor.name}
                     {available === 0 && <Tag>Soon</Tag>}
                   </span>
-                  <span className="truncate text-[11px] text-text-tertiary">
+                  <span className="truncate text-2xs text-text-tertiary">
                     {current
                       ? `Using ${current.label.split(" · ")[0]}`
                       : available > 0
@@ -637,7 +637,7 @@ function PickerPanel({
                 {current && (
                   <Check className="h-3.5 w-3.5 shrink-0 text-accent" />
                 )}
-                <span className="shrink-0 text-[11px] tabular-nums text-text-tertiary">
+                <span className="shrink-0 text-2xs tabular-nums text-text-tertiary">
                   {vm.length}
                 </span>
                 <ChevronRight className="h-3.5 w-3.5 shrink-0 text-text-tertiary" />
@@ -655,10 +655,10 @@ function PickerPanel({
                   onClick={() => setOpenSetting(st.id)}
                   className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-colors duration-fast hover:bg-elevated"
                 >
-                  <span className="text-[13px] font-medium text-foreground">
+                  <span className="text-sm font-medium text-foreground">
                     {st.label}
                   </span>
-                  <span className="ml-auto text-[12px] text-text-tertiary">
+                  <span className="ml-auto text-xs text-text-tertiary">
                     {st.options.find((o) => o.id === st.value)?.label}
                   </span>
                   <ChevronRight className="h-3.5 w-3.5 shrink-0 text-text-tertiary" />

@@ -48,7 +48,7 @@ export function ChartBlock({ code }: { code: string }) {
 
   if (!spec || !Array.isArray(spec.data) || spec.data.length === 0) {
     return (
-      <div className="my-4 rounded-xl border border-error/30 bg-error/5 p-3 text-[12px] text-error">
+      <div className="my-4 rounded-xl border border-error/30 bg-error/5 p-3 text-xs text-error">
         Invalid chart data.
         <pre className="mt-1 overflow-x-auto text-text-tertiary">{code}</pre>
       </div>
@@ -81,7 +81,7 @@ export function ChartBlock({ code }: { code: string }) {
   return (
     <figure className="my-4 rounded-xl border border-border/70 bg-surface p-3">
       {spec.title && (
-        <figcaption className="mb-2 px-1 text-[13px] font-semibold text-foreground">
+        <figcaption className="mb-2 px-1 text-sm font-semibold text-foreground">
           {spec.title}
         </figcaption>
       )}

@@ -7,7 +7,7 @@
 export function TypingIndicator({ model }: { model?: string }) {
   return (
     <div
-      className="flex items-baseline gap-2 text-[15px] leading-[1.7]"
+      className="flex items-baseline gap-2 text-base leading-[1.7]"
       role="status"
       aria-live="polite"
     >
@@ -19,7 +19,7 @@ export function TypingIndicator({ model }: { model?: string }) {
         Thinking
       </span>
       {model && (
-        <span aria-hidden="true" className="text-[12px] text-text-tertiary">
+        <span aria-hidden="true" className="text-xs text-text-tertiary">
           {model}
         </span>
       )}

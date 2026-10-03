@@ -108,13 +108,13 @@ export function Sidebar() {
       <div className="px-3 pt-1 pb-3">
         <button
           onClick={() => router.push("/chat")}
-          className="press group flex w-full items-center justify-between rounded-xl border border-border/70 bg-elevated px-3 py-2 text-[13px] font-semibold text-foreground shadow-sm transition-[border-color,background-color] duration-fast ease-out hover:border-border-strong hover:bg-elevated"
+          className="press group flex w-full items-center justify-between rounded-xl border border-border/70 bg-elevated px-3 py-2 text-sm font-semibold text-foreground shadow-sm transition-[border-color,background-color] duration-fast ease-out hover:border-border-strong hover:bg-elevated"
         >
           <span className="flex items-center gap-2">
             <Plus className="h-4 w-4 text-text-tertiary group-hover:text-accent transition-colors duration-fast" />
             New chat
           </span>
-          <kbd className="text-[10px] font-medium tracking-wider text-text-tertiary">⌘N</kbd>
+          <kbd className="text-2xs font-medium tracking-wider text-text-tertiary">⌘N</kbd>
         </button>
       </div>
 
@@ -123,7 +123,7 @@ export function Sidebar() {
         <div className="space-y-5 py-1">
           {Object.entries(grouped).map(([date, dateChats]) => (
             <div key={date}>
-              <p className="mb-1 px-3 text-[12px] font-medium text-text-tertiary">
+              <p className="mb-1 px-3 text-xs font-medium text-text-tertiary">
                 {date}
               </p>
               <div className="space-y-px">
@@ -134,7 +134,7 @@ export function Sidebar() {
                       key={chat.id}
                       href={`/chat/${chat.id}`}
                       className={cn(
-                        "group/row relative flex items-center justify-between rounded-xl pl-3 pr-1.5 py-1.5 text-[13px] transition-colors duration-fast ease-out",
+                        "group/row relative flex items-center justify-between rounded-xl pl-3 pr-1.5 py-1.5 text-sm transition-colors duration-fast ease-out",
                         active
                           ? "bg-accent-muted text-foreground"
                           : "text-text-secondary hover:bg-elevated hover:text-foreground"
@@ -150,7 +150,7 @@ export function Sidebar() {
                         className={cn(
                           "press shrink-0 items-center justify-center gap-1 rounded-md p-1 transition-colors duration-fast",
                           armed === chat.id
-                            ? "flex bg-error/10 px-1.5 text-[12px] font-semibold text-error"
+                            ? "flex bg-error/10 px-1.5 text-xs font-semibold text-error"
                             : "hidden text-text-tertiary hover:bg-background hover:text-error group-hover/row:flex"
                         )}
                       >
@@ -200,7 +200,7 @@ function SidebarNavLink({
     <Link
       href={href}
       className={cn(
-        "relative flex items-center gap-2.5 rounded-xl pl-3 pr-3 py-2 text-[13px] font-medium transition-colors duration-fast ease-out",
+        "relative flex items-center gap-2.5 rounded-xl pl-3 pr-3 py-2 text-sm font-medium transition-colors duration-fast ease-out",
         active
           ? "bg-accent-muted text-foreground"
           : "text-text-secondary hover:bg-elevated hover:text-foreground"

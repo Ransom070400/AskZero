@@ -110,7 +110,7 @@ export default function AdminPage() {
       <div className="flex h-full items-center justify-center px-5 py-12">
         <div className="text-center space-y-2">
           <AlertTriangle className="mx-auto h-8 w-8 text-text-tertiary" />
-          <p className="text-[14px] text-text-secondary">{error}</p>
+          <p className="text-md text-text-secondary">{error}</p>
         </div>
       </div>
     );
@@ -119,7 +119,7 @@ export default function AdminPage() {
   if (!stats) {
     return (
       <div className="flex h-full items-center justify-center px-5 py-12">
-        <p className="text-[14px] text-text-tertiary">Loading…</p>
+        <p className="text-md text-text-tertiary">Loading…</p>
       </div>
     );
   }
@@ -134,7 +134,7 @@ export default function AdminPage() {
         <h1 className="font-display text-3xl md:text-4xl font-bold tracking-[-0.025em]">
           Admin
         </h1>
-        <p className="text-[15px] text-text-secondary">
+        <p className="text-base text-text-secondary">
           Key metrics, treasury, and recent activity.
         </p>
       </div>
@@ -153,16 +153,16 @@ export default function AdminPage() {
                 <Wallet className="h-4 w-4 text-accent" />
               </div>
               <div>
-                <p className="text-[13px] font-medium text-text-tertiary">
+                <p className="text-sm font-medium text-text-tertiary">
                   Treasury wallet
                 </p>
-                <p className="text-[12px] text-text-tertiary leading-snug">
+                <p className="text-xs text-text-tertiary leading-snug">
                   Pays 0G providers for inference
                 </p>
               </div>
             </div>
             {isLowBalance && (
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-warning/30 bg-warning/10 px-2.5 py-1 text-[11px] font-semibold text-warning">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-warning/30 bg-warning/10 px-2.5 py-1 text-2xs font-semibold text-warning">
                 <AlertTriangle className="h-3 w-3" />
                 Low balance
               </span>
@@ -173,17 +173,17 @@ export default function AdminPage() {
             <p className="font-display text-4xl md:text-5xl font-bold tracking-[-0.03em] tabular-nums">
               {parseFloat(treasury.balance).toFixed(4)}
             </p>
-            <p className="pb-1.5 text-[14px] font-semibold text-text-tertiary">
+            <p className="pb-1.5 text-md font-semibold text-text-tertiary">
               0G
             </p>
           </div>
 
           <div className="mt-6 space-y-2">
-            <p className="text-[12px] font-medium text-text-tertiary">
+            <p className="text-xs font-medium text-text-tertiary">
               Address
             </p>
             <div className="flex items-stretch gap-2">
-              <code className="flex-1 rounded-xl border border-border/70 bg-background px-3 py-2 text-[12px] font-mono text-foreground break-all">
+              <code className="flex-1 rounded-xl border border-border/70 bg-background px-3 py-2 text-xs font-mono text-foreground break-all">
                 {treasury.address}
               </code>
               <button
@@ -220,7 +220,7 @@ export default function AdminPage() {
           </div>
 
           {isLowBalance && (
-            <p className="mt-4 text-[12px] leading-relaxed text-warning">
+            <p className="mt-4 text-xs leading-relaxed text-warning">
               Treasury balance is low. Send more 0G to the address above to keep
               AI inference running.
             </p>
@@ -230,7 +230,7 @@ export default function AdminPage() {
 
       {/* Stats grid */}
       <section className="space-y-3">
-        <h2 className="px-1 text-[13px] font-medium text-text-tertiary">
+        <h2 className="px-1 text-sm font-medium text-text-tertiary">
           Metrics
         </h2>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
@@ -266,7 +266,7 @@ export default function AdminPage() {
       {/* Funnel: signed up → activated → paid */}
       {cohorts && (
         <section className="space-y-3">
-          <h2 className="px-1 text-[13px] font-medium text-text-tertiary">
+          <h2 className="px-1 text-sm font-medium text-text-tertiary">
             Funnel
           </h2>
           <div className="flex flex-col gap-2 rounded-2xl border border-border/70 bg-elevated/40 p-4 sm:flex-row sm:items-stretch">
@@ -295,7 +295,7 @@ export default function AdminPage() {
       {/* Cohort health */}
       {cohorts && (
         <section className="space-y-3">
-          <h2 className="px-1 text-[13px] font-medium text-text-tertiary">
+          <h2 className="px-1 text-sm font-medium text-text-tertiary">
             Health
           </h2>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
@@ -360,12 +360,12 @@ export default function AdminPage() {
 
       {/* Recent transactions */}
       <section className="space-y-3">
-        <h2 className="px-1 text-[13px] font-medium text-text-tertiary">
+        <h2 className="px-1 text-sm font-medium text-text-tertiary">
           Recent activity
         </h2>
         {transactions.length === 0 ? (
           <div className="rounded-2xl border border-border/70 bg-elevated/40 px-5 py-12 text-center">
-            <p className="text-[13px] text-text-tertiary">No transactions yet</p>
+            <p className="text-sm text-text-tertiary">No transactions yet</p>
           </div>
         ) : (
           <div className="overflow-hidden rounded-2xl border border-border/70 divide-y divide-border/50">
@@ -393,7 +393,7 @@ function StatCard({
   return (
     <div className="rounded-2xl border border-border/70 bg-elevated/60 p-4 shadow-sm">
       <div className="flex items-center justify-between">
-        <p className="text-[12px] font-medium text-text-tertiary">
+        <p className="text-xs font-medium text-text-tertiary">
           {label}
         </p>
         <span className="text-text-tertiary">{icon}</span>
@@ -402,7 +402,7 @@ function StatCard({
         {value}
       </p>
       {sub && (
-        <p className="mt-0.5 text-[11px] text-text-tertiary tabular-nums">
+        <p className="mt-0.5 text-2xs text-text-tertiary tabular-nums">
           {sub}
         </p>
       )}
@@ -432,7 +432,7 @@ function FunnelStep({
     >
       <div className="flex items-center justify-center gap-1.5 text-text-tertiary">
         {icon}
-        <span className="text-[12px] font-medium">
+        <span className="text-xs font-medium">
           {label}
         </span>
       </div>
@@ -452,8 +452,8 @@ function FunnelArrow({ pct, caption }: { pct: number; caption: string }) {
   return (
     <div className="flex shrink-0 flex-row items-center justify-center gap-1.5 px-1 sm:flex-col sm:gap-0.5">
       <ArrowRight className="h-4 w-4 rotate-90 text-text-tertiary sm:rotate-0" />
-      <span className="text-[12px] font-bold tabular-nums text-foreground">{pct}%</span>
-      <span className="hidden text-[10px] leading-tight text-text-tertiary sm:block sm:max-w-[80px] sm:text-center">
+      <span className="text-xs font-bold tabular-nums text-foreground">{pct}%</span>
+      <span className="hidden text-2xs leading-tight text-text-tertiary sm:block sm:max-w-[80px] sm:text-center">
         {caption}
       </span>
     </div>
@@ -471,12 +471,12 @@ function Breakdown({
 }) {
   return (
     <div className="space-y-3">
-      <h2 className="px-1 text-[13px] font-medium text-text-tertiary">
+      <h2 className="px-1 text-sm font-medium text-text-tertiary">
         {title}
       </h2>
       {rows.length === 0 ? (
         <div className="rounded-2xl border border-border/70 bg-elevated/40 px-5 py-8 text-center">
-          <p className="text-[13px] text-text-tertiary">{emptyLabel}</p>
+          <p className="text-sm text-text-tertiary">{emptyLabel}</p>
         </div>
       ) : (
         <div className="overflow-hidden rounded-2xl border border-border/70 divide-y divide-border/50">
@@ -485,10 +485,10 @@ function Breakdown({
               key={r.label}
               className="flex items-center justify-between gap-3 bg-elevated/40 px-4 py-3"
             >
-              <span className="text-[13px] font-semibold capitalize text-foreground">
+              <span className="text-sm font-semibold capitalize text-foreground">
                 {r.label}
               </span>
-              <span className="text-[12px] tabular-nums text-text-secondary">
+              <span className="text-xs tabular-nums text-text-secondary">
                 {r.value}
               </span>
             </div>
@@ -511,17 +511,17 @@ function TransactionRow({ tx }: { tx: Transaction }) {
   return (
     <div className="flex items-center justify-between gap-3 bg-elevated/40 px-4 py-3.5">
       <div className="flex min-w-0 flex-col">
-        <p className="text-[13px] font-semibold capitalize text-foreground">
+        <p className="text-sm font-semibold capitalize text-foreground">
           {tx.type}
         </p>
-        <p className="text-[11px] font-mono text-text-tertiary">
+        <p className="text-2xs font-mono text-text-tertiary">
           {tx.user_id.slice(0, 8)}…
         </p>
       </div>
       <div className="flex items-center gap-3">
         <span
           className={cn(
-            "rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider",
+            "rounded-full border px-2 py-0.5 text-2xs font-semibold uppercase tracking-wider",
             statusStyle
           )}
         >
@@ -529,14 +529,14 @@ function TransactionRow({ tx }: { tx: Transaction }) {
         </span>
         <p
           className={cn(
-            "text-[13px] font-semibold tabular-nums",
+            "text-sm font-semibold tabular-nums",
             isUsage ? "text-text-secondary" : "text-foreground"
           )}
         >
           {isUsage ? "−" : "+"}
           {Math.abs(tx.amount).toLocaleString()}
         </p>
-        <p className="hidden sm:block text-[11px] text-text-tertiary tabular-nums">
+        <p className="hidden sm:block text-2xs text-text-tertiary tabular-nums">
           {new Date(tx.created_at).toLocaleDateString(undefined, {
             month: "short",
             day: "numeric",

@@ -803,7 +803,7 @@ function ChatDetailContent() {
         )}
       >
       {isIncognito && (
-        <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 border-b border-border/60 bg-surface/60 px-4 py-2 text-center text-[12px] text-text-secondary">
+        <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 border-b border-border/60 bg-surface/60 px-4 py-2 text-center text-xs text-text-secondary">
           <EyeOff className="h-3.5 w-3.5 shrink-0 text-text-tertiary" />
           <span title="You're still charged per message, and your prompt is processed privately in a secure enclave.">
             <b className="font-semibold text-foreground">Incognito</b> — not saved,
@@ -812,7 +812,7 @@ function ChatDetailContent() {
           <ExitIncognito>
             <button
               type="button"
-              className="press ml-1 shrink-0 rounded-full border border-border/70 bg-elevated px-2.5 py-1 text-[12px] font-semibold text-foreground transition-colors duration-fast hover:border-border-strong"
+              className="press ml-1 shrink-0 rounded-full border border-border/70 bg-elevated px-2.5 py-1 text-xs font-semibold text-foreground transition-colors duration-fast hover:border-border-strong"
             >
               Exit
             </button>

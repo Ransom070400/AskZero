@@ -30,7 +30,7 @@ export function MobileBottomNav() {
             )}
           >
             <item.icon className={cn("h-[22px] w-[22px]", isActive && "drop-shadow-sm")} strokeWidth={isActive ? 2.4 : 2} />
-            <span className="text-[10px] font-semibold tracking-wide">{item.label}</span>
+            <span className="text-2xs font-semibold tracking-wide">{item.label}</span>
           </button>
         );
       })}

@@ -76,10 +76,10 @@ export function DailyReward() {
             <div className="mx-auto mb-2 flex h-11 w-11 items-center justify-center rounded-full bg-success/15 text-success">
               <Check className="h-5 w-5" />
             </div>
-            <p className="text-[15px] font-bold text-foreground">
+            <p className="text-base font-bold text-foreground">
               +{claimed!.reward} credits
             </p>
-            <p className="mt-0.5 inline-flex items-center gap-1 text-[12px] text-text-secondary">
+            <p className="mt-0.5 inline-flex items-center gap-1 text-xs text-text-secondary">
               <Flame className="h-3.5 w-3.5 text-accent" />
               {claimed!.streak}-day streak — see you tomorrow
             </p>
@@ -99,8 +99,8 @@ export function DailyReward() {
                 <Gift className="h-5 w-5" />
               </div>
               <div className="min-w-0">
-                <p className="text-[14px] font-bold text-foreground">Daily reward</p>
-                <p className="inline-flex items-center gap-1 text-[12px] text-text-tertiary">
+                <p className="text-md font-bold text-foreground">Daily reward</p>
+                <p className="inline-flex items-center gap-1 text-xs text-text-tertiary">
                   {status!.current_streak > 0 ? (
                     <>
                       <Flame className="h-3.5 w-3.5 text-accent" />
@@ -116,7 +116,7 @@ export function DailyReward() {
             <button
               onClick={claim}
               disabled={claiming}
-              className="press mt-3.5 inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-primary py-2.5 text-[13px] font-semibold text-primary-foreground shadow-sm transition hover:brightness-110 disabled:opacity-60"
+              className="press mt-3.5 inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:brightness-110 disabled:opacity-60"
             >
               {claiming ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

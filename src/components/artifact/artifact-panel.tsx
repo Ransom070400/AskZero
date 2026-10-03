@@ -122,14 +122,14 @@ export function ArtifactPanel({
       <header className="flex flex-col gap-3 border-b border-border/70 px-4 py-3">
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-start gap-3">
-            <span className="mt-0.5 rounded-md bg-elevated/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
+            <span className="mt-0.5 rounded-md bg-elevated/80 px-2 py-0.5 text-2xs font-semibold uppercase tracking-wider text-text-tertiary">
               {artifact ? TYPE_BADGE[artifact.type] : "..."}
             </span>
             <div className="min-w-0">
-              <h2 className="truncate text-[14px] font-semibold text-foreground">
+              <h2 className="truncate text-md font-semibold text-foreground">
                 {artifact?.title ?? "Loading..."}
               </h2>
-              <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-text-tertiary">
+              <div className="mt-1 flex flex-wrap items-center gap-2 text-2xs text-text-tertiary">
                 <span>{artifact?.language ?? artifact?.type ?? "artifact"}</span>
                 {activeVersionLabel && (
                   <>
@@ -198,7 +198,7 @@ export function ArtifactPanel({
                 onClick={() => setShowVersions((v) => !v)}
                 aria-pressed={showVersions}
                 className={cn(
-                  "press inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[12px] font-semibold transition-colors duration-fast",
+                  "press inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold transition-colors duration-fast",
                   showVersions
                     ? "bg-accent-muted text-accent"
                     : "text-text-tertiary hover:bg-surface hover:text-foreground"
@@ -223,7 +223,7 @@ export function ArtifactPanel({
       <div className="flex min-h-0 flex-1">
         {showVersions && artifact && versions.length > 1 && (
           <aside className="hidden w-44 shrink-0 border-r border-border/70 bg-surface/40 p-2 md:block">
-            <p className="px-2 pb-2 text-[12px] font-medium text-text-tertiary">
+            <p className="px-2 pb-2 text-xs font-medium text-text-tertiary">
               Versions
             </p>
             <div className="space-y-1">
@@ -241,10 +241,10 @@ export function ArtifactPanel({
                         : "text-text-secondary hover:bg-elevated hover:text-foreground"
                     )}
                   >
-                    <span className="text-[12px] font-semibold">
+                    <span className="text-xs font-semibold">
                       Version {version.version}
                     </span>
-                    <span className="mt-0.5 text-[10px] text-text-tertiary">
+                    <span className="mt-0.5 text-2xs text-text-tertiary">
                       {created.toLocaleDateString(undefined, {
                         month: "short",
                         day: "numeric",
@@ -257,9 +257,9 @@ export function ArtifactPanel({
           </aside>
         )}
         <div className="min-w-0 flex-1 overflow-auto overscroll-contain">
-          {error && <div className="p-6 text-[13px] text-error">{error}</div>}
+          {error && <div className="p-6 text-sm text-error">{error}</div>}
           {!artifact && !error && (
-            <div className="p-6 text-[13px] text-text-tertiary">Loading...</div>
+            <div className="p-6 text-sm text-text-tertiary">Loading...</div>
           )}
           {artifact && <ArtifactRenderer artifact={artifact} view={view} />}
         </div>
@@ -286,7 +286,7 @@ function ViewTab({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "press inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[11px] font-semibold transition-colors duration-fast ease-out disabled:cursor-not-allowed disabled:opacity-40",
+        "press inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-2xs font-semibold transition-colors duration-fast ease-out disabled:cursor-not-allowed disabled:opacity-40",
         active
           ? "bg-background text-foreground shadow-sm"
           : "text-text-tertiary hover:text-foreground"

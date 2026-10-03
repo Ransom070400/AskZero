@@ -39,7 +39,7 @@ export function LowBalanceBanner() {
   return (
     <div
       className={cn(
-        "flex items-center justify-center gap-2 px-4 py-2 text-[12.5px] font-medium",
+        "flex items-center justify-center gap-2 px-4 py-2 text-xs font-medium",
         out
           ? "bg-error/10 text-error"
           : "bg-warning/10 text-warning"
@@ -53,7 +53,7 @@ export function LowBalanceBanner() {
       </span>
       <Link
         href="/deposit"
-        className="press rounded-full bg-foreground px-2.5 py-0.5 text-[11.5px] font-semibold text-background hover:opacity-90 transition-opacity"
+        className="press rounded-full bg-foreground px-2.5 py-0.5 text-2xs font-semibold text-background hover:opacity-90 transition-opacity"
       >
         Top up
       </Link>

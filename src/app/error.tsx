@@ -30,7 +30,7 @@ export default function Error({
             <h1 className="font-display text-2xl font-bold tracking-[-0.02em] text-foreground">
               Something went wrong
             </h1>
-            <p className="text-[14px] leading-relaxed text-text-secondary">
+            <p className="text-md leading-relaxed text-text-secondary">
               That page didn&apos;t load. Your chats and balance are untouched.
             </p>
           </div>
@@ -51,7 +51,7 @@ export default function Error({
         {/* The digest is the only handle on a production stack trace, so it is
             worth surfacing — quietly — for anyone reporting the problem. */}
         {error.digest && (
-          <p className="font-mono text-[11px] text-text-tertiary">
+          <p className="font-mono text-2xs text-text-tertiary">
             ref {error.digest}
           </p>
         )}

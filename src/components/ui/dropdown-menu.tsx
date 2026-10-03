@@ -116,7 +116,7 @@ function DropdownMenuItem({
   return (
     <button
       className={cn(
-        "relative flex w-full select-none items-center rounded-lg px-2.5 py-2 text-[13px] font-medium text-foreground outline-none transition-colors duration-fast ease-out hover:bg-elevated focus:bg-elevated",
+        "relative flex w-full select-none items-center rounded-lg px-2.5 py-2 text-sm font-medium text-foreground outline-none transition-colors duration-fast ease-out hover:bg-elevated focus:bg-elevated",
         className
       )}
       onClick={() => {

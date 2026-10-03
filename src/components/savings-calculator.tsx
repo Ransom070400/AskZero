@@ -58,13 +58,13 @@ export function SavingsCalculator() {
           transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
           className="space-y-3 text-center"
         >
-          <p className="text-[12px] font-medium text-white/40">
+          <p className="text-xs font-medium text-white/40">
             pay by the question, not the month
           </p>
           <h2 className="font-display text-3xl font-bold tracking-[-0.03em] sm:text-4xl md:text-5xl">
             Stop paying for AI you don&apos;t use
           </h2>
-          <p className="mx-auto max-w-md text-[15px] leading-relaxed text-white/55">
+          <p className="mx-auto max-w-md text-base leading-relaxed text-white/55">
             A subscription charges one flat price whether you ask 3 questions or
             300. Here, you only pay for the ones you actually ask.
           </p>
@@ -79,12 +79,12 @@ export function SavingsCalculator() {
         >
           {/* Slider */}
           <div className="flex items-center justify-between">
-            <label htmlFor="qpd" className="text-[13px] font-medium text-white/60">
+            <label htmlFor="qpd" className="text-sm font-medium text-white/60">
               How many questions a day?
             </label>
             <button
               onClick={() => setNgn((v) => !v)}
-              className="rounded-full border border-white/15 px-2.5 py-1 text-[11px] font-semibold text-white/60 transition-colors hover:text-white"
+              className="rounded-full border border-white/15 px-2.5 py-1 text-2xs font-semibold text-white/60 transition-colors hover:text-white"
             >
               {ngn ? "₦ NGN" : "$ USD"}
             </button>
@@ -96,7 +96,7 @@ export function SavingsCalculator() {
             >
               {qpd}
             </span>
-            <span className="text-[13px] text-white/40">questions / day</span>
+            <span className="text-sm text-white/40">questions / day</span>
           </div>
 
           <input
@@ -112,29 +112,29 @@ export function SavingsCalculator() {
           {/* Result */}
           <div className="mt-8 grid grid-cols-2 gap-3">
             <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-              <p className="text-[12px] font-medium text-white/40">
+              <p className="text-xs font-medium text-white/40">
                 You, pay-as-you-go
               </p>
               <p
                 className="mt-1.5 font-display text-2xl font-bold tabular-nums text-accent-hover md:text-3xl"
               >
                 {money(youUsd)}
-                <span className="text-[13px] font-medium text-white/40">/mo</span>
+                <span className="text-sm font-medium text-white/40">/mo</span>
               </p>
             </div>
             <div className="rounded-2xl border border-white/10 bg-transparent p-4">
-              <p className="text-[12px] font-medium text-white/40">
+              <p className="text-xs font-medium text-white/40">
                 Flat subscription
               </p>
               <p className="mt-1.5 font-display text-2xl font-bold tabular-nums text-white/45 line-through decoration-white/25 md:text-3xl">
                 {money(subUsd)}
-                <span className="text-[13px] font-medium text-white/30">/mo</span>
+                <span className="text-sm font-medium text-white/30">/mo</span>
               </p>
             </div>
           </div>
 
           {saveYearUsd > 0 && (
-            <p className="mt-5 text-center text-[15px] text-white/70">
+            <p className="mt-5 text-center text-base text-white/70">
               That&apos;s{" "}
               <span className="font-bold text-white">{money(saveYearUsd)}</span>{" "}
               back in your pocket every year.
@@ -144,7 +144,7 @@ export function SavingsCalculator() {
           <div className="mt-7 flex justify-center">
             <Link
               href="/signup"
-              className="press group inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-[14px] font-semibold text-black transition-[background-color,transform] duration-fast ease-out hover:bg-white/90"
+              className="press group inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-md font-semibold text-black transition-[background-color,transform] duration-fast ease-out hover:bg-white/90"
             >
               start free — pay only when you ask
               <ArrowRight className="h-4 w-4 transition-transform duration-fast group-hover:translate-x-0.5" />
@@ -152,7 +152,7 @@ export function SavingsCalculator() {
           </div>
         </motion.div>
 
-        <p className="mx-auto mt-5 max-w-lg text-center text-[11px] leading-relaxed text-white/30">
+        <p className="mx-auto mt-5 max-w-lg text-center text-2xs leading-relaxed text-white/30">
           Estimate at current rates — you pay for the tokens you use, no
           subscription. Heavier users pay more but are never locked in. New
           accounts start with free credits.

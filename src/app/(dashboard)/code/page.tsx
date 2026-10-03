@@ -138,7 +138,7 @@ export default function CodePage() {
           <Code2 className="h-6 w-6 text-accent" />
           Code
         </h1>
-        <p className="text-[15px] text-text-secondary">
+        <p className="text-base text-text-secondary">
           Describe what to build — AskZero plans it, writes the code, reviews its own
           work for bugs, and hands you a runnable result with a live preview.
         </p>
@@ -152,7 +152,7 @@ export default function CodePage() {
           placeholder="e.g. A single-page pomodoro timer with start/pause/reset and a circular progress ring"
           rows={3}
           disabled={running}
-          className="w-full resize-none bg-transparent text-[15px] text-foreground placeholder:text-text-tertiary outline-none"
+          className="w-full resize-none bg-transparent text-base text-foreground placeholder:text-text-tertiary outline-none"
         />
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
@@ -162,7 +162,7 @@ export default function CodePage() {
                   key={d}
                   onClick={() => setDepth(d)}
                   disabled={running}
-                  className={`rounded-lg px-3 py-1.5 text-[12px] font-semibold capitalize transition-colors ${
+                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold capitalize transition-colors ${
                     depth === d
                       ? "bg-elevated text-foreground shadow-sm"
                       : "text-text-tertiary hover:text-foreground"
@@ -177,7 +177,7 @@ export default function CodePage() {
               onChange={(e) => setLanguage(e.target.value)}
               placeholder="Language (optional)"
               disabled={running}
-              className="w-40 rounded-xl bg-surface px-3 py-1.5 text-[12px] text-foreground placeholder:text-text-tertiary outline-none"
+              className="w-40 rounded-xl bg-surface px-3 py-1.5 text-xs text-foreground placeholder:text-text-tertiary outline-none"
             />
           </div>
           <Button onClick={run} disabled={running || !task.trim()} size="sm">
@@ -192,7 +192,7 @@ export default function CodePage() {
       </div>
 
       {error && (
-        <div className="rounded-xl border border-error/30 bg-error/5 px-4 py-3 text-[13px] text-error">
+        <div className="rounded-xl border border-error/30 bg-error/5 px-4 py-3 text-sm text-error">
           {error}
         </div>
       )}
@@ -239,7 +239,7 @@ export default function CodePage() {
       {previewArtifact && (
         <div className="overflow-hidden rounded-2xl border border-border/70 bg-elevated/40">
           <div className="flex items-center justify-between border-b border-border/70 px-3 py-2">
-            <div className="flex items-center gap-2 text-[12px] text-text-tertiary">
+            <div className="flex items-center gap-2 text-xs text-text-tertiary">
               <FileCode2 className="h-3.5 w-3.5" />
               <span className="truncate">{previewArtifact.title}</span>
             </div>
@@ -248,7 +248,7 @@ export default function CodePage() {
                 <button
                   key={v}
                   onClick={() => setView(v)}
-                  className={`rounded-md px-2.5 py-1 text-[11px] font-semibold capitalize transition-colors ${
+                  className={`rounded-md px-2.5 py-1 text-2xs font-semibold capitalize transition-colors ${
                     view === v
                       ? "bg-elevated text-foreground shadow-sm"
                       : "text-text-tertiary hover:text-foreground"
@@ -275,19 +275,19 @@ export default function CodePage() {
       {answer && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-[13px] font-medium text-text-tertiary">
+            <h2 className="text-sm font-medium text-text-tertiary">
               Deliverable
             </h2>
             <button
               onClick={copyAll}
-              className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[12px] text-text-tertiary hover:bg-elevated hover:text-foreground transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs text-text-tertiary hover:bg-elevated hover:text-foreground transition-colors"
             >
               {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
               {copied ? "Copied" : "Copy all"}
             </button>
           </div>
           <article
-            className="prose prose-sm dark:prose-invert max-w-none rounded-2xl border border-border/70 bg-elevated/40 p-5 text-[14px] leading-relaxed
+            className="prose prose-sm dark:prose-invert max-w-none rounded-2xl border border-border/70 bg-elevated/40 p-5 text-md leading-relaxed
               [&_pre]:rounded-lg [&_pre]:bg-surface [&_pre]:border [&_pre]:border-border/70 [&_pre]:p-4 [&_pre]:overflow-x-auto"
           >
             <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
@@ -323,11 +323,11 @@ function ProgressLine({
         )}
       </div>
       <div className="min-w-0">
-        <p className={`text-[13px] font-medium ${active || done ? "text-foreground" : "text-text-tertiary"}`}>
+        <p className={`text-sm font-medium ${active || done ? "text-foreground" : "text-text-tertiary"}`}>
           {label}
         </p>
         {children ? (
-          <p className="text-[12px] text-text-tertiary leading-relaxed truncate">{children}</p>
+          <p className="text-xs text-text-tertiary leading-relaxed truncate">{children}</p>
         ) : null}
       </div>
     </div>

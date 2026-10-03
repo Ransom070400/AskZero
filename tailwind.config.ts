@@ -70,10 +70,14 @@ const config: Config = {
       fontFamily: {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
         display: ["var(--font-display)", "var(--font-sans)", "system-ui", "sans-serif"],
+        mono: ["var(--font-mono)", "ui-monospace", "SFMono-Regular", "monospace"],
       },
       fontSize: {
-        micro: ["11px", { lineHeight: "16px", letterSpacing: "0.05em", fontWeight: "500" }],
+        // UI scale. 11px is the floor — nothing in the app renders smaller.
+        "2xs": ["11px", { lineHeight: "16px" }],
+        xs: ["12px", { lineHeight: "18px" }],
         sm: ["13px", { lineHeight: "20px" }],
+        md: ["14px", { lineHeight: "21px" }],
         base: ["15px", { lineHeight: "24px" }],
         lg: ["18px", { lineHeight: "28px" }],
         xl: ["24px", { lineHeight: "32px", letterSpacing: "-0.01em" }],

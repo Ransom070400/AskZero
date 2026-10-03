@@ -60,16 +60,16 @@ export function SubscriptionAnchor() {
           <PiggyBank className="h-5 w-5" />
         </div>
         <div className="min-w-0">
-          <p className="text-[12px] font-medium text-text-tertiary">
+          <p className="text-xs font-medium text-text-tertiary">
             Pay only for what you ask
           </p>
-          <p className="mt-1 text-[15px] font-bold text-foreground">
+          <p className="mt-1 text-base font-bold text-foreground">
             You&apos;ve spent{" "}
             <span className="tabular-nums text-accent">{formatBalance(spent)}</span>{" "}
             this month
           </p>
           {favorable ? (
-            <p className="mt-1 text-[13px] leading-relaxed text-text-secondary">
+            <p className="mt-1 text-sm leading-relaxed text-text-secondary">
               That&apos;s about{" "}
               <span className="font-semibold text-foreground tabular-nums">
                 {formatBalance(savings)}
@@ -79,7 +79,7 @@ export function SubscriptionAnchor() {
               /mo). No subscription, no cap — you top up only when you need to.
             </p>
           ) : (
-            <p className="mt-1 text-[13px] leading-relaxed text-text-secondary">
+            <p className="mt-1 text-sm leading-relaxed text-text-secondary">
               You&apos;ve been busy this month — and there&apos;s no subscription and
               no cap. Top up only when you need to.
             </p>

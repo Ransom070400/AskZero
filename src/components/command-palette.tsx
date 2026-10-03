@@ -146,22 +146,22 @@ export function CommandPalette() {
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={onKeyDown}
             placeholder="Search chats or run a command…"
-            className="h-12 w-full bg-transparent text-[14px] text-foreground outline-none placeholder:text-text-tertiary"
+            className="h-12 w-full bg-transparent text-md text-foreground outline-none placeholder:text-text-tertiary"
           />
-          <kbd className="shrink-0 rounded border border-border/70 px-1.5 py-0.5 text-[10px] text-text-tertiary">
+          <kbd className="shrink-0 rounded border border-border/70 px-1.5 py-0.5 text-2xs text-text-tertiary">
             esc
           </kbd>
         </div>
 
         <div className="max-h-[50vh] overflow-y-auto overscroll-contain p-1.5">
           {items.length === 0 && (
-            <p className="px-3 py-6 text-center text-[13px] text-text-tertiary">
+            <p className="px-3 py-6 text-center text-sm text-text-tertiary">
               No matches
             </p>
           )}
 
           {filteredActions.length > 0 && (
-            <p className="px-2.5 pb-1 pt-2 text-[12px] font-medium text-text-tertiary">
+            <p className="px-2.5 pb-1 pt-2 text-xs font-medium text-text-tertiary">
               Actions
             </p>
           )}
@@ -180,7 +180,7 @@ export function CommandPalette() {
           })}
 
           {filteredChats.length > 0 && (
-            <p className="px-2.5 pb-1 pt-2 text-[12px] font-medium text-text-tertiary">
+            <p className="px-2.5 pb-1 pt-2 text-xs font-medium text-text-tertiary">
               Chats
             </p>
           )}
@@ -221,7 +221,7 @@ function Row({
       onMouseMove={onHover}
       onClick={onClick}
       className={cn(
-        "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13.5px] transition-colors",
+        "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition-colors",
         active ? "bg-accent-muted text-foreground" : "text-text-secondary"
       )}
     >

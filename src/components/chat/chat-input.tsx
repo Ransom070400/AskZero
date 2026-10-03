@@ -320,10 +320,10 @@ export function ChatInput({
                 i === 0 ? "bg-surface" : "hover:bg-surface"
               )}
             >
-              <span className="font-mono text-[13px] font-semibold text-accent">
+              <span className="font-mono text-sm font-semibold text-accent">
                 /{cmd.id}
               </span>
-              <span className="text-[12px] text-text-tertiary">
+              <span className="text-xs text-text-tertiary">
                 {cmd.description}
               </span>
             </button>
@@ -347,7 +347,7 @@ export function ChatInput({
                   className="h-16 w-16 rounded-xl object-cover border border-border/80"
                 />
               ) : (
-                <div className="flex h-16 w-16 flex-col items-center justify-center rounded-xl border border-border/80 bg-surface text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
+                <div className="flex h-16 w-16 flex-col items-center justify-center rounded-xl border border-border/80 bg-surface text-2xs font-semibold uppercase tracking-wider text-text-tertiary">
                   {file.name.split(".").pop()?.toUpperCase().slice(0, 4)}
                 </div>
               )}
@@ -412,10 +412,10 @@ export function ChatInput({
                   className="gap-2.5 py-2"
                 >
                   <Paperclip className="h-4 w-4 shrink-0 text-text-secondary" />
-                  <span className="text-[13px] font-medium text-foreground">
+                  <span className="text-sm font-medium text-foreground">
                     {allowImages ? "Add files & images" : "Add PDFs"}
                   </span>
-                  <span className="truncate text-[12px] font-normal text-text-tertiary">
+                  <span className="truncate text-xs font-normal text-text-tertiary">
                     {allowImages ? "From this device" : "This model can't read images"}
                   </span>
                 </DropdownMenuItem>
@@ -429,10 +429,10 @@ export function ChatInput({
                     className="gap-2.5 py-2"
                   >
                     <Icon className="h-4 w-4 shrink-0 text-text-secondary" />
-                    <span className="text-[13px] font-medium text-foreground">
+                    <span className="text-sm font-medium text-foreground">
                       {cmd.label}
                     </span>
-                    <span className="truncate text-[12px] font-normal text-text-tertiary">
+                    <span className="truncate text-xs font-normal text-text-tertiary">
                       {cmd.description}
                     </span>
                   </DropdownMenuItem>
@@ -443,7 +443,7 @@ export function ChatInput({
         )}
 
         {badge && (
-          <span className="inline-flex h-8 min-w-0 items-center gap-1.5 rounded-full bg-accent-muted pl-2.5 pr-1 text-[12.5px] font-medium text-accent">
+          <span className="inline-flex h-8 min-w-0 items-center gap-1.5 rounded-full bg-accent-muted pl-2.5 pr-1 text-xs font-medium text-accent">
             {badge.icon && <badge.icon className="h-3.5 w-3.5 shrink-0" />}
             <span className="truncate">{badge.label}</span>
             <button
@@ -510,13 +510,13 @@ export function ChatInput({
       </div>
 
       {rejectedImage && (
-        <div className="px-4 pb-2 text-[11.5px] font-medium text-warning">
+        <div className="px-4 pb-2 text-2xs font-medium text-warning">
           This model doesn&apos;t support images — switch to a multimodal model to attach pictures.
         </div>
       )}
 
       {(recording || transcribing || recordError) && (
-        <div className="px-4 pb-2 text-[11.5px] font-medium">
+        <div className="px-4 pb-2 text-2xs font-medium">
           {recordError ? (
             <span className="text-warning">{recordError}</span>
           ) : transcribing ? (

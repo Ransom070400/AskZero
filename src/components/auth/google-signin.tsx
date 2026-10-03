@@ -109,7 +109,7 @@ export function GoogleSignIn({ onError }: { onError?: (msg: string) => void }) {
 
   if (!CLIENT_ID) {
     return (
-      <div className="rounded-xl border border-border bg-elevated px-3 py-2.5 text-center text-[12px] text-text-tertiary">
+      <div className="rounded-xl border border-border bg-elevated px-3 py-2.5 text-center text-xs text-text-tertiary">
         Google sign-in isn&apos;t configured — set{" "}
         <code className="text-foreground">NEXT_PUBLIC_GOOGLE_CLIENT_ID</code>.
       </div>

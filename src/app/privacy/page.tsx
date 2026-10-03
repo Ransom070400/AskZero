@@ -16,7 +16,7 @@ export default function PrivacyPage() {
     <main className="mx-auto max-w-2xl px-6 py-14">
       <Link
         href="/chat"
-        className="press mb-8 inline-flex items-center gap-1.5 text-[13px] font-medium text-text-tertiary transition-colors hover:text-foreground"
+        className="press mb-8 inline-flex items-center gap-1.5 text-sm font-medium text-text-tertiary transition-colors hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4" />
         Back to AskZero
@@ -24,14 +24,14 @@ export default function PrivacyPage() {
 
       <div className="mb-3 flex items-center gap-2 text-accent">
         <Lock className="h-5 w-5" />
-        <span className="text-[13px] font-medium">
+        <span className="text-sm font-medium">
           Privacy policy
         </span>
       </div>
       <h1 className="text-3xl font-bold tracking-tight text-foreground">
         What we collect, and what leaves for good
       </h1>
-      <p className="mt-3 text-[15px] leading-relaxed text-text-secondary">
+      <p className="mt-3 text-base leading-relaxed text-text-secondary">
         AskZero writes some data to a public blockchain, and that part cannot be
         deleted by anyone, including us. That is unusual, so it is stated plainly
         below rather than buried. Last updated {UPDATED}.
@@ -156,8 +156,8 @@ function Block({
 }) {
   return (
     <section>
-      <h2 className="mb-2 text-[15px] font-semibold text-foreground">{title}</h2>
-      <div className="text-[14px] leading-relaxed text-text-secondary">
+      <h2 className="mb-2 text-base font-semibold text-foreground">{title}</h2>
+      <div className="text-md leading-relaxed text-text-secondary">
         {children}
       </div>
     </section>

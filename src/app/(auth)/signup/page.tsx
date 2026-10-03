@@ -77,7 +77,7 @@ export default function SignupPage() {
           <h1 className="font-display text-3xl font-bold tracking-[-0.025em] text-foreground">
             create your account
           </h1>
-          <p className="text-[14px] text-text-secondary leading-relaxed max-w-[320px] mx-auto">
+          <p className="text-md text-text-secondary leading-relaxed max-w-[320px] mx-auto">
             decentralized, verifiable AI. pay with naira, USD, or 0G tokens —
             no subscriptions.
           </p>
@@ -90,7 +90,7 @@ export default function SignupPage() {
       {/* Divider */}
       <div className="relative flex items-center">
         <div className="flex-1 border-t border-border/70" />
-        <span className="px-3 text-[12px] font-medium text-text-tertiary">
+        <span className="px-3 text-xs font-medium text-text-tertiary">
           or with email
         </span>
         <div className="flex-1 border-t border-border/70" />
@@ -138,7 +138,7 @@ export default function SignupPage() {
         {error && (
           <div className="flex items-start gap-2 rounded-xl border border-error/30 bg-error/10 px-3 py-2.5">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-error" />
-            <p className="text-[13px] leading-snug text-error">{error}</p>
+            <p className="text-sm leading-snug text-error">{error}</p>
           </div>
         )}
 
@@ -146,13 +146,13 @@ export default function SignupPage() {
           {loading ? "Creating account…" : "Create account"}
         </Button>
 
-        <p className="text-center text-[11px] text-text-tertiary leading-relaxed">
+        <p className="text-center text-2xs text-text-tertiary leading-relaxed">
           By creating an account you agree to receive updates about AskZero.
           We&apos;ll never share your email.
         </p>
       </form>
 
-      <p className="text-center text-[13px] text-text-secondary">
+      <p className="text-center text-sm text-text-secondary">
         Already have an account?{" "}
         <Link
           href="/login"

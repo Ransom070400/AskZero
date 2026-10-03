@@ -156,7 +156,7 @@ export function ReceiptBadge({
           animate={sealing ? { scale: [1, 1.18, 1] } : { scale: 1 }}
           transition={{ duration: 0.7, ease: "easeOut" }}
           className={cn(
-            "press relative inline-flex items-center gap-1 overflow-hidden rounded-lg px-1.5 py-1 text-[11px] font-medium transition-colors",
+            "press relative inline-flex items-center gap-1 overflow-hidden rounded-lg px-1.5 py-1 text-2xs font-medium transition-colors",
             sealing ? "text-success" : "text-text-tertiary hover:text-accent"
           )}
           title="This answer has a tamper-proof receipt — tap to see it"
@@ -178,7 +178,7 @@ export function ReceiptBadge({
           <motion.span
             initial={{ opacity: 0, x: -6 }}
             animate={{ opacity: 1, x: 0 }}
-            className="inline-flex items-center gap-1 rounded-full border border-accent/40 bg-accent/10 py-0.5 pl-2 pr-1 text-[11px] font-semibold text-accent"
+            className="inline-flex items-center gap-1 rounded-full border border-accent/40 bg-accent/10 py-0.5 pl-2 pr-1 text-2xs font-semibold text-accent"
           >
             <button
               onClick={() => {
@@ -233,10 +233,10 @@ export function ReceiptBadge({
                     className={anchored ? "h-5 w-5 text-success" : "h-5 w-5 text-accent"}
                   />
                   <div>
-                    <p className="text-[14px] font-bold text-foreground">
+                    <p className="text-md font-bold text-foreground">
                       {anchored ? "Verified on 0G" : "Inference receipt"}
                     </p>
-                    <p className="text-[11px] text-text-tertiary">
+                    <p className="text-2xs text-text-tertiary">
                       Tamper-evident proof of this answer
                     </p>
                   </div>
@@ -254,23 +254,23 @@ export function ReceiptBadge({
                 {state === "loading" && (
                   <div className="flex items-center justify-center gap-2 py-10 text-text-tertiary">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    <span className="text-[13px]">Loading proof…</span>
+                    <span className="text-sm">Loading proof…</span>
                   </div>
                 )}
                 {state === "none" && (
-                  <p className="py-8 text-center text-[13px] text-text-secondary">
+                  <p className="py-8 text-center text-sm text-text-secondary">
                     No receipt was recorded for this message.
                   </p>
                 )}
                 {state === "error" && (
-                  <p className="py-8 text-center text-[13px] text-error">
+                  <p className="py-8 text-center text-sm text-error">
                     Couldn&apos;t load the receipt. Please try again.
                   </p>
                 )}
 
                 {data && (
                   <div className="space-y-5">
-                    <p className="text-[13px] leading-relaxed text-text-secondary">
+                    <p className="text-sm leading-relaxed text-text-secondary">
                       This is a unique fingerprint of your exact question and
                       answer. Change a single character and the fingerprint no
                       longer matches — so you can prove this is the original
@@ -339,7 +339,7 @@ export function ReceiptBadge({
                         {data.batch.tx_hash && (
                           <Hash k="Anchor tx" v={data.batch.tx_hash} />
                         )}
-                        <p className="pt-1 text-[11px] leading-relaxed text-text-tertiary">
+                        <p className="pt-1 text-2xs leading-relaxed text-text-tertiary">
                           Only the batch&apos;s Merkle root is stored on-chain —
                           individual receipts aren&apos;t, so you won&apos;t find
                           this receipt on the explorer directly. Instead, verify
@@ -350,7 +350,7 @@ export function ReceiptBadge({
                             href={data.explorerUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="press mt-1 inline-flex items-center gap-1.5 rounded-lg bg-accent/12 px-3 py-1.5 text-[12px] font-semibold text-accent transition hover:bg-accent/20"
+                            className="press mt-1 inline-flex items-center gap-1.5 rounded-lg bg-accent/12 px-3 py-1.5 text-xs font-semibold text-accent transition hover:bg-accent/20"
                           >
                             <ExternalLink className="h-3.5 w-3.5" />
                             View anchoring transaction
@@ -363,10 +363,10 @@ export function ReceiptBadge({
                       <div className="rounded-xl border border-border/60 bg-background/40 p-3.5">
                         <div className="flex items-center justify-between gap-3">
                           <div className="min-w-0">
-                            <p className="text-[13px] font-semibold text-foreground">
+                            <p className="text-sm font-semibold text-foreground">
                               Prove it hasn&apos;t been tampered with
                             </p>
-                            <p className="mt-0.5 text-[12px] leading-snug text-text-tertiary">
+                            <p className="mt-0.5 text-xs leading-snug text-text-tertiary">
                               Re-derives this answer&apos;s Merkle root and checks
                               it live against 0G.
                             </p>
@@ -374,7 +374,7 @@ export function ReceiptBadge({
                           <button
                             onClick={runVerify}
                             disabled={verifying}
-                            className="press shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-[12px] font-semibold text-primary-foreground shadow-sm transition hover:brightness-110 disabled:opacity-50"
+                            className="press shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm transition hover:brightness-110 disabled:opacity-50"
                           >
                             {verifying ? (
                               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -397,7 +397,7 @@ export function ReceiptBadge({
                               label="Root confirmed on the live 0G chain"
                               note={verify.onChain ? "isAnchored() = true" : "not found"}
                             />
-                            <p className="pt-1 text-[12px] leading-relaxed text-text-secondary">
+                            <p className="pt-1 text-xs leading-relaxed text-text-secondary">
                               {verify.rootMatches && verify.onChain
                                 ? "✓ Tamper-proof — altering a single character of this answer would change its hash, break the proof, and no longer match the root anchored on-chain."
                                 : "This receipt could not be fully verified."}
@@ -407,7 +407,7 @@ export function ReceiptBadge({
                                 href={verify.contractUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="press inline-flex items-center gap-1.5 text-[12px] font-semibold text-accent hover:underline"
+                                className="press inline-flex items-center gap-1.5 text-xs font-semibold text-accent hover:underline"
                               >
                                 <ExternalLink className="h-3.5 w-3.5" />
                                 View registry contract on 0G
@@ -416,13 +416,13 @@ export function ReceiptBadge({
                           </div>
                         )}
                         {verify && verify.status === "pending" && (
-                          <p className="mt-3 border-t border-border/60 pt-3 text-[12px] text-text-tertiary">
+                          <p className="mt-3 border-t border-border/60 pt-3 text-xs text-text-tertiary">
                             Not anchored on-chain yet — receipts are batched hourly.
                             Check back shortly.
                           </p>
                         )}
                         {verify && verify.status === "error" && (
-                          <p className="mt-3 border-t border-border/60 pt-3 text-[12px] text-error">
+                          <p className="mt-3 border-t border-border/60 pt-3 text-xs text-error">
                             Verification failed to run. Please try again.
                           </p>
                         )}
@@ -526,8 +526,8 @@ function TamperDemo({
   return (
     <div className="space-y-3 rounded-xl border border-border/60 bg-background/40 p-3.5">
       <div>
-        <p className="text-[13px] font-semibold text-foreground">See it yourself</p>
-        <p className="mt-0.5 text-[12px] leading-snug text-text-tertiary">
+        <p className="text-sm font-semibold text-foreground">See it yourself</p>
+        <p className="mt-0.5 text-xs leading-snug text-text-tertiary">
           Edit the answer below and watch its fingerprint change — that&apos;s why a
           single altered character breaks the proof.
         </p>
@@ -537,20 +537,20 @@ function TamperDemo({
         value={text}
         onChange={(e) => setText(e.target.value)}
         spellCheck={false}
-        className="h-28 w-full resize-none rounded-lg border border-border/70 bg-background px-3 py-2 font-mono text-[12px] leading-relaxed text-foreground outline-none focus:border-border-strong"
+        className="h-28 w-full resize-none rounded-lg border border-border/70 bg-background px-3 py-2 font-mono text-xs leading-relaxed text-foreground outline-none focus:border-border-strong"
       />
 
       <div className="flex items-center justify-between gap-3">
-        <span className="min-w-0 truncate font-mono text-[12px] text-text-tertiary">
+        <span className="min-w-0 truncate font-mono text-xs text-text-tertiary">
           {ready ? shortHash : "…"}
         </span>
         <span
           className={
             !ready
-              ? "inline-flex shrink-0 items-center gap-1.5 rounded-full bg-surface px-2.5 py-1 text-[11px] font-semibold text-text-tertiary"
+              ? "inline-flex shrink-0 items-center gap-1.5 rounded-full bg-surface px-2.5 py-1 text-2xs font-semibold text-text-tertiary"
               : matches
-              ? "inline-flex shrink-0 items-center gap-1.5 rounded-full bg-success/15 px-2.5 py-1 text-[11px] font-semibold text-success"
-              : "inline-flex shrink-0 items-center gap-1.5 rounded-full bg-error/15 px-2.5 py-1 text-[11px] font-semibold text-error"
+              ? "inline-flex shrink-0 items-center gap-1.5 rounded-full bg-success/15 px-2.5 py-1 text-2xs font-semibold text-success"
+              : "inline-flex shrink-0 items-center gap-1.5 rounded-full bg-error/15 px-2.5 py-1 text-2xs font-semibold text-error"
           }
         >
           {!ready ? (
@@ -573,7 +573,7 @@ function TamperDemo({
       <div className="flex items-center gap-2">
         <button
           onClick={tamperForMe}
-          className="press inline-flex items-center gap-1.5 rounded-lg border border-border/70 bg-elevated px-3 py-1.5 text-[12px] font-semibold text-foreground hover:border-border-strong"
+          className="press inline-flex items-center gap-1.5 rounded-lg border border-border/70 bg-elevated px-3 py-1.5 text-xs font-semibold text-foreground hover:border-border-strong"
         >
           <Wand2 className="h-3.5 w-3.5" />
           Tamper for me
@@ -581,7 +581,7 @@ function TamperDemo({
         <button
           onClick={() => setText(original)}
           disabled={!tampered}
-          className="press inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-semibold text-text-secondary hover:text-foreground disabled:opacity-40"
+          className="press inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-text-secondary hover:text-foreground disabled:opacity-40"
         >
           <RotateCcw className="h-3.5 w-3.5" />
           Restore
@@ -594,7 +594,7 @@ function TamperDemo({
 function Group({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <p className="mb-2 text-[12px] font-medium text-text-tertiary">
+      <p className="mb-2 text-xs font-medium text-text-tertiary">
         {label}
       </p>
       <div className="space-y-1.5">{children}</div>
@@ -604,7 +604,7 @@ function Group({ label, children }: { label: string; children: React.ReactNode }
 
 function KV({ k, v }: { k: string; v: string }) {
   return (
-    <div className="flex items-baseline justify-between gap-4 text-[13px]">
+    <div className="flex items-baseline justify-between gap-4 text-sm">
       <span className="text-text-tertiary">{k}</span>
       <span className="text-right font-medium text-foreground">{v}</span>
     </div>
@@ -613,7 +613,7 @@ function KV({ k, v }: { k: string; v: string }) {
 
 function StatusRow({ ok, label, note }: { ok?: boolean; label: string; note?: string }) {
   return (
-    <div className="flex items-center gap-2 text-[13px]">
+    <div className="flex items-center gap-2 text-sm">
       <span
         className={
           ok
@@ -633,7 +633,7 @@ function Hash({ k, v }: { k: string; v: string }) {
   const [copied, setCopied] = useState(false);
   const short = v.length > 18 ? `${v.slice(0, 10)}…${v.slice(-8)}` : v;
   return (
-    <div className="flex items-baseline justify-between gap-4 text-[13px]">
+    <div className="flex items-baseline justify-between gap-4 text-sm">
       <span className="shrink-0 text-text-tertiary">{k}</span>
       <button
         onClick={() => {
@@ -641,7 +641,7 @@ function Hash({ k, v }: { k: string; v: string }) {
           setCopied(true);
           setTimeout(() => setCopied(false), 1200);
         }}
-        className="press inline-flex items-center gap-1.5 font-mono text-[12px] text-foreground hover:text-accent"
+        className="press inline-flex items-center gap-1.5 font-mono text-xs text-foreground hover:text-accent"
         title="Copy"
       >
         {short}

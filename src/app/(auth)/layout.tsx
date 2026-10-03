@@ -22,7 +22,7 @@ export default function AuthLayout({
         {children}
       </main>
 
-      <footer className="relative z-10 flex items-center justify-center gap-4 px-5 pb-8 text-[11px] font-medium tracking-wide text-text-tertiary">
+      <footer className="relative z-10 flex items-center justify-center gap-4 px-5 pb-8 text-2xs font-medium tracking-wide text-text-tertiary">
         <Link href="/" className="hover:text-foreground transition-colors duration-fast">
           home
         </Link>

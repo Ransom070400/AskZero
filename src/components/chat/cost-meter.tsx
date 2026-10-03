@@ -50,7 +50,7 @@ export function CostMeter({
   if (!hasDraft && creditsToday == null) return null;
 
   return (
-    <span className="inline-flex min-w-0 items-center gap-1.5 text-[11px] text-text-tertiary">
+    <span className="inline-flex min-w-0 items-center gap-1.5 text-2xs text-text-tertiary">
       {hasDraft && (
         <span
           className="whitespace-nowrap"

@@ -140,7 +140,7 @@ function ChatRow({
             }
           }}
           onBlur={commit}
-          className="w-full border-b border-accent bg-transparent text-[13px] text-foreground outline-none"
+          className="w-full border-b border-accent bg-transparent text-sm text-foreground outline-none"
         />
       </div>
     );
@@ -149,7 +149,7 @@ function ChatRow({
   return (
     <div
       className={cn(
-        "group/row relative flex items-center justify-between rounded-xl pl-3 pr-1.5 py-1.5 text-[13px] transition-colors duration-fast ease-out",
+        "group/row relative flex items-center justify-between rounded-xl pl-3 pr-1.5 py-1.5 text-sm transition-colors duration-fast ease-out",
         isActive
           ? "bg-accent-muted text-foreground"
           : "text-text-secondary hover:bg-elevated hover:text-foreground"
@@ -173,20 +173,20 @@ function ChatRow({
         <span className="flex shrink-0 items-center gap-1 pl-1">
           <button
             onClick={onDelete}
-            className="press rounded-md px-1.5 py-0.5 text-[11px] font-semibold text-error hover:bg-error/10"
+            className="press rounded-md px-1.5 py-0.5 text-2xs font-semibold text-error hover:bg-error/10"
           >
             Delete
           </button>
           <button
             onClick={() => setConfirmDelete(false)}
-            className="press rounded-md px-1.5 py-0.5 text-[11px] font-medium text-text-tertiary hover:bg-background"
+            className="press rounded-md px-1.5 py-0.5 text-2xs font-medium text-text-tertiary hover:bg-background"
           >
             Cancel
           </button>
         </span>
       ) : (
         <span className="flex shrink-0 items-center pl-1">
-          <span className="pr-0.5 text-[11px] tabular-nums text-text-tertiary/70 group-hover/row:hidden">
+          <span className="pr-0.5 text-2xs tabular-nums text-text-tertiary/70 group-hover/row:hidden">
             {relativeTime(chat.updated_at)}
           </span>
           <DropdownMenu>
@@ -252,7 +252,7 @@ function FooterLink({
       <span className={cn(active ? "text-accent" : "text-text-tertiary")}>{icon}</span>
       <span className="flex-1">{label}</span>
       {soon && (
-        <span className="rounded-full border border-border/70 px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide text-text-tertiary">
+        <span className="rounded-full border border-border/70 px-1.5 py-px text-2xs font-semibold uppercase tracking-wide text-text-tertiary">
           Soon
         </span>
       )}
@@ -263,7 +263,7 @@ function FooterLink({
     return (
       <div
         title="Coming soon"
-        className="relative flex cursor-default items-center gap-2.5 rounded-xl pl-3 pr-3 py-2 text-[13px] font-medium text-text-tertiary/80"
+        className="relative flex cursor-default items-center gap-2.5 rounded-xl pl-3 pr-3 py-2 text-sm font-medium text-text-tertiary/80"
       >
         {inner}
       </div>
@@ -274,7 +274,7 @@ function FooterLink({
     <Link
       href={href!}
       className={cn(
-        "relative flex items-center gap-2.5 rounded-xl pl-3 pr-3 py-2 text-[13px] font-medium transition-colors duration-fast ease-out",
+        "relative flex items-center gap-2.5 rounded-xl pl-3 pr-3 py-2 text-sm font-medium transition-colors duration-fast ease-out",
         active
           ? "bg-accent-muted text-foreground"
           : "text-text-secondary hover:bg-elevated hover:text-foreground"
@@ -320,7 +320,7 @@ function MessageHits({
 }) {
   if (loading && hits.length === 0) {
     return (
-      <p className="px-3 py-2 text-[12px] font-medium text-text-tertiary">
+      <p className="px-3 py-2 text-xs font-medium text-text-tertiary">
         Searching…
       </p>
     );
@@ -328,7 +328,7 @@ function MessageHits({
   if (hits.length === 0) return null;
   return (
     <div className="border-b border-border/70 pb-3 mb-2">
-      <p className="px-3 pt-2 pb-1 text-[12px] font-medium text-text-tertiary">
+      <p className="px-3 pt-2 pb-1 text-xs font-medium text-text-tertiary">
         Messages · {hits.length}
       </p>
       <div className="space-y-px">
@@ -337,16 +337,16 @@ function MessageHits({
             key={h.message_id}
             href={`/chat/${h.chat_id}#msg-${h.message_id}`}
             className={cn(
-              "block rounded-xl px-3 py-1.5 text-[12px] transition-colors duration-fast ease-out hover:bg-elevated",
+              "block rounded-xl px-3 py-1.5 text-xs transition-colors duration-fast ease-out hover:bg-elevated",
               chatId === `/chat/${h.chat_id}`
                 ? "bg-accent-muted/60"
                 : ""
             )}
           >
-            <div className="truncate text-[12px] font-semibold text-foreground">
+            <div className="truncate text-xs font-semibold text-foreground">
               {h.chat_title || "Untitled chat"}
             </div>
-            <div className="line-clamp-2 text-[11.5px] leading-snug">
+            <div className="line-clamp-2 text-2xs leading-snug">
               <HighlightedSnippet html={h.snippet} />
             </div>
           </Link>
@@ -648,7 +648,7 @@ export function ContentSidebar() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search"
-            className="h-9 w-full rounded-xl bg-elevated/70 pl-8 pr-8 text-[13px] font-medium text-foreground placeholder:font-normal placeholder:text-text-tertiary outline-none border border-transparent transition-[border-color,background-color,box-shadow] duration-fast ease-out hover:bg-elevated focus:bg-background focus:border-accent/50 focus:shadow-ring"
+            className="h-9 w-full rounded-xl bg-elevated/70 pl-8 pr-8 text-sm font-medium text-foreground placeholder:font-normal placeholder:text-text-tertiary outline-none border border-transparent transition-[border-color,background-color,box-shadow] duration-fast ease-out hover:bg-elevated focus:bg-background focus:border-accent/50 focus:shadow-ring"
           />
           {query && (
             <button
@@ -668,7 +668,7 @@ export function ContentSidebar() {
         <button
           onClick={() => router.push("/chat")}
           className={cn(
-            "press group flex w-full items-center justify-between rounded-xl border bg-elevated px-3 py-2 text-[13px] font-semibold text-foreground shadow-sm transition-[border-color,background-color] duration-fast ease-out hover:border-border-strong",
+            "press group flex w-full items-center justify-between rounded-xl border bg-elevated px-3 py-2 text-sm font-semibold text-foreground shadow-sm transition-[border-color,background-color] duration-fast ease-out hover:border-border-strong",
             pathname === "/chat"
               ? "border-accent/50 bg-accent-muted/40"
               : "border-border/70"
@@ -685,7 +685,7 @@ export function ContentSidebar() {
             />
             New chat
           </span>
-          <kbd className="text-[10px] font-medium tracking-wider text-text-tertiary">
+          <kbd className="text-2xs font-medium tracking-wider text-text-tertiary">
             {isMac ? "⇧⌘O" : "Ctrl⇧O"}
           </kbd>
         </button>
@@ -712,7 +712,7 @@ export function ContentSidebar() {
         <div className="space-y-5 py-1">
           {pinnedChats.length > 0 && (
             <div>
-              <div className="flex w-full items-center gap-1 px-3 py-1 text-[12px] font-medium text-text-tertiary">
+              <div className="flex w-full items-center gap-1 px-3 py-1 text-xs font-medium text-text-tertiary">
                 <Pin className="h-3 w-3" />
                 <span>Pinned</span>
                 <span className="ml-auto font-medium text-text-tertiary/70">
@@ -739,7 +739,7 @@ export function ContentSidebar() {
               <div key={label}>
                 <button
                   onClick={() => toggleGroup(label)}
-                  className="flex w-full items-center gap-1 px-3 py-1 text-[12px] font-medium text-text-tertiary hover:text-text-secondary transition-colors duration-fast"
+                  className="flex w-full items-center gap-1 px-3 py-1 text-xs font-medium text-text-tertiary hover:text-text-secondary transition-colors duration-fast"
                 >
                   <ChevronDown
                     className={cn(
@@ -771,7 +771,7 @@ export function ContentSidebar() {
           })}
           {filtered.length === 0 &&
             (query ? (
-              <p className="px-3 py-8 text-center text-[12px] text-text-tertiary">
+              <p className="px-3 py-8 text-center text-xs text-text-tertiary">
                 No matches
               </p>
             ) : (
@@ -779,15 +779,15 @@ export function ContentSidebar() {
                 <div className="mb-1 flex h-10 w-10 items-center justify-center rounded-full bg-elevated">
                   <MessageSquare className="h-5 w-5 text-text-tertiary" />
                 </div>
-                <p className="text-[13px] font-medium text-foreground">
+                <p className="text-sm font-medium text-foreground">
                   No chats yet
                 </p>
-                <p className="text-[12px] text-text-tertiary">
+                <p className="text-xs text-text-tertiary">
                   Your conversations will show up here.
                 </p>
                 <button
                   onClick={() => router.push("/chat")}
-                  className="press mt-2 inline-flex items-center gap-1.5 rounded-full bg-accent px-3 py-1.5 text-[12px] font-semibold text-white transition-colors duration-fast hover:bg-accent-hover"
+                  className="press mt-2 inline-flex items-center gap-1.5 rounded-full bg-accent px-3 py-1.5 text-xs font-semibold text-white transition-colors duration-fast hover:bg-accent-hover"
                 >
                   <Plus className="h-3.5 w-3.5" />
                   Start a chat

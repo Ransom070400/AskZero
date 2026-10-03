@@ -168,7 +168,7 @@ export function TopNav() {
             <>
               <div
                 title={`${streak}-day streak — claim your daily reward to keep it going`}
-                className="flex items-center gap-1 py-1 pl-2.5 pr-2 text-[13px] font-semibold text-foreground"
+                className="flex items-center gap-1 py-1 pl-2.5 pr-2 text-sm font-semibold text-foreground"
               >
                 <Flame className="h-3.5 w-3.5 text-accent" />
                 <span className="tabular-nums">{streak}</span>
@@ -179,7 +179,7 @@ export function TopNav() {
           <button
             onClick={() => router.push("/deposit")}
             aria-label="Add credits"
-            className="press group flex items-center gap-1.5 py-1 pl-2.5 pr-3 text-[13px] font-semibold text-foreground transition-colors duration-fast ease-out hover:bg-elevated"
+            className="press group flex items-center gap-1.5 py-1 pl-2.5 pr-3 text-sm font-semibold text-foreground transition-colors duration-fast ease-out hover:bg-elevated"
           >
             <Plus className="h-3 w-3 text-text-tertiary group-hover:text-accent transition-colors duration-fast" />
             <span className="tabular-nums">
@@ -206,7 +206,7 @@ export function TopNav() {
                     onError={() => setAvatarError(true)}
                   />
                 ) : (
-                  <AvatarFallback className="bg-elevated text-text-secondary text-[11px] font-semibold">
+                  <AvatarFallback className="bg-elevated text-text-secondary text-2xs font-semibold">
                     {initials}
                   </AvatarFallback>
                 )}
@@ -215,10 +215,10 @@ export function TopNav() {
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-56" align="end">
             <div className="px-3 py-2">
-              <p className="text-[13px] font-medium truncate text-foreground">
+              <p className="text-sm font-medium truncate text-foreground">
                 {user?.email ?? "User"}
               </p>
-              <p className="text-[11px] text-text-tertiary mt-0.5">
+              <p className="text-2xs text-text-tertiary mt-0.5">
                 Signed in
               </p>
             </div>

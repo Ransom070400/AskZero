@@ -54,10 +54,10 @@ export function ShortcutsHelp() {
       />
       <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-border bg-elevated shadow-2xl">
         <div className="flex items-center justify-between border-b border-border/70 px-5 py-3.5">
-          <h2 className="text-[14px] font-semibold text-foreground">
+          <h2 className="text-md font-semibold text-foreground">
             Keyboard shortcuts
           </h2>
-          <kbd className="rounded border border-border/70 px-1.5 py-0.5 text-[10px] text-text-tertiary">
+          <kbd className="rounded border border-border/70 px-1.5 py-0.5 text-2xs text-text-tertiary">
             esc
           </kbd>
         </div>
@@ -67,12 +67,12 @@ export function ShortcutsHelp() {
               key={s.label}
               className="flex items-center justify-between gap-4 py-2.5"
             >
-              <span className="text-[13px] text-text-secondary">{s.label}</span>
+              <span className="text-sm text-text-secondary">{s.label}</span>
               <span className="flex shrink-0 items-center gap-1">
                 {s.keys.map((k) => (
                   <kbd
                     key={k}
-                    className="min-w-[22px] rounded-md border border-border/70 bg-surface px-1.5 py-0.5 text-center text-[11px] font-medium text-foreground"
+                    className="min-w-[22px] rounded-md border border-border/70 bg-surface px-1.5 py-0.5 text-center text-2xs font-medium text-foreground"
                   >
                     {k}
                   </kbd>

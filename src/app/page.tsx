@@ -36,7 +36,7 @@ export default function LandingPage() {
         <Logo size={22} animated className="text-white" />
         <Link
           href="/login"
-          className="rounded-full px-3 py-1.5 text-[13px] font-semibold text-white/55 transition-colors duration-fast ease-out hover:text-white"
+          className="rounded-full px-3 py-1.5 text-sm font-semibold text-white/55 transition-colors duration-fast ease-out hover:text-white"
         >
           sign in
         </Link>
@@ -47,7 +47,7 @@ export default function LandingPage() {
         <div className="w-full max-w-3xl space-y-8 md:space-y-10">
           <motion.p
             {...fade(0)}
-            className="text-[12px] font-medium text-white/40"
+            className="text-xs font-medium text-white/40"
           >
             verifiable AI on 0G
           </motion.p>
@@ -64,7 +64,7 @@ export default function LandingPage() {
 
           <motion.p
             {...fade(2)}
-            className="mx-auto max-w-md text-[15px] leading-relaxed text-white/55 md:text-[17px]"
+            className="mx-auto max-w-md text-base leading-relaxed text-white/55 md:text-[17px]"
           >
             each response gets a tamper-evident receipt anchored on 0G. pay only
             when you use it.
@@ -76,7 +76,7 @@ export default function LandingPage() {
           >
             <Link
               href="/signup"
-              className="press group inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-[14px] font-semibold text-black transition-[background-color,transform] duration-fast ease-out hover:bg-white/90"
+              className="press group inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-md font-semibold text-black transition-[background-color,transform] duration-fast ease-out hover:bg-white/90"
             >
               get started
               <ArrowRight className="h-4 w-4 transition-transform duration-fast group-hover:translate-x-0.5" />
@@ -86,7 +86,7 @@ export default function LandingPage() {
           <motion.a
             {...fade(4)}
             href="#savings"
-            className="inline-flex items-center gap-1 text-[12px] font-medium text-white/35 transition-colors duration-fast hover:text-white/70"
+            className="inline-flex items-center gap-1 text-xs font-medium text-white/35 transition-colors duration-fast hover:text-white/70"
           >
             see how much you&apos;d save ↓
           </motion.a>
@@ -102,7 +102,7 @@ export default function LandingPage() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1.4, duration: 0.6 }}
-        className="relative z-10 flex items-center justify-center gap-2 px-6 py-8 text-[11px] font-medium tracking-[0.18em] text-white/30"
+        className="relative z-10 flex items-center justify-center gap-2 px-6 py-8 text-2xs font-medium tracking-[0.18em] text-white/30"
       >
         <span>askzero</span>
         <span className="h-1 w-1 rounded-full bg-white/15" />

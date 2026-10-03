@@ -82,7 +82,7 @@ function ThinkingBlock({
   if (active) {
     return (
       <div className="mb-3" role="status" aria-live="polite">
-        <div className="flex items-center gap-2 text-[13px]">
+        <div className="flex items-center gap-2 text-sm">
           <Brain className="h-3.5 w-3.5 text-accent" />
           <span className="shimmer-text font-medium">Thinking</span>
           {secs != null && (
@@ -91,7 +91,7 @@ function ThinkingBlock({
         </div>
         <div
           ref={bodyRef}
-          className="mt-1.5 max-h-28 overflow-hidden whitespace-pre-wrap border-l-2 border-border pl-3 text-[13px] leading-relaxed text-text-tertiary [mask-image:linear-gradient(to_bottom,transparent,black_40%)]"
+          className="mt-1.5 max-h-28 overflow-hidden whitespace-pre-wrap border-l-2 border-border pl-3 text-sm leading-relaxed text-text-tertiary [mask-image:linear-gradient(to_bottom,transparent,black_40%)]"
         >
           {text}
         </div>
@@ -105,7 +105,7 @@ function ThinkingBlock({
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
-        className="press -ml-2 inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-[13px] text-text-tertiary transition-colors duration-fast hover:bg-surface hover:text-foreground"
+        className="press -ml-2 inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-sm text-text-tertiary transition-colors duration-fast hover:bg-surface hover:text-foreground"
       >
         <Brain className="h-3.5 w-3.5" />
         {secs != null ? `Thought for ${secs}s` : "Thoughts"}
@@ -117,7 +117,7 @@ function ThinkingBlock({
         />
       </button>
       {open && (
-        <div className="mt-1.5 max-h-80 overflow-y-auto whitespace-pre-wrap border-l-2 border-border pl-3 text-[13px] leading-relaxed text-text-tertiary animate-in fade-in-0">
+        <div className="mt-1.5 max-h-80 overflow-y-auto whitespace-pre-wrap border-l-2 border-border pl-3 text-sm leading-relaxed text-text-tertiary animate-in fade-in-0">
           {text}
         </div>
       )}
@@ -144,14 +144,14 @@ function StepsTrace({ steps, active }: { steps: AgentStep[]; active: boolean }) 
       {steps.map((s, i) => {
         if (s.type === "thinking") {
           return (
-            <p key={i} className="text-[13px] italic leading-snug text-text-tertiary">
+            <p key={i} className="text-sm italic leading-snug text-text-tertiary">
               {s.text}
             </p>
           );
         }
         if (s.type === "tool") {
           return (
-            <div key={i} className="flex items-center gap-1.5 text-[13px] text-text-secondary">
+            <div key={i} className="flex items-center gap-1.5 text-sm text-text-secondary">
               <ToolIcon tool={s.tool} />
               <span>
                 {toolLabel(s.tool)}
@@ -235,7 +235,7 @@ function ActionButton({
     <button
       onClick={onClick}
       aria-label={label}
-      className="press inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
+      className="press inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
     >
       {children}
     </button>
@@ -268,7 +268,7 @@ function ShareBtn({ text }: { text: string }) {
     <button
       onClick={share}
       aria-label="Share"
-      className="press inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
+      className="press inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
     >
       {copied ? <Check className="h-3.5 w-3.5 text-success" /> : <Share2 className="h-3.5 w-3.5" />}
       {copied ? "Copied" : "Share"}
@@ -300,7 +300,7 @@ function RegenerateMenu({
       <DropdownMenuTrigger asChild>
         <button
           aria-label="Regenerate"
-          className="press inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
+          className="press inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
         >
           <RotateCw className="h-3.5 w-3.5" />
           Retry
@@ -341,7 +341,7 @@ function RewriteMenu({ onTransform }: { onTransform: (instruction: string) => vo
       <DropdownMenuTrigger asChild>
         <button
           aria-label="Rewrite this answer"
-          className="press inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
+          className="press inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
         >
           <Wand2 className="h-3.5 w-3.5" />
           Rewrite
@@ -381,8 +381,8 @@ function CopyBtn({
       aria-label={copied ? "Copied" : "Copy"}
       className={
         small
-          ? "press inline-flex h-6 items-center gap-1 rounded-md px-1.5 text-[11px] font-medium text-text-tertiary hover:bg-background/60 hover:text-foreground transition-colors duration-fast ease-out"
-          : "press inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
+          ? "press inline-flex h-6 items-center gap-1 rounded-md px-1.5 text-2xs font-medium text-text-tertiary hover:bg-background/60 hover:text-foreground transition-colors duration-fast ease-out"
+          : "press inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
       }
     >
       {copied ? (
@@ -432,7 +432,7 @@ function TableBlock({
             setCopied(true);
             setTimeout(() => setCopied(false), 1200);
           }}
-          className="press inline-flex h-6 items-center gap-1 rounded-md px-1.5 text-[11px] font-medium text-text-tertiary transition-colors duration-fast hover:bg-surface hover:text-foreground"
+          className="press inline-flex h-6 items-center gap-1 rounded-md px-1.5 text-2xs font-medium text-text-tertiary transition-colors duration-fast hover:bg-surface hover:text-foreground"
         >
           {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
           {copied ? "Copied" : "Copy table"}
@@ -474,7 +474,7 @@ function AnswerCopy({
         type="button"
         onClick={() => run("rich")}
         aria-label={copied ? "Copied" : "Copy answer"}
-        className="press inline-flex h-7 items-center gap-1.5 rounded-l-full py-0 pl-2.5 pr-1.5 text-[12px] font-medium text-text-tertiary transition-colors duration-fast ease-out hover:bg-surface hover:text-foreground"
+        className="press inline-flex h-7 items-center gap-1.5 rounded-l-full py-0 pl-2.5 pr-1.5 text-xs font-medium text-text-tertiary transition-colors duration-fast ease-out hover:bg-surface hover:text-foreground"
       >
         {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
         {copied ? "Copied" : "Copy"}
@@ -494,10 +494,10 @@ function AnswerCopy({
             onClick={() => run("plain")}
             className="flex flex-col items-start gap-0.5 py-2"
           >
-            <span className="text-[13px] font-medium text-foreground">
+            <span className="text-sm font-medium text-foreground">
               Copy as plain text
             </span>
-            <span className="text-[11px] text-text-tertiary">
+            <span className="text-2xs text-text-tertiary">
               For WhatsApp, SMS, plain editors
             </span>
           </DropdownMenuItem>
@@ -505,10 +505,10 @@ function AnswerCopy({
             onClick={() => run("markdown")}
             className="flex flex-col items-start gap-0.5 py-2"
           >
-            <span className="text-[13px] font-medium text-foreground">
+            <span className="text-sm font-medium text-foreground">
               Copy as Markdown
             </span>
-            <span className="text-[11px] text-text-tertiary">
+            <span className="text-2xs text-text-tertiary">
               For GitHub, Notion, docs-as-code
             </span>
           </DropdownMenuItem>
@@ -564,7 +564,7 @@ function PreBlock({ children }: { children?: React.ReactNode }) {
         data-copy-skip
         className="flex items-center justify-between gap-2 border-b border-border/70 bg-elevated/40 px-3 py-1"
       >
-        <span className="min-w-0 truncate text-[11px] font-medium text-text-tertiary">
+        <span className="min-w-0 truncate text-2xs font-medium text-text-tertiary">
           {filename ? (
             <span className="font-mono">{filename}</span>
           ) : (
@@ -592,7 +592,7 @@ function PreBlock({ children }: { children?: React.ReactNode }) {
             <button
               onClick={handleOpen}
               aria-label="Open in artifact panel"
-              className="press inline-flex h-6 items-center gap-1 rounded-md px-1.5 text-[11px] font-medium text-text-tertiary hover:bg-background/60 hover:text-foreground transition-colors duration-fast"
+              className="press inline-flex h-6 items-center gap-1 rounded-md px-1.5 text-2xs font-medium text-text-tertiary hover:bg-background/60 hover:text-foreground transition-colors duration-fast"
             >
               <ExternalLink className="h-3 w-3" />
               Open
@@ -606,13 +606,13 @@ function PreBlock({ children }: { children?: React.ReactNode }) {
           <pre
             aria-hidden
             data-copy-skip
-            className="select-none border-r border-border/60 py-4 pl-4 pr-3 text-right text-[13px] leading-relaxed text-text-tertiary/50 tabular-nums"
+            className="select-none border-r border-border/60 py-4 pl-4 pr-3 text-right text-sm leading-relaxed text-text-tertiary/50 tabular-nums"
           >
             {Array.from({ length: lineCount }, (_, i) => i + 1).join("\n")}
           </pre>
         )}
         <pre
-          className={`p-4 text-[13px] leading-relaxed ${
+          className={`p-4 text-sm leading-relaxed ${
             wrap ? "whitespace-pre-wrap break-words" : "overflow-x-auto"
           } ${showGutter ? "flex-1" : ""}`}
         >
@@ -769,12 +769,12 @@ export function MessageBubble({
               }}
               autoFocus
               rows={Math.min(8, Math.max(1, editValue.split("\n").length))}
-              className="w-full resize-none bg-transparent text-[15px] leading-relaxed text-foreground caret-accent outline-none"
+              className="w-full resize-none bg-transparent text-base leading-relaxed text-foreground caret-accent outline-none"
             />
             <div className="mt-2 flex justify-end gap-1">
               <button
                 onClick={() => setEditing(false)}
-                className="press inline-flex h-7 items-center gap-1 rounded-full px-2.5 text-[12px] font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast"
+                className="press inline-flex h-7 items-center gap-1 rounded-full px-2.5 text-xs font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast"
               >
                 <X className="h-3.5 w-3.5" />
                 Cancel
@@ -782,7 +782,7 @@ export function MessageBubble({
               <button
                 onClick={submitEdit}
                 disabled={!editValue.trim()}
-                className="press inline-flex h-7 items-center gap-1 rounded-full bg-accent px-3 text-[12px] font-semibold text-white shadow-sm hover:bg-accent-hover disabled:opacity-50"
+                className="press inline-flex h-7 items-center gap-1 rounded-full bg-accent px-3 text-xs font-semibold text-white shadow-sm hover:bg-accent-hover disabled:opacity-50"
               >
                 Save & resend
               </button>
@@ -796,7 +796,7 @@ export function MessageBubble({
       <div id={`msg-${message.id}`} className="group/user flex flex-col items-end scroll-mt-20">
         {showPrev && prevMessages && prevMessages.length > 0 && (
           <div className="mb-2 w-full max-w-[85%] md:max-w-[72%] space-y-2 rounded-2xl border border-dashed border-border/70 bg-surface/60 p-3">
-            <div className="flex items-center justify-between text-[12px] font-medium text-text-tertiary">
+            <div className="flex items-center justify-between text-xs font-medium text-text-tertiary">
               <span className="flex items-center gap-1.5">
                 <History className="h-3 w-3" /> Previous version
               </span>
@@ -813,12 +813,12 @@ export function MessageBubble({
                 key={pm.id}
                 className={
                   pm.role === "user"
-                    ? "rounded-xl bg-elevated/60 px-3 py-2 text-[13px] leading-relaxed text-text-secondary whitespace-pre-wrap"
-                    : "rounded-xl px-3 py-2 text-[13px] leading-relaxed text-text-secondary whitespace-pre-wrap"
+                    ? "rounded-xl bg-elevated/60 px-3 py-2 text-sm leading-relaxed text-text-secondary whitespace-pre-wrap"
+                    : "rounded-xl px-3 py-2 text-sm leading-relaxed text-text-secondary whitespace-pre-wrap"
                 }
               >
                 {pm.role !== "user" && (
-                  <span className="mb-1 block text-[12px] font-medium text-text-tertiary">
+                  <span className="mb-1 block text-xs font-medium text-text-tertiary">
                     Assistant
                   </span>
                 )}
@@ -829,7 +829,7 @@ export function MessageBubble({
         )}
         <div className="relative max-w-[85%] md:max-w-[72%] rounded-3xl rounded-br-lg bg-elevated border border-border/70 px-5 py-3 shadow-sm">
           {message.content && (
-            <p className="text-[15px] leading-relaxed whitespace-pre-wrap text-foreground">
+            <p className="text-base leading-relaxed whitespace-pre-wrap text-foreground">
               {message.content}
             </p>
           )}
@@ -855,7 +855,7 @@ export function MessageBubble({
                   href={att.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-[13px] text-accent hover:text-accent-hover transition-colors duration-fast"
+                  className="flex items-center gap-2 text-sm text-accent hover:text-accent-hover transition-colors duration-fast"
                 >
                   <FileText className="h-3.5 w-3.5" />
                   <span className="font-medium">{att.name}</span>
@@ -876,7 +876,7 @@ export function MessageBubble({
                   setEditing(true);
                 }}
                 aria-label="Edit message"
-                className="press inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
+                className="press inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
               >
                 <Pencil className="h-3.5 w-3.5" />
                 Edit
@@ -887,7 +887,7 @@ export function MessageBubble({
                 onClick={fetchPrev}
                 disabled={loadingPrev}
                 aria-label={showPrev ? "Hide previous version" : "View previous version"}
-                className="press inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out disabled:opacity-50"
+                className="press inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out disabled:opacity-50"
               >
                 <History className="h-3.5 w-3.5" />
                 {loadingPrev ? "Loading…" : showPrev ? "Hide previous" : "Previous version"}
@@ -974,7 +974,7 @@ export function MessageBubble({
             top: Math.max(8, quote.y - 44),
             transform: "translateX(-50%)",
           }}
-          className="press z-floating inline-flex items-center gap-1.5 rounded-full bg-foreground px-3 py-1.5 text-[12px] font-semibold text-background shadow-lg animate-in fade-in-0 zoom-in-95"
+          className="press z-floating inline-flex items-center gap-1.5 rounded-full bg-foreground px-3 py-1.5 text-xs font-semibold text-background shadow-lg animate-in fade-in-0 zoom-in-95"
         >
           <Quote className="h-3.5 w-3.5" />
           Ask about this
@@ -1036,10 +1036,10 @@ export function MessageBubble({
                 )}
               </span>
               <span className="flex min-w-0 flex-1 flex-col">
-                <span className="truncate text-[13px] font-semibold text-foreground">
+                <span className="truncate text-sm font-semibold text-foreground">
                   {art.title || "Artifact"}
                 </span>
-                <span className="mt-0.5 inline-flex items-center gap-1 text-[12px] font-medium text-text-tertiary">
+                <span className="mt-0.5 inline-flex items-center gap-1 text-xs font-medium text-text-tertiary">
                   {art.type}
                   <span className="h-1 w-1 rounded-full bg-border-strong" />
                   Open workspace
@@ -1086,7 +1086,7 @@ export function MessageBubble({
         )}
         {(message.tokenCount != null || (message.answeredBy && modelName)) && (
           <span
-            className="ml-1 truncate text-[11px] font-medium text-text-tertiary tabular-nums"
+            className="ml-1 truncate text-2xs font-medium text-text-tertiary tabular-nums"
             title={
               message.tokenCount != null && message.costCredits != null
                 ? `${message.tokenCount} tokens · ${message.costCredits} credits`

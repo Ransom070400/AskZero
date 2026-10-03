@@ -130,7 +130,7 @@ export default function SettingsPage() {
         <h1 className="font-display text-3xl md:text-4xl font-bold tracking-[-0.025em]">
           Settings
         </h1>
-        <p className="text-[15px] text-text-secondary">
+        <p className="text-base text-text-secondary">
           Manage your profile, appearance, and account.
         </p>
       </div>
@@ -155,7 +155,7 @@ export default function SettingsPage() {
           <p className="truncate text-[16px] font-semibold text-foreground">
             {profile?.display_name || user?.email?.split("@")[0] || "—"}
           </p>
-          <p className="truncate text-[13px] text-text-secondary">
+          <p className="truncate text-sm text-text-secondary">
             {user?.email || "—"}
           </p>
         </div>
@@ -183,14 +183,14 @@ export default function SettingsPage() {
           </div>
         </Row>
         <Row title="Email" subtitle="Used for sign in">
-          <p className="text-[13px] text-text-secondary truncate">
+          <p className="text-sm text-text-secondary truncate">
             {user?.email || "—"}
           </p>
         </Row>
         <Row title="Account ID" subtitle="Your unique identifier">
           <button
             onClick={copyId}
-            className="press flex items-center gap-1.5 rounded-lg px-2 py-1 text-[12px] font-medium text-text-secondary hover:bg-surface hover:text-foreground transition-colors duration-fast"
+            className="press flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-text-secondary hover:bg-surface hover:text-foreground transition-colors duration-fast"
           >
             <span className="font-mono">{user?.id?.slice(0, 8)}…</span>
             {copiedId ? (
@@ -201,7 +201,7 @@ export default function SettingsPage() {
           </button>
         </Row>
         <Row title="Balance" subtitle="Available credits">
-          <p className="text-[13px] font-semibold text-foreground tabular-nums">
+          <p className="text-sm font-semibold text-foreground tabular-nums">
             {profile
               ? `${formatBalance(profile.credits_balance)} · ${profile.credits_balance.toLocaleString()}c`
               : "—"}
@@ -257,7 +257,7 @@ export default function SettingsPage() {
           <Row title="APAC currency" subtitle="Test mode">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="press group flex items-center gap-2 rounded-lg border border-border/70 bg-elevated px-3 py-1.5 text-[13px] font-medium text-foreground transition-[border-color,background-color] duration-fast ease-out hover:border-border-strong">
+                <button className="press group flex items-center gap-2 rounded-lg border border-border/70 bg-elevated px-3 py-1.5 text-sm font-medium text-foreground transition-[border-color,background-color] duration-fast ease-out hover:border-border-strong">
                   <span className="text-text-tertiary">
                     {APAC_CURRENCIES[displayCurrency].symbol}
                   </span>
@@ -289,7 +289,7 @@ export default function SettingsPage() {
           title="API keys"
           subtitle="Programmatic access to AskZero"
         >
-          <span className="rounded-full bg-surface px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
+          <span className="rounded-full bg-surface px-2.5 py-1 text-2xs font-semibold uppercase tracking-wider text-text-tertiary">
             Soon
           </span>
         </Row>
@@ -309,7 +309,7 @@ export default function SettingsPage() {
         >
           <Link
             href="/security"
-            className="press inline-flex items-center gap-1.5 rounded-lg border border-border/70 bg-elevated px-3 py-1.5 text-[13px] font-medium text-foreground transition-[border-color,background-color] duration-fast ease-out hover:border-border-strong"
+            className="press inline-flex items-center gap-1.5 rounded-lg border border-border/70 bg-elevated px-3 py-1.5 text-sm font-medium text-foreground transition-[border-color,background-color] duration-fast ease-out hover:border-border-strong"
           >
             View
             <ArrowUpRight className="h-3.5 w-3.5 text-text-tertiary" />
@@ -329,16 +329,16 @@ export default function SettingsPage() {
 
       {/* Danger zone — separate, never grouped with normal settings */}
       <section className="space-y-2.5">
-        <h2 className="px-1 text-[13px] font-medium text-error/80">
+        <h2 className="px-1 text-sm font-medium text-error/80">
           Danger zone
         </h2>
         <div className="overflow-hidden rounded-2xl border border-error/30 bg-error/5">
           <div className="flex items-center justify-between gap-4 p-5">
             <div className="min-w-0">
-              <p className="text-[14px] font-semibold text-foreground">
+              <p className="text-md font-semibold text-foreground">
                 Delete account
               </p>
-              <p className="text-[12px] text-text-secondary leading-relaxed">
+              <p className="text-xs text-text-secondary leading-relaxed">
                 Permanently delete your account, all chats, and transactions.
                 This cannot be undone.
               </p>
@@ -357,13 +357,13 @@ export default function SettingsPage() {
             <div className="border-t border-error/30 bg-error/5 p-5 space-y-3">
               <div className="flex items-start gap-2">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-error" />
-                <p className="text-[13px] font-medium leading-relaxed text-error">
+                <p className="text-sm font-medium leading-relaxed text-error">
                   This action is irreversible. All your chats, messages,
                   transactions, and uploaded files will be permanently deleted.
                 </p>
               </div>
               <div className="space-y-1.5">
-                <label className="text-[12px] font-medium text-text-tertiary">
+                <label className="text-xs font-medium text-text-tertiary">
                   Type <span className="font-mono">DELETE</span> to confirm
                 </label>
                 <Input
@@ -374,7 +374,7 @@ export default function SettingsPage() {
                 />
               </div>
               {deleteError && (
-                <p role="alert" className="text-[13px] font-medium text-error">
+                <p role="alert" className="text-sm font-medium text-error">
                   {deleteError}
                 </p>
               )}
@@ -426,7 +426,7 @@ function PremiumCard() {
 
   return (
     <section className="space-y-2.5">
-      <h2 className="px-1 text-[13px] font-medium text-text-tertiary">
+      <h2 className="px-1 text-sm font-medium text-text-tertiary">
         Plan
       </h2>
       <div className="overflow-hidden rounded-2xl border border-accent/30 bg-gradient-to-b from-accent-muted/40 to-elevated/40 p-5 space-y-4">
@@ -436,15 +436,15 @@ function PremiumCard() {
               <Sparkles className="h-5 w-5" />
             </div>
             <div className="min-w-0">
-              <p className="text-[15px] font-bold text-foreground">
+              <p className="text-base font-bold text-foreground">
                 AskZero Pro
               </p>
-              <p className="text-[12px] text-text-secondary leading-relaxed">
+              <p className="text-xs text-text-secondary leading-relaxed">
                 Programmatic access on your own dedicated compute.
               </p>
             </div>
           </div>
-          <span className="shrink-0 rounded-full bg-surface px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
+          <span className="shrink-0 rounded-full bg-surface px-2.5 py-1 text-2xs font-semibold uppercase tracking-wider text-text-tertiary">
             Coming soon
           </span>
         </div>
@@ -456,10 +456,10 @@ function PremiumCard() {
               <div key={perk.title} className="flex items-start gap-3">
                 <Icon className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
                 <div className="min-w-0">
-                  <p className="text-[13px] font-semibold text-foreground">
+                  <p className="text-sm font-semibold text-foreground">
                     {perk.title}
                   </p>
-                  <p className="text-[12px] text-text-tertiary leading-relaxed">
+                  <p className="text-xs text-text-tertiary leading-relaxed">
                     {perk.desc}
                   </p>
                 </div>
@@ -549,17 +549,17 @@ function MemorySection() {
           <span className="flex h-5 w-5 items-center justify-center rounded-md bg-accent-muted text-accent">
             <Sparkles className="h-3 w-3" />
           </span>
-          <h2 className="text-[13px] font-medium text-text-tertiary">
+          <h2 className="text-sm font-medium text-text-tertiary">
             Memory
           </h2>
         </div>
         {!loading && memories.length > 0 && (
-          <span className="rounded-full bg-elevated px-2 py-0.5 text-[11px] font-medium text-text-tertiary tabular-nums">
+          <span className="rounded-full bg-elevated px-2 py-0.5 text-2xs font-medium text-text-tertiary tabular-nums">
             {memories.length} {memories.length === 1 ? "memory" : "memories"}
           </span>
         )}
       </div>
-      <p className="px-1 text-[12px] text-text-secondary leading-relaxed">
+      <p className="px-1 text-xs text-text-secondary leading-relaxed">
         What AskZero remembers about you across chats. Anchored on 0G — delete
         anything you don&apos;t want kept.
       </p>
@@ -572,7 +572,7 @@ function MemorySection() {
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent-muted/60 text-accent">
               <Sparkles className="h-4 w-4" />
             </span>
-            <p className="max-w-[280px] text-[13px] text-text-tertiary leading-relaxed">
+            <p className="max-w-[280px] text-sm text-text-tertiary leading-relaxed">
               Nothing remembered yet. As you chat, AskZero notes durable facts —
               preferences, projects, recurring goals — and they&apos;ll show up here.
             </p>
@@ -584,13 +584,13 @@ function MemorySection() {
               className="group/mem flex items-start justify-between gap-3 px-5 py-3.5 transition-colors duration-fast hover:bg-surface/40"
             >
               <div className="min-w-0 space-y-1.5">
-                <p className="text-[13px] text-foreground leading-relaxed">
+                <p className="text-sm text-foreground leading-relaxed">
                   {m.content}
                 </p>
                 <div className="flex items-center gap-2">
                   {m.og_root_hash && (
                     <span
-                      className="inline-flex items-center gap-1 rounded-full bg-success/10 px-1.5 py-0.5 text-[10px] font-semibold text-success"
+                      className="inline-flex items-center gap-1 rounded-full bg-success/10 px-1.5 py-0.5 text-2xs font-semibold text-success"
                       title={`Anchored on 0G Storage · ${m.og_root_hash.slice(0, 10)}…`}
                     >
                       <ShieldCheck className="h-2.5 w-2.5" />
@@ -598,7 +598,7 @@ function MemorySection() {
                     </span>
                   )}
                   <span
-                    className="text-[10px] text-text-tertiary tabular-nums"
+                    className="text-2xs text-text-tertiary tabular-nums"
                     title={new Date(m.created_at).toLocaleString()}
                   >
                     {timeAgo(m.created_at)}
@@ -629,7 +629,7 @@ function Section({
 }) {
   return (
     <section className="space-y-2.5">
-      <h2 className="px-1 text-[13px] font-medium text-text-tertiary">
+      <h2 className="px-1 text-sm font-medium text-text-tertiary">
         {title}
       </h2>
       <div className="overflow-hidden rounded-2xl border border-border/70 bg-elevated/40 divide-y divide-border/50">
@@ -651,9 +651,9 @@ function Row({
   return (
     <div className="flex items-center justify-between gap-4 px-5 py-4">
       <div className="min-w-0">
-        <p className="text-[14px] font-semibold text-foreground">{title}</p>
+        <p className="text-md font-semibold text-foreground">{title}</p>
         {subtitle && (
-          <p className="text-[12px] text-text-tertiary leading-relaxed">
+          <p className="text-xs text-text-tertiary leading-relaxed">
             {subtitle}
           </p>
         )}
@@ -682,7 +682,7 @@ function Segmented<T extends string>({
             key={opt.value}
             onClick={() => onChange(opt.value)}
             className={cn(
-              "press flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[12px] font-semibold transition-[background-color,color,box-shadow] duration-fast ease-out",
+              "press flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition-[background-color,color,box-shadow] duration-fast ease-out",
               active
                 ? "bg-elevated text-foreground shadow-sm"
                 : "text-text-tertiary hover:text-foreground"

@@ -84,7 +84,7 @@ export function WhatsNew() {
                   <h2 className="text-2xl font-bold tracking-tight text-foreground">
                     Fresh in AskZero
                   </h2>
-                  <p className="mt-1 text-[13px] text-text-secondary">
+                  <p className="mt-1 text-sm text-text-secondary">
                     The latest, just shipped.
                   </p>
                 </div>
@@ -148,7 +148,7 @@ export function WhatsNew() {
                   <h2 className="text-2xl font-bold tracking-tight text-foreground">
                     On the roadmap
                   </h2>
-                  <p className="mt-1 text-[13px] text-text-secondary">
+                  <p className="mt-1 text-sm text-text-secondary">
                     What we&apos;re building next.
                   </p>
                 </div>
@@ -265,8 +265,8 @@ function Eyebrow({
     <div
       className={
         tone === "accent"
-          ? "mb-2 inline-flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-accent"
-          : "mb-2 inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-surface px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-text-tertiary"
+          ? "mb-2 inline-flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent/10 px-2.5 py-1 text-2xs font-semibold uppercase tracking-[0.12em] text-accent"
+          : "mb-2 inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-surface px-2.5 py-1 text-2xs font-semibold uppercase tracking-[0.12em] text-text-tertiary"
       }
     >
       {icon}
@@ -295,20 +295,20 @@ function Item({
       </div>
       <div className="min-w-0">
         <div className="flex items-center gap-2">
-          <p className="text-[14px] font-semibold text-foreground">{title}</p>
+          <p className="text-md font-semibold text-foreground">{title}</p>
           {isNew && (
-            <span className="rounded-full bg-accent px-1.5 py-px text-[9px] font-bold uppercase tracking-wide text-primary-foreground">
+            <span className="rounded-full bg-accent px-1.5 py-px text-2xs font-bold uppercase tracking-wide text-primary-foreground">
               New
             </span>
           )}
         </div>
-        <p className="mt-0.5 text-[13px] leading-snug text-text-tertiary">{body}</p>
+        <p className="mt-0.5 text-sm leading-snug text-text-tertiary">{body}</p>
         {action && (
           <a
             href={action.href}
             target="_blank"
             rel="noopener noreferrer"
-            className="press mt-2 inline-flex items-center gap-1.5 rounded-lg bg-accent/12 px-3 py-1.5 text-[12px] font-semibold text-accent transition hover:bg-accent/20"
+            className="press mt-2 inline-flex items-center gap-1.5 rounded-lg bg-accent/12 px-3 py-1.5 text-xs font-semibold text-accent transition hover:bg-accent/20"
           >
             <Download className="h-3.5 w-3.5" />
             {action.label}
@@ -335,12 +335,12 @@ function Soon({
       </div>
       <div className="min-w-0">
         <div className="flex items-center gap-2">
-          <p className="text-[13.5px] font-semibold text-foreground/80">{title}</p>
-          <span className="rounded-full border border-border/70 px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide text-text-tertiary">
+          <p className="text-sm font-semibold text-foreground/80">{title}</p>
+          <span className="rounded-full border border-border/70 px-1.5 py-px text-2xs font-semibold uppercase tracking-wide text-text-tertiary">
             Soon
           </span>
         </div>
-        <p className="mt-0.5 text-[12px] leading-snug text-text-tertiary">{body}</p>
+        <p className="mt-0.5 text-xs leading-snug text-text-tertiary">{body}</p>
       </div>
     </div>
   );

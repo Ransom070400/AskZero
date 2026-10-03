@@ -97,7 +97,7 @@ export function ZeroGPay({ onCredited }: { onCredited?: () => void }) {
 
   if (!APPKIT_READY || !DEPOSIT_ADDRESS) {
     return (
-      <div className="rounded-xl border border-border bg-background p-4 text-[13px] text-text-secondary">
+      <div className="rounded-xl border border-border bg-background p-4 text-sm text-text-secondary">
         Pay with 0G isn&apos;t fully configured yet. Set{" "}
         <code className="text-foreground">NEXT_PUBLIC_REOWN_PROJECT_ID</code>,{" "}
         <code className="text-foreground">DEPOSIT_WALLET_ADDRESS</code> and{" "}
@@ -112,10 +112,10 @@ export function ZeroGPay({ onCredited }: { onCredited?: () => void }) {
         <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-success/15 text-success">
           <Check className="h-5 w-5" />
         </div>
-        <p className="text-[15px] font-semibold text-foreground">
+        <p className="text-base font-semibold text-foreground">
           {credits?.toLocaleString()} credits added
         </p>
-        <p className="mt-1 text-[12px] text-text-secondary">
+        <p className="mt-1 text-xs text-text-secondary">
           Paid with 0G · verified on-chain.
         </p>
       </div>
@@ -126,11 +126,11 @@ export function ZeroGPay({ onCredited }: { onCredited?: () => void }) {
     <div className="space-y-3">
       <div className="rounded-xl border border-border bg-background p-4">
         <div className="flex items-center justify-between">
-          <span className="text-[13px] text-text-secondary">Wallet</span>
+          <span className="text-sm text-text-secondary">Wallet</span>
           {mounted && isConnected && address ? (
             <button
               onClick={() => open({ view: "Account" })}
-              className="press inline-flex items-center gap-1.5 text-[13px] font-medium text-foreground"
+              className="press inline-flex items-center gap-1.5 text-sm font-medium text-foreground"
             >
               <span className="h-1.5 w-1.5 rounded-full bg-success" />
               {short(address)}
@@ -142,14 +142,14 @@ export function ZeroGPay({ onCredited }: { onCredited?: () => void }) {
             </Button>
           )}
         </div>
-        <div className="mt-3 flex items-center justify-between text-[12px] text-text-tertiary">
+        <div className="mt-3 flex items-center justify-between text-xs text-text-tertiary">
           <span>Deposit address</span>
           <span className="font-mono">{short(DEPOSIT_ADDRESS)}</span>
         </div>
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-[12px] font-medium text-text-secondary">
+        <label className="text-xs font-medium text-text-secondary">
           Amount (0G)
         </label>
         <Input
@@ -162,7 +162,7 @@ export function ZeroGPay({ onCredited }: { onCredited?: () => void }) {
           onChange={(e) => setAmount(e.target.value)}
           disabled={busy}
         />
-        <p className="text-[11px] text-text-tertiary">
+        <p className="text-2xs text-text-tertiary">
           Credited at the live 0G/USD price · 1,000 credits = $1.
         </p>
       </div>
@@ -194,8 +194,8 @@ export function ZeroGPay({ onCredited }: { onCredited?: () => void }) {
         <p
           className={
             phase === "error"
-              ? "flex items-start gap-1.5 text-[12px] text-error"
-              : "text-[12px] text-text-tertiary"
+              ? "flex items-start gap-1.5 text-xs text-error"
+              : "text-xs text-text-tertiary"
           }
         >
           {phase === "error" && <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />}

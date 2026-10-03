@@ -32,20 +32,20 @@ export function ExitIncognito({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
       <DropdownMenuContent align={align} className="w-64 p-3 text-left">
-        <p className="text-[13px] font-semibold text-foreground">
+        <p className="text-sm font-semibold text-foreground">
           Discard this chat?
         </p>
-        <p className="mt-1 text-[12px] leading-snug text-text-tertiary">
+        <p className="mt-1 text-xs leading-snug text-text-tertiary">
           Incognito chats aren&apos;t saved — leaving deletes this conversation
           for good.
         </p>
         <div className="mt-3 flex justify-end gap-2">
-          <DropdownMenuItem className="w-auto justify-center px-3 py-1.5 text-[12px]">
+          <DropdownMenuItem className="w-auto justify-center px-3 py-1.5 text-xs">
             Stay
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={exit}
-            className="w-auto justify-center bg-foreground px-3 py-1.5 text-[12px] font-semibold text-background hover:bg-foreground/90 focus:bg-foreground/90"
+            className="w-auto justify-center bg-foreground px-3 py-1.5 text-xs font-semibold text-background hover:bg-foreground/90 focus:bg-foreground/90"
           >
             Discard &amp; exit
           </DropdownMenuItem>
