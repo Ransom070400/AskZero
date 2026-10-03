@@ -11,6 +11,7 @@ const config: Config = {
     extend: {
       colors: {
         background: "hsl(var(--background))",
+        ink: "hsl(var(--ink))",
         foreground: "hsl(var(--foreground))",
         surface: "hsl(var(--surface))",
         elevated: "hsl(var(--elevated))",

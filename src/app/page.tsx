@@ -21,7 +21,7 @@ const fade = (delay: number) => ({
 
 export default function LandingPage() {
   return (
-    <div className="relative bg-black text-white">
+    <div className="relative bg-ink text-white">
       {/* Hero screen */}
       <div className="relative flex min-h-[100dvh] flex-col overflow-hidden">
         <AmbientGlow />
@@ -59,7 +59,7 @@ export default function LandingPage() {
           >
             AI answers
             <br />
-            <span style={{ color: "#CB8AFF" }}>you can verify.</span>
+            <span className="text-accent-hover">you can verify.</span>
           </motion.h1>
 
           <motion.p
@@ -123,7 +123,7 @@ function AmbientGlow() {
         className="absolute left-1/2 top-[55%] h-[900px] w-[1200px] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-50 blur-[120px]"
         style={{
           background:
-            "radial-gradient(circle at center, rgba(183, 95, 255, 0.30) 0%, rgba(183, 95, 255, 0.08) 40%, transparent 70%)",
+            "radial-gradient(circle at center, hsl(var(--accent) / 0.2) 0%, hsl(var(--accent) / 0.05) 40%, transparent 70%)",
           animation: "ambientDrift 16s var(--ease-in-out) infinite",
         }}
       />
@@ -131,7 +131,7 @@ function AmbientGlow() {
         className="absolute left-[20%] top-[20%] h-[480px] w-[480px] rounded-full opacity-40 blur-[100px]"
         style={{
           background:
-            "radial-gradient(circle at center, rgba(203, 138, 255, 0.18) 0%, transparent 70%)",
+            "radial-gradient(circle at center, hsl(var(--accent-hover) / 0.12) 0%, transparent 70%)",
           animation: "ambientDrift2 22s var(--ease-in-out) infinite",
         }}
       />

@@ -33,7 +33,7 @@ interface ChartSpec {
   data?: Record<string, unknown>[];
 }
 
-const COLORS = ["#A855F7", "#22c55e", "#3b82f6", "#f59e0b", "#ef4444", "#14b8a6", "#ec4899"];
+const COLORS = ["hsl(var(--accent))", "#22c55e", "#3b82f6", "#f59e0b", "#ef4444", "#14b8a6", "#ec4899"];
 const AXIS = "hsl(var(--text-tertiary))";
 const GRID = "hsl(var(--border))";
 

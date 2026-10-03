@@ -15,7 +15,6 @@ import { ArrowRight } from "lucide-react";
 const CREDITS_PER_QUESTION = 3.6;
 const SUBSCRIPTION_USD = 20; // ChatGPT Plus / Claude Pro
 const FALLBACK_NGN = 1376;
-const ACCENT = "#CB8AFF";
 
 export function SavingsCalculator() {
   const [qpd, setQpd] = useState(15);
@@ -49,7 +48,7 @@ export function SavingsCalculator() {
   return (
     <section
       id="savings"
-      className="relative border-t border-white/10 bg-black px-6 py-20 text-white md:py-28"
+      className="relative border-t border-white/10 bg-ink px-6 py-20 text-white md:py-28"
     >
       <div className="mx-auto w-full max-w-3xl">
         <motion.div
@@ -93,8 +92,7 @@ export function SavingsCalculator() {
 
           <div className="mt-3 flex items-baseline gap-2">
             <span
-              className="font-display text-4xl font-bold tabular-nums"
-              style={{ color: ACCENT }}
+              className="font-display text-4xl font-bold tabular-nums text-accent-hover"
             >
               {qpd}
             </span>
@@ -108,7 +106,7 @@ export function SavingsCalculator() {
             max={120}
             value={qpd}
             onChange={(e) => setQpd(Number(e.target.value))}
-            className="mt-3 w-full accent-[#CB8AFF]"
+            className="mt-3 w-full accent-[hsl(var(--accent-hover))]"
           />
 
           {/* Result */}
@@ -118,8 +116,7 @@ export function SavingsCalculator() {
                 You, pay-as-you-go
               </p>
               <p
-                className="mt-1.5 font-display text-2xl font-bold tabular-nums md:text-3xl"
-                style={{ color: ACCENT }}
+                className="mt-1.5 font-display text-2xl font-bold tabular-nums text-accent-hover md:text-3xl"
               >
                 {money(youUsd)}
                 <span className="text-[13px] font-medium text-white/40">/mo</span>
