@@ -464,8 +464,7 @@ export async function POST(req: NextRequest) {
         const newBalance = await deductCredits(
           user.id,
           actualCost,
-          usageMeta,
-          supabase
+          usageMeta
         );
 
         if (newBalance < LOW_BALANCE_THRESHOLD && user.email) {
@@ -484,8 +483,7 @@ export async function POST(req: NextRequest) {
             await deductCredits(
               user.id,
               remaining,
-              { ...usageMeta, full_cost: actualCost, shortfall: actualCost - remaining },
-              supabase
+              { ...usageMeta, full_cost: actualCost, shortfall: actualCost - remaining }
             );
           }
           if (user.email) sendLowBalanceWarning(user.email, 0);

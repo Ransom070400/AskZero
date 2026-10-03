@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ethers } from "ethers";
 import { getAuthedUser } from "@/lib/supabase/api-auth";
+import { createAdminClient } from "@/lib/supabase/admin";
 import {
   getOGTokenPrice,
   ogToCredits,
@@ -42,7 +43,8 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // 2) Idempotency — a txHash can only ever be credited once.
+  // 2) Fast path for a txHash this user already credited. The real guarantee
+  //    that a txHash is credited only once is complete_deposit below.
   const { data: existing } = await supabase
     .from("transactions")
     .select("status")
@@ -125,35 +127,42 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Deposit amount too small" }, { status: 400 });
   }
 
-  if (existing) {
-    await supabase
-      .from("transactions")
-      .update({ status: "completed", amount: credits })
-      .eq("reference", txHash);
-  } else {
-    await supabase.from("transactions").insert({
+  // Create the deposit row once, then credit it atomically. reference is
+  // unique, so concurrent requests for the same txHash all land on one row,
+  // and complete_deposit only flips a pending row once — exactly one caller
+  // credits. Both writes are service-role only.
+  const admin = createAdminClient();
+  const { error: insertError } = await admin.from("transactions").upsert(
+    {
       user_id: user.id,
       type: "deposit",
-      amount: credits,
+      amount: 0,
       currency: "0G",
       original_amount: ogAmount,
       reference: txHash,
-      status: "completed",
+      status: "pending",
       metadata: {
         payment_provider: "0g_chain",
         og_price_usd: ogPrice,
         confirmations,
         from_address: tx.from,
       },
-    });
+    },
+    { onConflict: "reference", ignoreDuplicates: true }
+  );
+  if (insertError) {
+    return NextResponse.json({ error: "Failed to record deposit" }, { status: 500 });
   }
 
-  const { error: rpcError } = await supabase.rpc("credit_balance", {
-    p_user_id: user.id,
-    p_amount: credits,
+  const { data: result, error: rpcError } = await admin.rpc("complete_deposit", {
+    p_reference: txHash,
+    p_credits: credits,
   });
   if (rpcError) {
     return NextResponse.json({ error: "Failed to credit balance" }, { status: 500 });
+  }
+  if ((result as { credited?: boolean })?.credited !== true) {
+    return NextResponse.json({ status: "completed", message: "Already credited" });
   }
 
   return NextResponse.json({

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { sendDepositConfirmation } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
@@ -24,62 +24,35 @@ export async function POST(req: NextRequest) {
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
-    const userId = session.metadata?.user_id;
     const reference = session.metadata?.reference;
     const credits = Number(session.metadata?.credits || 0);
 
-    if (!userId || !reference || !credits) {
+    if (!reference || !credits) {
       return NextResponse.json({ error: "Missing metadata" }, { status: 400 });
     }
 
-    const supabase = await createClient();
+    // No user session on a webhook — the admin client does the crediting.
+    // complete_deposit flips the pending row and credits in one statement, so a
+    // Stripe retry racing the on-return verify route can't credit twice.
+    const supabase = createAdminClient();
+    const { data: result, error: rpcError } = await supabase.rpc(
+      "complete_deposit",
+      { p_reference: reference, p_credits: credits }
+    );
 
-    // Idempotency check
-    const { data: existing } = await supabase
-      .from("transactions")
-      .select("status")
-      .eq("reference", reference)
-      .single();
+    if (rpcError) {
+      return NextResponse.json({ error: "Failed to credit" }, { status: 500 });
+    }
 
-    if (existing?.status === "completed") {
+    const credited = (result as { credited?: boolean })?.credited === true;
+    const userId = (result as { user_id?: string })?.user_id;
+
+    if (!credited) {
+      // Either already processed, or no pending transaction for this reference.
       return NextResponse.json({ message: "Already processed" });
     }
 
-    // Credit balance — try RPC, fall back to manual
-    let credited = false;
-
-    const { error: rpcError } = await supabase.rpc("credit_balance", {
-      p_user_id: userId,
-      p_amount: credits,
-    });
-
-    if (!rpcError) {
-      credited = true;
-    } else {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("credits_balance")
-        .eq("id", userId)
-        .single();
-
-      if (profile) {
-        const newBalance = Number(profile.credits_balance) + credits;
-        const { error: updateError } = await supabase
-          .from("profiles")
-          .update({ credits_balance: newBalance })
-          .eq("id", userId);
-
-        if (!updateError) credited = true;
-      }
-    }
-
-    if (credited) {
-      await supabase
-        .from("transactions")
-        .update({ status: "completed", amount: credits })
-        .eq("reference", reference);
-
-      // Send email notification
+    if (userId) {
       const { data: userData } = await supabase.auth.admin.getUserById(userId);
       if (userData?.user?.email) {
         const displayCurrency = (session.metadata?.display_currency || "USD").toUpperCase();

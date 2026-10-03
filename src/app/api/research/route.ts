@@ -66,8 +66,7 @@ export async function POST(req: NextRequest) {
             await deductCredits(
               user.id,
               cost,
-              { kind: "research", depth, query: query.slice(0, 80) },
-              supabase
+              { kind: "research", depth, query: query.slice(0, 80) }
             );
           } catch {
             console.error("deductCredits failed for research");

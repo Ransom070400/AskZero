@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthedUser } from "@/lib/supabase/api-auth";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getStripe } from "@/lib/stripe";
 import { sendDepositConfirmation } from "@/lib/email";
 
@@ -10,7 +11,8 @@ import { sendDepositConfirmation } from "@/lib/email";
  * webhook isn't reachable (local dev, missing secret, misconfigured endpoint)
  * this endpoint lets the success page verify and credit synchronously.
  *
- * Idempotent: if the transaction row is already `completed`, it no-ops.
+ * Idempotent: crediting goes through complete_deposit, which only ever flips a
+ * pending row once.
  */
 export async function GET(req: NextRequest) {
   const sessionId = req.nextUrl.searchParams.get("session_id");
@@ -62,44 +64,25 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ status: "completed", credits, alreadyCredited: true });
   }
 
-  // Credit balance — RPC first, manual fallback
-  let credited = false;
-  const { error: rpcError } = await supabase.rpc("credit_balance", {
-    p_user_id: user.id,
-    p_amount: credits,
-  });
+  // complete_deposit flips the pending row and credits in one statement, so
+  // this and the webhook can't both credit. The row was confirmed above to
+  // belong to this user.
+  const { data: result, error: rpcError } = await createAdminClient().rpc(
+    "complete_deposit",
+    { p_reference: reference, p_credits: credits }
+  );
 
-  if (!rpcError) {
-    credited = true;
-  } else {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("credits_balance")
-      .eq("id", user.id)
-      .single();
-
-    if (profile) {
-      const newBalance = Number(profile.credits_balance) + credits;
-      const { error: updateError } = await supabase
-        .from("profiles")
-        .update({ credits_balance: newBalance })
-        .eq("id", user.id);
-      if (!updateError) credited = true;
-    }
-  }
-
-  if (!credited) {
+  if (rpcError) {
     return NextResponse.json(
       { status: "error", message: "Failed to credit balance" },
       { status: 500 }
     );
   }
 
-  await supabase
-    .from("transactions")
-    .update({ status: "completed", amount: credits })
-    .eq("reference", reference)
-    .eq("user_id", user.id);
+  if ((result as { credited?: boolean })?.credited !== true) {
+    // The webhook got there first — the user already has their credits.
+    return NextResponse.json({ status: "completed", credits, alreadyCredited: true });
+  }
 
   // Best-effort email
   try {

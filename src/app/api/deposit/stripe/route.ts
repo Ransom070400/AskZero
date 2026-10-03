@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthedUser } from "@/lib/supabase/api-auth";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getStripe } from "@/lib/stripe";
 import { convertToCredits } from "@/lib/pricing";
 import {
@@ -10,7 +11,7 @@ import {
 } from "@/lib/pricing-apac";
 
 export async function POST(req: NextRequest) {
-  const { supabase, user } = await getAuthedUser();
+  const { user } = await getAuthedUser();
 
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -60,17 +61,26 @@ export async function POST(req: NextRequest) {
 
   const reference = `stripe_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
 
-  // Save pending transaction
-  await supabase.from("transactions").insert({
-    user_id: user.id,
-    type: "deposit",
-    amount: 0,
-    currency,
-    original_amount: amount,
-    reference,
-    status: "pending",
-    metadata: { payment_provider: "stripe" },
-  });
+  // Save pending transaction (server-written only — admin client). Crediting
+  // flips exactly this row via complete_deposit, so it has to exist.
+  const { error: txError } = await createAdminClient()
+    .from("transactions")
+    .insert({
+      user_id: user.id,
+      type: "deposit",
+      amount: 0,
+      currency,
+      original_amount: amount,
+      reference,
+      status: "pending",
+      metadata: { payment_provider: "stripe" },
+    });
+  if (txError) {
+    return NextResponse.json(
+      { error: "Failed to create transaction" },
+      { status: 500 }
+    );
+  }
 
   // Create Stripe Checkout session
   const session = await getStripe().checkout.sessions.create({

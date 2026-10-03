@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthedUser } from "@/lib/supabase/api-auth";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { convertToCredits } from "@/lib/pricing";
 
 export async function GET(
@@ -51,7 +52,8 @@ export async function GET(
   const cur = (currency as string).toUpperCase() as "NGN" | "USD";
   const credits = await convertToCredits(originalAmount, cur);
 
-  const { error: rpcError } = await supabase.rpc("complete_deposit", {
+  // The reference was confirmed above to belong to this user.
+  const { error: rpcError } = await createAdminClient().rpc("complete_deposit", {
     p_reference: reference,
     p_credits: credits,
   });

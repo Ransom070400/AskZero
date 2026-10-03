@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 // Cost per 1K tokens in USD cents (adjust per model)
@@ -6,11 +7,13 @@ const MODEL_PRICING: Record<string, { input: number; output: number }> = {
   default: { input: 0.5, output: 1.5 },
 };
 
-// Each helper accepts an optional pre-scoped Supabase client. Web routes and
-// webhooks call without it (defaulting to the cookie client); the mobile/API
-// path passes the Bearer-scoped client from getAuthedUser() so RLS resolves the
-// same user. checkBalance reads profiles directly (RLS-scoped), so passing the
-// right client matters most there.
+// checkBalance reads profiles directly (RLS-scoped), so it takes the caller's
+// client: the mobile/API path passes the Bearer-scoped client from
+// getAuthedUser() so RLS resolves the same user.
+//
+// Moving credits is service-role only (see 20261003000000_lock_down_credits.sql),
+// so deductCredits/addCredits always use the admin client. Callers must pass a
+// user id they authenticated server-side — never one taken from the request.
 export async function checkBalance(
   userId: string,
   client?: SupabaseClient
@@ -29,11 +32,9 @@ export async function checkBalance(
 export async function deductCredits(
   userId: string,
   amount: number,
-  metadata: Record<string, unknown> = {},
-  client?: SupabaseClient
+  metadata: Record<string, unknown> = {}
 ): Promise<number> {
-  const supabase = client ?? (await createClient());
-  const { data, error } = await supabase.rpc("deduct_credits", {
+  const { data, error } = await createAdminClient().rpc("deduct_credits", {
     p_user_id: userId,
     p_amount: amount,
     p_metadata: metadata,
@@ -50,8 +51,7 @@ export async function addCredits(
   originalAmount: number,
   reference: string
 ): Promise<number> {
-  const supabase = await createClient();
-  const { data, error } = await supabase.rpc("add_credits", {
+  const { data, error } = await createAdminClient().rpc("add_credits", {
     p_user_id: userId,
     p_amount: amount,
     p_currency: currency,

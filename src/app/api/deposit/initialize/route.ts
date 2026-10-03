@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthedUser } from "@/lib/supabase/api-auth";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function POST(req: NextRequest) {
-  const { supabase, user } = await getAuthedUser();
+  const { user } = await getAuthedUser();
 
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -22,8 +23,10 @@ export async function POST(req: NextRequest) {
   // Amount in smallest currency unit (kobo for NGN, cents for USD)
   const paystackAmount = amount * 100;
 
-  // Save pending transaction
-  const { error: txError } = await supabase.from("transactions").insert({
+  // Save pending transaction. Transactions are server-written only, so this
+  // goes through the admin client (user_id comes from the verified session).
+  const admin = createAdminClient();
+  const { error: txError } = await admin.from("transactions").insert({
     user_id: user.id,
     type: "deposit",
     amount: 0, // will be updated on completion
@@ -74,7 +77,7 @@ export async function POST(req: NextRequest) {
 
   if (!paystackData.status) {
     // Clean up pending transaction
-    await supabase.from("transactions").delete().eq("reference", reference);
+    await admin.from("transactions").delete().eq("reference", reference);
     return NextResponse.json(
       { error: paystackData.message || "Paystack initialization failed" },
       { status: 500 }

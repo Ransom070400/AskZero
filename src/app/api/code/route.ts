@@ -72,8 +72,7 @@ export async function POST(req: NextRequest) {
             await deductCredits(
               user.id,
               cost,
-              { kind: "code", depth, task: task.slice(0, 80) },
-              supabase
+              { kind: "code", depth, task: task.slice(0, 80) }
             );
           } catch {
             console.error("deductCredits failed for code build");

@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 
-// Service-role client for trusted server tasks (e.g. the receipt batcher).
+// Service-role client for trusted server tasks (e.g. the receipt batcher, and
+// every credit movement — those RPCs are service-role only).
 // Never import this from a client component or a user-facing route handler
 // without first verifying the caller (cron secret, admin email, etc.).
 export function createAdminClient() {

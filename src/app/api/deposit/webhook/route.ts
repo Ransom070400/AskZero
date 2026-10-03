@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { convertToCredits } from "@/lib/pricing";
 import { sendDepositConfirmation } from "@/lib/email";
 
@@ -26,7 +26,8 @@ export async function POST(req: NextRequest) {
     const originalAmount = amount / 100;
     const cur = (currency as string).toUpperCase() as "NGN" | "USD";
 
-    const supabase = await createClient();
+    // No user session on a webhook — the admin client does the crediting.
+    const supabase = createAdminClient();
     const credits = await convertToCredits(originalAmount, cur);
 
     const { data: result, error: rpcError } = await supabase.rpc(
