@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { Logo } from "@/components/ui/logo";
 import { SavingsCalculator } from "@/components/savings-calculator";
+import { ReceiptHero } from "@/components/landing/receipt-hero";
 
 const fade = (delay: number) => ({
   initial: { opacity: 0, y: 16 },
@@ -42,19 +43,20 @@ export default function LandingPage() {
         </Link>
       </motion.header>
 
-      {/* Hero — vertically centered, generous breathing room */}
-      <main className="relative z-10 flex flex-1 flex-col items-center justify-center px-6 text-center">
-        <div className="w-full max-w-3xl space-y-8 md:space-y-10">
+      {/* Hero — copy on the left, the live receipt on the right. Stacks on
+          mobile with the receipt under the CTA. */}
+      <main className="relative z-10 mx-auto grid w-full max-w-6xl flex-1 items-center gap-4 px-6 pb-10 md:px-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-8 lg:pb-0">
+        <div className="space-y-7 text-center lg:space-y-9 lg:text-left">
           <motion.p
             {...fade(0)}
-            className="text-xs font-medium text-white/40"
+            className="text-xs font-medium text-white/45"
           >
             verifiable AI on 0G
           </motion.p>
 
           <motion.h1
             {...fade(1)}
-            className="font-display text-[44px] font-bold leading-[0.95] sm:text-6xl md:text-7xl lg:text-[112px]"
+            className="font-display text-[44px] font-bold leading-[0.95] sm:text-6xl md:text-7xl lg:text-5xl xl:text-[80px]"
             style={{ letterSpacing: "-0.045em" }}
           >
             AI answers
@@ -64,7 +66,7 @@ export default function LandingPage() {
 
           <motion.p
             {...fade(2)}
-            className="mx-auto max-w-md text-base leading-relaxed text-white/55 md:text-[17px]"
+            className="mx-auto max-w-md text-base leading-relaxed text-white/55 md:text-[17px] lg:mx-0"
           >
             each response gets a tamper-evident receipt anchored on 0G. pay only
             when you use it.
@@ -72,25 +74,34 @@ export default function LandingPage() {
 
           <motion.div
             {...fade(3)}
-            className="flex flex-col items-center gap-4 pt-2"
+            className="flex flex-col items-center gap-4 pt-1 sm:flex-row sm:justify-center lg:justify-start"
           >
             <Link
               href="/signup"
               className="press group inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-md font-semibold text-black transition-[background-color,transform] duration-fast ease-out hover:bg-white/90"
             >
-              get started
+              ask your first question free
               <ArrowRight className="h-4 w-4 transition-transform duration-fast group-hover:translate-x-0.5" />
             </Link>
+            <a
+              href="#how-it-works"
+              className="inline-flex items-center gap-1 text-xs font-medium text-white/40 transition-colors duration-fast hover:text-white/75"
+            >
+              how the proof works ↓
+            </a>
           </motion.div>
-
-          <motion.a
-            {...fade(4)}
-            href="#savings"
-            className="inline-flex items-center gap-1 text-xs font-medium text-white/35 transition-colors duration-fast hover:text-white/70"
-          >
-            see how much you&apos;d save ↓
-          </motion.a>
         </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5, duration: 1, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <ReceiptHero />
+          <p className="-mt-2 text-center text-2xs text-white/30">
+            drag to turn it over
+          </p>
+        </motion.div>
       </main>
       </div>
 
