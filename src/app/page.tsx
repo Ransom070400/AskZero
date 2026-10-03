@@ -6,6 +6,7 @@ import { ArrowRight } from "lucide-react";
 import { Logo } from "@/components/ui/logo";
 import { SavingsCalculator } from "@/components/savings-calculator";
 import { ReceiptHero } from "@/components/landing/receipt-hero";
+import { MerkleSection } from "@/components/landing/merkle-section";
 
 const fade = (delay: number) => ({
   initial: { opacity: 0, y: 16 },
@@ -104,6 +105,9 @@ export default function LandingPage() {
         </motion.div>
       </main>
       </div>
+
+      {/* How the proof works — scroll-driven Merkle tree */}
+      <MerkleSection />
 
       {/* Savings calculator — the marketing point */}
       <SavingsCalculator />
