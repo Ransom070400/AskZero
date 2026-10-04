@@ -15,6 +15,7 @@ import {
   wrap,
   type Fonts,
 } from "./canvas-kit";
+import { SEAL_EVENT } from "./hash-stream";
 
 // The hero receipt: an answer prints onto a paper slip, a seal stamps onto it,
 // and it flips to show the proof on the back. One loop tells the whole story
@@ -322,6 +323,8 @@ function Receipt({ reduced }: { reduced: boolean }) {
 
     const typed = Math.floor(span(t, 0.9, 5.2) * ANSWER.length);
     const sealed = t >= 6.0;
+    // Tell the hero backdrop, so a row of the hash stream flares with it.
+    if (sealed && !drawn.current.sealed && !reduced) window.dispatchEvent(new Event(SEAL_EVENT));
     if (typed !== drawn.current.typed || sealed !== drawn.current.sealed) {
       drawFront(front.ctx, fonts, typed, sealed);
       front.texture.needsUpdate = true;
