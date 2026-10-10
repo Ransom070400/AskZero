@@ -2,6 +2,14 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function updateSession(request: NextRequest) {
+  // API routes authenticate themselves (getAuthedUser: bearer token or cookie
+  // session, and route handlers can refresh the session cookie), and are never
+  // redirected. Verifying the session here as well cost every API call an
+  // extra round trip to Supabase Auth before the route even started.
+  if (request.nextUrl.pathname.startsWith("/api/")) {
+    return NextResponse.next({ request });
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   });
