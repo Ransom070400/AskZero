@@ -371,11 +371,25 @@ export async function POST(req: NextRequest) {
     const historyMessages = turnRows
       .filter((m) => m.role !== "assistant" || m.content.trim())
       .map(toModelMessage);
-    const baseSystem = buildSystemPrompt(style) + memoryBlock;
 
-    // 2) Final messages, with tool observations folded into the system prompt.
+    // 2) Final messages. The system prompt and earlier turns are byte-stable
+    //    from one turn to the next, so providers can serve that prefix from
+    //    their prompt cache (faster first token, cheaper input). Everything
+    //    specific to this turn — recalled memory and tool results, which carry
+    //    the current time — rides on the latest user message instead of the
+    //    system prompt, where it would change the prefix every time.
+    const turnContext = `${memoryBlock}${observations}`.trim();
+    const last = historyMessages[historyMessages.length - 1];
+    if (turnContext && last?.role === "user") {
+      const prefix = `${turnContext}\n\n---\n\n`;
+      historyMessages[historyMessages.length - 1] =
+        typeof last.content === "string"
+          ? { ...last, content: prefix + last.content }
+          : { ...last, content: [{ type: "text" as const, text: prefix }, ...last.content] };
+    }
+
     const messages = [
-      { role: "system" as const, content: baseSystem + observations },
+      { role: "system" as const, content: buildSystemPrompt(style) },
       ...historyMessages,
     ];
     const estimatedInputTokens =

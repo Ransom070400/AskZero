@@ -22,6 +22,27 @@ function partsToAnthropic(content: string | ContentPart[]) {
   return parts.length > 0 ? parts : "(empty)";
 }
 
+type AnthropicMessage = { role: string; content: ReturnType<typeof partsToAnthropic> };
+
+// Cache breakpoint on the last block of the turn before the newest one, so
+// the whole earlier conversation is served from cache on the next request
+// (the newest turn carries per-turn context and isn't worth caching).
+function withHistoryBreakpoint(messages: AnthropicMessage[]): unknown[] {
+  const i = messages.length - 2;
+  if (i < 0) return messages;
+  return messages.map((m, idx) => {
+    if (idx !== i) return m;
+    const blocks =
+      typeof m.content === "string" ? [{ type: "text", text: m.content }] : m.content;
+    return {
+      ...m,
+      content: blocks.map((b, j) =>
+        j === blocks.length - 1 ? { ...b, cache_control: { type: "ephemeral" } } : b
+      ),
+    };
+  });
+}
+
 // Anthropic stop_reason → OpenAI finish_reason.
 function finishReason(stop: string | undefined): string | null {
   if (!stop) return null;
@@ -121,7 +142,11 @@ export async function sendAnthropic(
   model: string,
   headers: Record<string, string>,
   messages: ChatMessage[],
-  options: UpstreamOptions & { label?: string }
+  // Mark prompt-cache breakpoints (system prompt, end of the earlier turns).
+  // Only for endpoints whose auth allows resending the request: if one
+  // rejects cache_control, we retry once without it. Broker providers sign
+  // each request, so they're left as they were.
+  options: UpstreamOptions & { label?: string; promptCache?: boolean }
 ): Promise<Response> {
   const system = messages
     .filter((m) => m.role === "system")
@@ -132,23 +157,40 @@ export async function sendAnthropic(
     .map((m) => ({ role: m.role, content: partsToAnthropic(m.content) }));
 
   const stream = options.stream ?? true;
-  const resp = await fetchUpstream(`${endpoint}/messages`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "anthropic-version": "2023-06-01",
-      ...headers,
-    },
-    body: JSON.stringify({
-      model,
-      max_tokens: 8192,
-      // This provider requires `system` as content blocks, not a bare string
-      // (a string 500s with "upstream error").
-      ...(system ? { system: [{ type: "text", text: system }] } : {}),
-      messages: anthropicMessages,
-      stream,
-    }),
-  }, options.signal);
+  const request = (cache: boolean) =>
+    fetchUpstream(`${endpoint}/messages`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "anthropic-version": "2023-06-01",
+        ...headers,
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: 8192,
+        // This provider requires `system` as content blocks, not a bare string
+        // (a string 500s with "upstream error").
+        ...(system
+          ? {
+              system: [
+                {
+                  type: "text",
+                  text: system,
+                  ...(cache ? { cache_control: { type: "ephemeral" } } : {}),
+                },
+              ],
+            }
+          : {}),
+        messages: cache ? withHistoryBreakpoint(anthropicMessages) : anthropicMessages,
+        stream,
+      }),
+    }, options.signal);
+
+  let resp = await request(!!options.promptCache);
+  if (!resp.ok && resp.status === 400 && options.promptCache) {
+    await resp.body?.cancel();
+    resp = await request(false);
+  }
 
   if (!resp.ok) {
     throw await upstreamFailure(`${options.label ?? "0G Compute"} (Anthropic)`, resp);
