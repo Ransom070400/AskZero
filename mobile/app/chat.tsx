@@ -91,6 +91,11 @@ export default function Chat() {
   const modelRef = useRef<{ provider: string; model: string } | null>(null);
   const listRef = useRef<FlatList<Msg>>(null);
   const nearBottomRef = useRef(true);
+  const abortRef = useRef<AbortController | null>(null);
+  const stop = useCallback(() => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+  }, []);
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
 
   const ensureChatId = useCallback(async () => {
@@ -198,6 +203,7 @@ export default function Chat() {
   };
 
   const newChat = () => {
+    stop();
     chatIdRef.current = null;
     setMessages([]);
     setHistoryOpen(false);
@@ -206,6 +212,7 @@ export default function Chat() {
   const selectChat = async (id: string) => {
     setHistoryOpen(false);
     if (id === chatIdRef.current) return;
+    stop();
     setLoadingChat(true);
     chatIdRef.current = id;
     try {
@@ -250,6 +257,8 @@ export default function Chat() {
       const model = modelRef.current ?? (await getDefaultChatModel());
       const style = await getChatStyle();
 
+      const controller = new AbortController();
+      abortRef.current = controller;
       const final = await streamChat(
         {
           chatId,
@@ -290,11 +299,21 @@ export default function Chat() {
                   : m
               )
             ),
+          signal: controller.signal,
         }
       );
       // Adopt the persisted DB id so the on-chain receipt lookup resolves.
       if (final?.messageId) setAssistant({ id: final.messageId, persisted: true });
     } catch (e) {
+      if ((e as Error).name === "AbortError") {
+        // Stopped: keep what streamed. (No DB id arrives, so no receipt.)
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === assistantMsg.id && !m.content ? { ...m, content: "_(stopped)_" } : m
+          )
+        );
+        return;
+      }
       // Keep whatever streamed before the failure; add the error under it.
       const msg = `⚠️ ${(e as Error).message}`;
       setMessages((prev) =>
@@ -305,6 +324,7 @@ export default function Chat() {
         )
       );
     } finally {
+      abortRef.current = null;
       setSending(false);
       refreshBalance();
     }
@@ -460,24 +480,33 @@ export default function Chat() {
             value={input}
             onChangeText={setInput}
             multiline
-            editable={!sending}
           />
-          <Pressable
-            style={[
-              styles.sendBtn,
-              (!input.trim() && attachments.length === 0) || sending
-                ? styles.disabled
-                : null,
-            ]}
-            onPress={send}
-            disabled={(!input.trim() && attachments.length === 0) || sending}
-          >
-            {busyAttach ? (
-              <ActivityIndicator color={colors.onAccent} size="small" />
-            ) : (
-              <Text style={styles.sendBtnText}>{sending ? "…" : "↑"}</Text>
-            )}
-          </Pressable>
+          {sending ? (
+            <Pressable
+              style={styles.sendBtn}
+              onPress={stop}
+              accessibilityLabel="Stop generating"
+              hitSlop={6}
+            >
+              <Square size={14} color={colors.onAccent} fill={colors.onAccent} />
+            </Pressable>
+          ) : (
+            <Pressable
+              style={[
+                styles.sendBtn,
+                !input.trim() && attachments.length === 0 ? styles.disabled : null,
+              ]}
+              onPress={send}
+              disabled={!input.trim() && attachments.length === 0}
+              accessibilityLabel="Send"
+            >
+              {busyAttach ? (
+                <ActivityIndicator color={colors.onAccent} size="small" />
+              ) : (
+                <Text style={styles.sendBtnText}>↑</Text>
+              )}
+            </Pressable>
+          )}
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>

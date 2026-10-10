@@ -421,6 +421,9 @@ export interface StreamExtras {
   // The server decided what streamed as reasoning was really the answer
   // (a model that never closed </think>): move it into the content.
   onPromoteReasoning?: () => void;
+  // Stop: cancels the request. The server still saves and bills what was
+  // produced up to that point.
+  signal?: AbortSignal;
 }
 
 export async function streamChat(
@@ -436,6 +439,7 @@ export async function streamChat(
       ...(await authHeaders()),
     },
     body: JSON.stringify(params),
+    signal: extras.signal,
   });
 
   if (!res.ok) {
