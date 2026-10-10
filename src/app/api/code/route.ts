@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { getAuthedUser } from "@/lib/supabase/api-auth";
 import { checkBalance, deductCredits } from "@/lib/credits";
 import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { saveAssistantMessage } from "@/lib/assistant-message";
 import { runBuild, BUILD_COST, type BuildDepth } from "@/lib/code-build";
 
 export const dynamic = "force-dynamic";
@@ -55,17 +56,14 @@ export async function POST(req: NextRequest) {
         if (result) {
           // Persist the deliverable into the chat (if any) so it's revisitable.
           if (chatId) {
-            await supabase.from("messages").insert({
-              chat_id: chatId,
-              user_id: user.id,
-              role: "assistant",
+            await saveAssistantMessage(user.id, chatId, {
               content: result.answer,
               metadata: {
                 kind: "code",
                 depth,
                 files: result.files.map((f) => f.path),
               },
-            });
+            }).catch((err) => console.error("Failed to save code build", err));
           }
           // Charge only on success.
           try {

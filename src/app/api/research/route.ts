@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { getAuthedUser } from "@/lib/supabase/api-auth";
 import { checkBalance, deductCredits } from "@/lib/credits";
 import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { saveAssistantMessage } from "@/lib/assistant-message";
 import { runResearch, RESEARCH_COST, type ResearchDepth } from "@/lib/research";
 
 export const dynamic = "force-dynamic";
@@ -53,13 +54,10 @@ export async function POST(req: NextRequest) {
         if (result) {
           // Persist the report into the chat (if any) so it's revisitable.
           if (chatId) {
-            await supabase.from("messages").insert({
-              chat_id: chatId,
-              user_id: user.id,
-              role: "assistant",
+            await saveAssistantMessage(user.id, chatId, {
               content: result.report,
               metadata: { kind: "research", depth, sources: result.sources },
-            });
+            }).catch((err) => console.error("Failed to save research report", err));
           }
           // Charge only on success.
           try {
