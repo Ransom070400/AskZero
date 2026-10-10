@@ -172,15 +172,21 @@ export async function POST(req: NextRequest) {
 
   // Save user message (skipped entirely in incognito — nothing is persisted).
   const metadata = attachments.length > 0 ? { attachments } : {};
+  let userMessageId: string | null = null;
   if (!incognito) {
-    const { error: insertError } = await supabase.from("messages").insert({
-      chat_id: chatId,
-      role: "user",
-      content: message,
-      token_count: estimateTokens(message),
-      metadata,
-      ...(replacesId ? { replaces_id: replacesId } : {}),
-    });
+    const { data: userRow, error: insertError } = await supabase
+      .from("messages")
+      .insert({
+        chat_id: chatId,
+        role: "user",
+        content: message,
+        token_count: estimateTokens(message),
+        metadata,
+        ...(replacesId ? { replaces_id: replacesId } : {}),
+      })
+      .select("id")
+      .single();
+    userMessageId = userRow?.id ?? null;
 
     if (insertError) {
       return new Response(
@@ -301,6 +307,10 @@ export async function POST(req: NextRequest) {
       const encoder = new TextEncoder();
       const send = (obj: unknown) =>
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(obj)}\n\n`));
+
+      // The client renders the user turn optimistically with a temporary id;
+      // hand it the persisted one so edit/retry can supersede it.
+      if (userMessageId) send({ userMessageId });
 
       // 1) Agentic reasoning loop — emit each thinking/tool step live.
       let observations = "";

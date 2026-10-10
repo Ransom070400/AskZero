@@ -75,6 +75,9 @@ function ChatDetailContent() {
   const keyboardInset = useKeyboardInset();
   const initialSent = useRef(false);
   const abortRef = useRef<AbortController | null>(null);
+  // Set synchronously on send, so a second Enter during the upload step (before
+  // isStreaming has re-rendered) can't send the message twice.
+  const sendingRef = useRef(false);
   // Always-current transcript for the incognito history payload (sendMessage's
   // deps intentionally exclude `messages`, so read the latest via this ref).
   const messagesRef = useRef<Message[]>([]);
@@ -268,18 +271,22 @@ function ChatDetailContent() {
   }, [chatId]);
 
   const uploadFiles = async (files: File[]): Promise<Attachment[]> => {
-    const uploaded: Attachment[] = [];
-    for (const file of files) {
-      const form = new FormData();
-      form.append("file", file);
-      form.append("chatId", chatId);
-
-      const res = await fetch("/api/upload", { method: "POST", body: form });
-      if (res.ok) {
-        uploaded.push(await res.json());
-      }
-    }
-    return uploaded;
+    const results = await Promise.all(
+      files.map(async (file) => {
+        const form = new FormData();
+        form.append("file", file);
+        form.append("chatId", chatId);
+        try {
+          const res = await fetch("/api/upload", { method: "POST", body: form });
+          if (res.ok) return (await res.json()) as Attachment;
+        } catch {
+          // reported below
+        }
+        toast.error(`Couldn't upload ${file.name}`);
+        return null;
+      })
+    );
+    return results.filter((a): a is Attachment => a !== null);
   };
 
   const runImageGeneration = useCallback(
@@ -356,286 +363,323 @@ function ChatDetailContent() {
   const sendMessage = useCallback(
     async (
       text: string,
-      opts: { replacesId?: string; model?: { provider: string; model: string } } = {}
+      opts: {
+        replacesId?: string;
+        model?: { provider: string; model: string };
+        // Already-uploaded attachments to resend (edit / retry of a turn).
+        attachments?: Attachment[];
+      } = {}
     ) => {
-      if ((!text.trim() && attachments.length === 0) || isStreaming || !selectedModel) return;
-
-      // Picker-selected image model: every plain prompt becomes an image
-      // generation request. Strip an optional /image prefix so the slash
-      // command still feels natural when this model is active.
-      if (selectedModel.provider.startsWith("image:")) {
-        const prompt = text.trim().replace(/^\/(?:image|img)\s+/i, "");
-        if (!prompt) return;
-        if (attachments.length > 0) setAttachments([]);
-        await runImageGeneration(prompt, `/image ${prompt}`);
+      const resent = opts.attachments ?? [];
+      if (
+        (!text.trim() && attachments.length === 0 && resent.length === 0) ||
+        isStreaming ||
+        sendingRef.current ||
+        !selectedModel
+      )
         return;
-      }
-
-      // Slash command: /image <prompt> | /img <prompt>
-      const imageMatch = text.trim().match(/^\/(?:image|img)\s+([\s\S]+)$/i);
-      if (imageMatch) {
-        const prompt = imageMatch[1].trim();
-        if (!prompt) return;
-        await runImageGeneration(prompt, `/image ${prompt}`);
-        return;
-      }
-
-      // Auto-detect natural-language image requests when no attachments are
-      // present. Conservative regex — only fires on explicit verbs paired
-      // with explicit nouns (image/picture/photo/etc) so chat questions
-      // like "describe this picture" or "what's in this image" don't trigger.
-      if (attachments.length === 0) {
-        const detected = detectImageIntent(text.trim());
-        if (detected) {
-          await runImageGeneration(detected, text.trim());
-          return;
-        }
-      }
-
-      // Upload files first
-      let uploadedAttachments: Attachment[] = [];
-      const filesToUpload = [...attachments];
-      setAttachments([]);
-
-      if (filesToUpload.length > 0) {
-        uploadedAttachments = await uploadFiles(filesToUpload);
-      }
-
-      const userMsg: Message = {
-        id: crypto.randomUUID(),
-        role: "user",
-        content: text.trim(),
-        attachments: uploadedAttachments.length > 0 ? uploadedAttachments : undefined,
-        replacesId: opts.replacesId,
-      };
-      setMessages((prev) => [...prev, userMsg]);
-      setInput("");
-      setIsStreaming(true);
-
-      const assistantId = crypto.randomUUID();
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: assistantId,
-          role: "assistant",
-          content: "",
-          answeredBy: opts.model ?? selectedModel,
-        },
-      ]);
-
-      const controller = new AbortController();
-      abortRef.current = controller;
-
+      sendingRef.current = true;
       try {
-        const res = await fetch("/api/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            chatId,
-            message: text.trim(),
-            model: opts.model?.model ?? selectedModel!.model,
-            provider: opts.model?.provider ?? selectedModel!.provider,
-            attachments: uploadedAttachments,
-            style,
-            replacesId: opts.replacesId,
-            incognito: isIncognito,
-            // Ephemeral: the server has nothing to load, so we send the
-            // in-memory transcript (prior turns + this message).
-            ...(isIncognito
-              ? {
-                  history: [
-                    ...messagesRef.current
-                      .filter((m) => m.content && m.role !== "system")
-                      .map((m) => ({ role: m.role, content: m.content })),
-                    { role: "user", content: text.trim() },
-                  ],
-                }
-              : {}),
-          }),
-          signal: controller.signal,
-        });
 
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          const raw = String(err.error || "");
-          let errorContent: string;
-          let toastMsg: string;
-          if (res.status === 429) {
-            errorContent =
-              "Rate limited — too many requests. Wait a moment, then hit Retry.";
-            toastMsg = "Rate limited — try again shortly";
-          } else if (raw === "Insufficient credits") {
-            errorContent =
-              "Insufficient credits. [Deposit funds](/deposit) to continue.";
-            toastMsg = "Insufficient credits";
-          } else if (/not a multimodal model/i.test(raw)) {
-            errorContent =
-              "This model can't read images — pick a multimodal model from the picker, or remove the image attachments.";
-            toastMsg = "Model can't read images";
-          } else {
-            errorContent = `Error: ${raw || "Something went wrong"}`;
-            toastMsg = "Message failed — hit Retry";
-          }
-          toast.error(toastMsg);
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === assistantId ? { ...m, content: errorContent } : m
-            )
-          );
-          setIsStreaming(false);
+        // Picker-selected image model: every plain prompt becomes an image
+        // generation request. Strip an optional /image prefix so the slash
+        // command still feels natural when this model is active.
+        if (selectedModel.provider.startsWith("image:")) {
+          const prompt = text.trim().replace(/^\/(?:image|img)\s+/i, "");
+          if (!prompt) return;
+          if (attachments.length > 0) setAttachments([]);
+          await runImageGeneration(prompt, `/image ${prompt}`);
           return;
         }
 
-        const reader = res.body!.getReader();
-        const decoder = new TextDecoder();
-        let buffer = "";
+        // Slash command: /image <prompt> | /img <prompt>
+        const imageMatch = text.trim().match(/^\/(?:image|img)\s+([\s\S]+)$/i);
+        if (imageMatch) {
+          const prompt = imageMatch[1].trim();
+          if (!prompt) return;
+          await runImageGeneration(prompt, `/image ${prompt}`);
+          return;
+        }
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
+        // Auto-detect natural-language image requests when no attachments are
+        // present. Conservative regex — only fires on explicit verbs paired
+        // with explicit nouns (image/picture/photo/etc) so chat questions
+        // like "describe this picture" or "what's in this image" don't trigger.
+        if (attachments.length === 0) {
+          const detected = detectImageIntent(text.trim());
+          if (detected) {
+            await runImageGeneration(detected, text.trim());
+            return;
+          }
+        }
 
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n\n");
-          buffer = lines.pop() || "";
+        // Upload files first
+        let uploadedAttachments: Attachment[] = resent;
+        const filesToUpload = [...attachments];
+        setAttachments([]);
 
-          for (const line of lines) {
-            const trimmed = line.replace(/^data: /, "");
-            if (trimmed === "[DONE]") continue;
-            if (!trimmed) continue;
+        if (filesToUpload.length > 0) {
+          uploadedAttachments = [...resent, ...(await uploadFiles(filesToUpload))];
+        }
 
-            try {
-              const parsed = JSON.parse(trimmed);
+        const userMsg: Message = {
+          id: crypto.randomUUID(),
+          role: "user",
+          content: text.trim(),
+          attachments: uploadedAttachments.length > 0 ? uploadedAttachments : undefined,
+          replacesId: opts.replacesId,
+        };
+        setMessages((prev) => [...prev, userMsg]);
+        setInput("");
+        setIsStreaming(true);
 
-              // The server can decline mid-stream — most importantly when the
-              // real input size pushes the projected cost above the balance,
-              // which is only known after the request has already opened. Same
-              // treatment as the pre-stream 402 so it never fails silently.
-              if (parsed.error) {
-                const streamErr = String(parsed.error);
-                const insufficient = streamErr === "Insufficient credits";
-                toast.error(insufficient ? "Insufficient credits" : streamErr);
-                setMessages((prev) =>
-                  prev.map((m) =>
-                    m.id === assistantId
-                      ? {
-                          ...m,
-                          content: insufficient
-                            ? "Insufficient credits. [Deposit funds](/deposit) to continue."
-                            : `Error: ${streamErr}`,
-                        }
-                      : m
-                  )
-                );
-                continue;
-              }
-              if (
-                parsed.type === "thinking" ||
-                parsed.type === "tool" ||
-                parsed.type === "tool_result"
-              ) {
-                setMessages((prev) =>
-                  prev.map((m) =>
-                    m.id === assistantId
-                      ? { ...m, steps: [...(m.steps ?? []), parsed] }
-                      : m
-                  )
-                );
-              }
-              if (parsed.promoteReasoning) {
-                // The server decided the "reasoning" was really the answer.
-                setMessages((prev) =>
-                  prev.map((m) =>
-                    m.id === assistantId
-                      ? {
-                          ...m,
-                          content: (m.reasoning ?? "") + m.content,
-                          reasoning: undefined,
-                          thinkingStartedAt: undefined,
-                          thinkingMs: undefined,
-                        }
-                      : m
-                  )
-                );
-              }
-              if (typeof parsed.reasoning === "string") {
-                setMessages((prev) =>
-                  prev.map((m) =>
-                    m.id === assistantId
-                      ? {
-                          ...m,
-                          reasoning: (m.reasoning ?? "") + parsed.reasoning,
-                          thinkingStartedAt: m.thinkingStartedAt ?? Date.now(),
-                        }
-                      : m
-                  )
-                );
-              }
-              if (parsed.content) {
-                setMessages((prev) =>
-                  prev.map((m) =>
-                    m.id === assistantId
-                      ? {
-                          ...m,
-                          content: m.content + parsed.content,
-                          // First answer token ends the thinking phase.
-                          thinkingMs:
-                            m.thinkingMs ??
-                            (m.thinkingStartedAt
-                              ? Date.now() - m.thinkingStartedAt
-                              : undefined),
-                        }
-                      : m
-                  )
-                );
-              }
-              if (parsed.usage) {
-                setMessages((prev) =>
-                  prev.map((m) =>
-                    m.id === assistantId
-                      ? {
-                          ...m,
-                          // adopt the persisted DB id so the receipt lookup works
-                          id: parsed.messageId ?? m.id,
-                          tokenCount: parsed.usage.output_tokens,
-                          costCredits: parsed.usage.cost,
-                          artifacts: parsed.artifacts ?? m.artifacts,
-                        }
-                      : m
-                  )
-                );
-                if (parsed.artifacts?.length > 0) {
-                  setOpenArtifactId((current) => current ?? parsed.artifacts[0].id);
+        const assistantId = crypto.randomUUID();
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: assistantId,
+            role: "assistant",
+            content: "",
+            answeredBy: opts.model ?? selectedModel,
+          },
+        ]);
+
+        const controller = new AbortController();
+        abortRef.current = controller;
+
+        try {
+          const res = await fetch("/api/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              chatId,
+              message: text.trim(),
+              model: opts.model?.model ?? selectedModel!.model,
+              provider: opts.model?.provider ?? selectedModel!.provider,
+              attachments: uploadedAttachments,
+              style,
+              replacesId: opts.replacesId,
+              incognito: isIncognito,
+              // Ephemeral: the server has nothing to load, so we send the
+              // in-memory transcript (prior turns + this message). An edit or
+              // retry replaces a turn, so the transcript stops before it.
+              ...(isIncognito
+                ? {
+                    history: [
+                      ...messagesRef.current
+                        .slice(
+                          0,
+                          opts.replacesId
+                            ? Math.max(
+                                0,
+                                messagesRef.current.findIndex((m) => m.id === opts.replacesId)
+                              )
+                            : undefined
+                        )
+                        .filter((m) => m.content && m.role !== "system")
+                        .map((m) => ({ role: m.role, content: m.content })),
+                      { role: "user", content: text.trim() },
+                    ],
+                  }
+                : {}),
+            }),
+            signal: controller.signal,
+          });
+
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            const raw = String(err.error || "");
+            let errorContent: string;
+            let toastMsg: string;
+            if (res.status === 429) {
+              errorContent =
+                "Rate limited — too many requests. Wait a moment, then hit Retry.";
+              toastMsg = "Rate limited — try again shortly";
+            } else if (raw === "Insufficient credits") {
+              errorContent =
+                "Insufficient credits. [Deposit funds](/deposit) to continue.";
+              toastMsg = "Insufficient credits";
+            } else if (/not a multimodal model/i.test(raw)) {
+              errorContent =
+                "This model can't read images — pick a multimodal model from the picker, or remove the image attachments.";
+              toastMsg = "Model can't read images";
+            } else {
+              errorContent = `Error: ${raw || "Something went wrong"}`;
+              toastMsg = "Message failed — hit Retry";
+            }
+            toast.error(toastMsg);
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantId ? { ...m, content: errorContent } : m
+              )
+            );
+            setIsStreaming(false);
+            return;
+          }
+
+          const reader = res.body!.getReader();
+          const decoder = new TextDecoder();
+          let buffer = "";
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n\n");
+            buffer = lines.pop() || "";
+
+            for (const line of lines) {
+              const trimmed = line.replace(/^data: /, "");
+              if (trimmed === "[DONE]") continue;
+              if (!trimmed) continue;
+
+              try {
+                const parsed = JSON.parse(trimmed);
+
+                if (typeof parsed.userMessageId === "string") {
+                  // Adopt the persisted id so edit/retry can supersede this turn.
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === userMsg.id ? { ...m, id: parsed.userMessageId } : m
+                    )
+                  );
+                  continue;
                 }
+
+                // The server can decline mid-stream — most importantly when the
+                // real input size pushes the projected cost above the balance,
+                // which is only known after the request has already opened. Same
+                // treatment as the pre-stream 402 so it never fails silently.
+                if (parsed.error) {
+                  const streamErr = String(parsed.error);
+                  const insufficient = streamErr === "Insufficient credits";
+                  toast.error(insufficient ? "Insufficient credits" : streamErr);
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === assistantId
+                        ? {
+                            ...m,
+                            content: insufficient
+                              ? "Insufficient credits. [Deposit funds](/deposit) to continue."
+                              : `Error: ${streamErr}`,
+                          }
+                        : m
+                    )
+                  );
+                  continue;
+                }
+                if (
+                  parsed.type === "thinking" ||
+                  parsed.type === "tool" ||
+                  parsed.type === "tool_result"
+                ) {
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === assistantId
+                        ? { ...m, steps: [...(m.steps ?? []), parsed] }
+                        : m
+                    )
+                  );
+                }
+                if (parsed.promoteReasoning) {
+                  // The server decided the "reasoning" was really the answer.
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === assistantId
+                        ? {
+                            ...m,
+                            content: (m.reasoning ?? "") + m.content,
+                            reasoning: undefined,
+                            thinkingStartedAt: undefined,
+                            thinkingMs: undefined,
+                          }
+                        : m
+                    )
+                  );
+                }
+                if (typeof parsed.reasoning === "string") {
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === assistantId
+                        ? {
+                            ...m,
+                            reasoning: (m.reasoning ?? "") + parsed.reasoning,
+                            thinkingStartedAt: m.thinkingStartedAt ?? Date.now(),
+                          }
+                        : m
+                    )
+                  );
+                }
+                if (parsed.content) {
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === assistantId
+                        ? {
+                            ...m,
+                            content: m.content + parsed.content,
+                            // First answer token ends the thinking phase.
+                            thinkingMs:
+                              m.thinkingMs ??
+                              (m.thinkingStartedAt
+                                ? Date.now() - m.thinkingStartedAt
+                                : undefined),
+                          }
+                        : m
+                    )
+                  );
+                }
+                if (parsed.usage) {
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === assistantId
+                        ? {
+                            ...m,
+                            // adopt the persisted DB id so the receipt lookup works
+                            id: parsed.messageId ?? m.id,
+                            tokenCount: parsed.usage.output_tokens,
+                            costCredits: parsed.usage.cost,
+                            artifacts: parsed.artifacts ?? m.artifacts,
+                          }
+                        : m
+                    )
+                  );
+                  if (parsed.artifacts?.length > 0) {
+                    setOpenArtifactId((current) => current ?? parsed.artifacts[0].id);
+                  }
+                }
+              } catch {
+                // skip malformed chunks
               }
-            } catch {
-              // skip malformed chunks
             }
           }
+        } catch (err) {
+          const aborted =
+            err instanceof DOMException && err.name === "AbortError";
+          if (!aborted) toast.error("Network error — check your connection");
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantId
+                ? aborted
+                  ? { ...m, content: m.content || "_(stopped)_" }
+                  : {
+                      ...m,
+                      // Keep any tokens that streamed before the drop.
+                      content:
+                        m.content ||
+                        "Network error — check your connection and hit Retry.",
+                    }
+                : m
+            )
+          );
+        } finally {
+          abortRef.current = null;
         }
-      } catch (err) {
-        const aborted =
-          err instanceof DOMException && err.name === "AbortError";
-        if (!aborted) toast.error("Network error — check your connection");
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === assistantId
-              ? aborted
-                ? { ...m, content: m.content || "_(stopped)_" }
-                : {
-                    ...m,
-                    // Keep any tokens that streamed before the drop.
-                    content:
-                      m.content ||
-                      "Network error — check your connection and hit Retry.",
-                  }
-              : m
-          )
-        );
-      } finally {
-        abortRef.current = null;
-      }
 
-      setIsStreaming(false);
+        setIsStreaming(false);
+      } finally {
+        sendingRef.current = false;
+      }
     },
     [chatId, isStreaming, selectedModel, attachments, style, runImageGeneration]
   );
@@ -680,30 +724,49 @@ function ChatDetailContent() {
     [chatId]
   );
 
+  // Edit and retry both replace a user turn: soft-delete it and everything
+  // after it (supersede_message), then resend — with the turn's attachments —
+  // as a new message pointing back via replaces_id. Old branches stay in the
+  // DB so the UI can offer "view previous version". A turn that never reached
+  // the DB (it failed before saving) has nothing to supersede, so it's simply
+  // dropped locally and resent as a fresh message.
+  const replaceTurn = useCallback(
+    async (
+      original: Message,
+      content: string,
+      model?: { provider: string; model: string }
+    ) => {
+      const idx = messagesRef.current.findIndex((m) => m.id === original.id);
+      if (idx < 0) return;
+
+      let replacesId: string | undefined;
+      if (isIncognito) {
+        replacesId = original.id;
+      } else {
+        const { error } = await createClient().rpc("supersede_message", {
+          p_message_id: original.id,
+        });
+        if (!error) replacesId = original.id;
+      }
+
+      setMessages((prev) => prev.slice(0, idx));
+      sendMessage(content, {
+        replacesId,
+        model,
+        attachments: original.attachments,
+      });
+    },
+    [isIncognito, sendMessage]
+  );
+
   const handleEdit = useCallback(
     async (messageId: string, newContent: string) => {
       if (isStreaming) return;
-      const idx = messages.findIndex((m) => m.id === messageId);
-      if (idx < 0) return;
-
-      // Soft-delete the original user message and its downstream tail via
-      // RPC, then attach the new message to it via replaces_id. Old branches
-      // stay in the DB so the UI can offer "view previous version".
-      // Optimistic-only messages (client UUIDs never persisted) are dropped
-      // locally; nothing to soft-delete server-side for those.
-      setMessages((prev) => prev.slice(0, idx));
-
-      const supabase = createClient();
-      const { error } = await supabase.rpc("supersede_message", {
-        p_message_id: messageId,
-      });
-      if (error) {
-        console.error("supersede_message failed:", error);
-      }
-
-      sendMessage(newContent, { replacesId: messageId });
+      const original = messages.find((m) => m.id === messageId);
+      if (!original) return;
+      await replaceTurn(original, newContent);
     },
-    [messages, isStreaming, sendMessage]
+    [messages, isStreaming, replaceTurn]
   );
 
   const handleRegenerateImage = useCallback(
@@ -734,20 +797,13 @@ function ChatDetailContent() {
 
   const regenerate = useCallback(
     (modelOverride?: { provider: string; model: string }) => {
-      // Find the last user message and resend it
+      // Retry = replace the last user turn with itself, so the old answer is
+      // superseded instead of the question being stored twice.
       const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
       if (!lastUserMsg || isStreaming) return;
-
-      // Remove last assistant message
-      setMessages((prev) => {
-        const idx = prev.findLastIndex((m) => m.role === "assistant");
-        if (idx >= 0) return prev.filter((_, i) => i !== idx);
-        return prev;
-      });
-
-      sendMessage(lastUserMsg.content, modelOverride ? { model: modelOverride } : {});
+      replaceTurn(lastUserMsg, lastUserMsg.content, modelOverride);
     },
-    [messages, isStreaming, sendMessage]
+    [messages, isStreaming, replaceTurn]
   );
 
   // Keep a no-arg version for the click handler (so the click event never
