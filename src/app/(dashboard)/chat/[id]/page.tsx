@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState, useRef, useCallback } from "react";
+import { Suspense, useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { EyeOff, ImageIcon, Telescope } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -15,7 +15,28 @@ import {
 } from "@/components/chat/chat-input";
 import { ModelPicker } from "@/components/chat/model-picker";
 import { CostMeter } from "@/components/chat/cost-meter";
-import type { Message, Attachment, ArtifactRef } from "@/components/chat/message-bubble";
+import type {
+  Message,
+  Attachment,
+  ArtifactRef,
+  AgentStep,
+} from "@/components/chat/message-bubble";
+import { readSSE, createTokenBatcher } from "@/lib/chat-stream";
+
+// One event from /api/chat's stream (fields vary by event).
+interface StreamEvent {
+  content?: string;
+  reasoning?: string;
+  promoteReasoning?: boolean;
+  userMessageId?: string;
+  error?: string;
+  code?: string;
+  type?: string;
+  finishReason?: string | null;
+  usage?: { input_tokens: number; output_tokens: number; cost: number };
+  messageId?: string | null;
+  artifacts?: ArtifactRef[];
+}
 import { CHAT_STYLES, type ChatStyle } from "@/lib/system-prompt";
 import { ArtifactPanel } from "@/components/artifact/artifact-panel";
 import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
@@ -125,6 +146,14 @@ function ChatDetailContent() {
       return found ? found.label.split(" · ")[0] : m.model.replace(/^.*\//, "");
     },
     [models]
+  );
+
+  // Stable props for <ChatList>: its bubbles are memoised, so a new array or
+  // inline arrow here would re-render every message on every streamed token.
+  const regenModels = useMemo(() => models.filter((m) => !m.comingSoon), [models]);
+  const handleQuote = useCallback(
+    (q: string) => setInput(`About "${q.replace(/\s+/g, " ").trim()}": `),
+    []
   );
 
   // The active model's vision capability — drives the input gate and the
@@ -517,161 +546,110 @@ function ChatDetailContent() {
             return;
           }
 
-          const reader = res.body!.getReader();
-          const decoder = new TextDecoder();
-          let buffer = "";
-
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-
-            buffer += decoder.decode(value, { stream: true });
-            const lines = buffer.split("\n\n");
-            buffer = lines.pop() || "";
-
-            for (const line of lines) {
-              const trimmed = line.replace(/^data: /, "");
-              if (trimmed === "[DONE]") continue;
-              if (!trimmed) continue;
-
-              try {
-                const parsed = JSON.parse(trimmed);
-
-                if (typeof parsed.userMessageId === "string") {
-                  // Adopt the persisted id so edit/retry can supersede this turn.
-                  setMessages((prev) =>
-                    prev.map((m) =>
-                      m.id === userMsg.id ? { ...m, id: parsed.userMessageId } : m
-                    )
-                  );
-                  continue;
-                }
-
-                // The server can decline mid-stream — most importantly when the
-                // real input size pushes the projected cost above the balance,
-                // which is only known after the request has already opened. Same
-                // treatment as the pre-stream 402 so it never fails silently.
-                if (parsed.error) {
-                  const streamErr = String(parsed.error);
-                  const insufficient =
-                    parsed.code === "insufficient_credits" ||
-                    streamErr === "Insufficient credits";
-                  const note = insufficient
-                    ? "Insufficient credits. [Deposit funds](/deposit) to continue."
-                    : streamErr;
-                  toast.error(insufficient ? "Insufficient credits" : streamErr);
-                  // Keep whatever streamed before the failure.
-                  setMessages((prev) =>
-                    prev.map((m) =>
-                      m.id === assistantId
-                        ? {
-                            ...m,
-                            content: m.content
-                              ? `${m.content}\n\n_${note}_`
-                              : insufficient
-                                ? note
-                                : `Error: ${note}`,
-                          }
-                        : m
-                    )
-                  );
-                  continue;
-                }
-                if (parsed.finishReason === "length") {
-                  setMessages((prev) =>
-                    prev.map((m) =>
-                      m.id === assistantId
-                        ? {
-                            ...m,
-                            content: `${m.content}\n\n_The answer hit the length limit. Ask to continue._`,
-                          }
-                        : m
-                    )
-                  );
-                }
-                if (
-                  parsed.type === "thinking" ||
-                  parsed.type === "tool" ||
-                  parsed.type === "tool_result"
-                ) {
-                  setMessages((prev) =>
-                    prev.map((m) =>
-                      m.id === assistantId
-                        ? { ...m, steps: [...(m.steps ?? []), parsed] }
-                        : m
-                    )
-                  );
-                }
-                if (parsed.promoteReasoning) {
-                  // The server decided the "reasoning" was really the answer.
-                  setMessages((prev) =>
-                    prev.map((m) =>
-                      m.id === assistantId
-                        ? {
-                            ...m,
-                            content: (m.reasoning ?? "") + m.content,
-                            reasoning: undefined,
-                            thinkingStartedAt: undefined,
-                            thinkingMs: undefined,
-                          }
-                        : m
-                    )
-                  );
-                }
-                if (typeof parsed.reasoning === "string") {
-                  setMessages((prev) =>
-                    prev.map((m) =>
-                      m.id === assistantId
-                        ? {
-                            ...m,
-                            reasoning: (m.reasoning ?? "") + parsed.reasoning,
-                            thinkingStartedAt: m.thinkingStartedAt ?? Date.now(),
-                          }
-                        : m
-                    )
-                  );
-                }
-                if (parsed.content) {
-                  setMessages((prev) =>
-                    prev.map((m) =>
-                      m.id === assistantId
-                        ? {
-                            ...m,
-                            content: m.content + parsed.content,
-                            // First answer token ends the thinking phase.
-                            thinkingMs:
-                              m.thinkingMs ??
-                              (m.thinkingStartedAt
-                                ? Date.now() - m.thinkingStartedAt
-                                : undefined),
-                          }
-                        : m
-                    )
-                  );
-                }
-                if (parsed.usage) {
-                  setMessages((prev) =>
-                    prev.map((m) =>
-                      m.id === assistantId
-                        ? {
-                            ...m,
-                            // adopt the persisted DB id so the receipt lookup works
-                            id: parsed.messageId ?? m.id,
-                            tokenCount: parsed.usage.output_tokens,
-                            costCredits: parsed.usage.cost,
-                            artifacts: parsed.artifacts ?? m.artifacts,
-                          }
-                        : m
-                    )
-                  );
-                  if (parsed.artifacts?.length > 0) {
-                    setOpenArtifactId((current) => current ?? parsed.artifacts[0].id);
+          const updateAssistant = (fn: (m: Message) => Message) =>
+            setMessages((prev) => prev.map((m) => (m.id === assistantId ? fn(m) : m)));
+          const tokens = createTokenBatcher((content, reasoning) =>
+            updateAssistant((m) => ({
+              ...m,
+              ...(reasoning
+                ? {
+                    reasoning: (m.reasoning ?? "") + reasoning,
+                    thinkingStartedAt: m.thinkingStartedAt ?? Date.now(),
                   }
-                }
-              } catch {
-                // skip malformed chunks
+                : {}),
+              ...(content
+                ? {
+                    content: m.content + content,
+                    // First answer token ends the thinking phase.
+                    thinkingMs:
+                      m.thinkingMs ??
+                      (m.thinkingStartedAt ? Date.now() - m.thinkingStartedAt : undefined),
+                  }
+                : {}),
+            }))
+          );
+
+          try {
+            await readSSE<StreamEvent>(res.body!, (parsed) => {
+              if (parsed.content || typeof parsed.reasoning === "string") {
+                tokens.push({ content: parsed.content, reasoning: parsed.reasoning });
+                return;
               }
-            }
+              // Anything else applies after the text received before it.
+              tokens.flush();
+
+              if (typeof parsed.userMessageId === "string") {
+                // Adopt the persisted id so edit/retry can supersede this turn.
+                const persistedId = parsed.userMessageId;
+                setMessages((prev) =>
+                  prev.map((m) => (m.id === userMsg.id ? { ...m, id: persistedId } : m))
+                );
+                return;
+              }
+
+              // The server can decline mid-stream (e.g. the real input size
+              // pushes the cost past the balance) or the model can fail
+              // partway. Keep whatever streamed before the failure.
+              if (parsed.error) {
+                const streamErr = String(parsed.error);
+                const insufficient =
+                  parsed.code === "insufficient_credits" ||
+                  streamErr === "Insufficient credits";
+                const note = insufficient
+                  ? "Insufficient credits. [Deposit funds](/deposit) to continue."
+                  : streamErr;
+                toast.error(insufficient ? "Insufficient credits" : streamErr);
+                updateAssistant((m) => ({
+                  ...m,
+                  content: m.content
+                    ? `${m.content}\n\n_${note}_`
+                    : insufficient
+                      ? note
+                      : `Error: ${note}`,
+                }));
+                return;
+              }
+              if (parsed.finishReason === "length") {
+                updateAssistant((m) => ({
+                  ...m,
+                  content: `${m.content}\n\n_The answer hit the length limit. Ask to continue._`,
+                }));
+              }
+              if (
+                parsed.type === "thinking" ||
+                parsed.type === "tool" ||
+                parsed.type === "tool_result"
+              ) {
+                const step = parsed as AgentStep;
+                updateAssistant((m) => ({ ...m, steps: [...(m.steps ?? []), step] }));
+              }
+              if (parsed.promoteReasoning) {
+                // The server decided the "reasoning" was really the answer.
+                updateAssistant((m) => ({
+                  ...m,
+                  content: (m.reasoning ?? "") + m.content,
+                  reasoning: undefined,
+                  thinkingStartedAt: undefined,
+                  thinkingMs: undefined,
+                }));
+              }
+              if (parsed.usage) {
+                const { usage, messageId, artifacts } = parsed;
+                updateAssistant((m) => ({
+                  ...m,
+                  // adopt the persisted DB id so the receipt lookup works
+                  id: messageId ?? m.id,
+                  tokenCount: usage.output_tokens,
+                  costCredits: usage.cost,
+                  artifacts: artifacts ?? m.artifacts,
+                }));
+                if (artifacts && artifacts.length > 0) {
+                  setOpenArtifactId((current) => current ?? artifacts[0].id);
+                }
+              }
+            });
+          } finally {
+            tokens.flush();
           }
         } catch (err) {
           const aborted =
@@ -709,6 +687,13 @@ function ChatDetailContent() {
     abortRef.current = null;
     setIsStreaming(false);
   }, []);
+
+  // Leaving the chat (navigating away or switching chats) stops its stream.
+  // The server keeps and bills the partial answer, so it's there on return;
+  // left running, the reader would keep updating a chat no longer on screen.
+  useEffect(() => {
+    return () => abortRef.current?.abort();
+  }, [chatId]);
 
   const handleOpenAsArtifact = useCallback(
     async (
@@ -914,14 +899,14 @@ function ChatDetailContent() {
         modelName={modelName}
         onRegenerate={handleRegenerate}
         onRegenerateWith={handleRegenerateWith}
-        regenModels={models.filter((m) => !m.comingSoon)}
+        regenModels={regenModels}
         onRegenerateImage={handleRegenerateImage}
         onEdit={handleEdit}
         onOpenArtifact={setOpenArtifactId}
         onOpenAsArtifact={handleOpenAsArtifact}
         hideReceipts={isIncognito}
         onTransform={(instruction) => sendMessage(instruction)}
-        onQuote={(q) => setInput(`About "${q.replace(/\s+/g, " ").trim()}": `)}
+        onQuote={handleQuote}
       />
       )}
 
