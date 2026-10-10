@@ -11,7 +11,7 @@ import {
   sendIntegratePrompt,
   retailCostCredits,
 } from "@/lib/integrate-network";
-import { ogRetailCostCredits } from "@/lib/og-compute-models";
+import { findOGComputeModel, ogRetailCostCredits } from "@/lib/og-compute-models";
 import {
   ROUTER_PREFIX,
   findRouterModel,
@@ -126,6 +126,19 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+  } else if (
+    // Anything else is a 0G Compute provider address, and only the curated
+    // ones are allowed: the broker acknowledges and funds whatever provider it
+    // is handed from the shared ledger, so an arbitrary address would let a
+    // caller route our 0G (and their prompts) to a provider they control.
+    provider.startsWith(INTEGRATE_PREFIX)
+      ? !findIntegrateModel(provider)
+      : !findOGComputeModel(provider)
+  ) {
+    return new Response(
+      JSON.stringify({ error: "That model is no longer available." }),
+      { status: 400 }
+    );
   }
 
   // Check balance. The gate has to clear this answer's PROJECTED cost, not a
