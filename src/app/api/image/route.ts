@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Upload to chat-attachments bucket
-  const path = `${user.id}/${chatId}/zimg-${Date.now()}.png`;
+  const path = `${user.id}/${chatId}/zimg-${crypto.randomUUID()}.png`;
   const { error: uploadErr } = await supabase.storage
     .from("chat-attachments")
     .upload(path, image.bytes, {

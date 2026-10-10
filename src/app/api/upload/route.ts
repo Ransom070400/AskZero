@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
   }
 
   const ext = file.name.split(".").pop() || "bin";
-  const safeName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const safeName = `${crypto.randomUUID()}.${ext}`;
   const path = `${user.id}/${chatId}/${safeName}`;
 
   const arrayBuffer = await file.arrayBuffer();
