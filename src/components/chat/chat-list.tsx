@@ -84,7 +84,9 @@ export function ChatList({ messages, isStreaming, modelLabel, modelName, onRegen
                 <MessageBubble
                   message={msg}
                   isLast={isLast}
-                  isStreaming={isStreaming}
+                  // Only the last bubble can be streaming; passing the flag to
+                  // the rest would re-render them (they're memoised) for nothing.
+                  isStreaming={isLast && isStreaming}
                   modelLabel={modelLabel}
                   modelName={modelName}
                   onRegenerate={!isStreaming ? onRegenerate : undefined}
