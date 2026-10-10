@@ -340,12 +340,7 @@ export function ChatInput({
               className="relative flex-shrink-0 group/att"
             >
               {file.type.startsWith("image/") ? (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img
-                  src={URL.createObjectURL(file)}
-                  alt={file.name}
-                  className="h-16 w-16 rounded-xl object-cover border border-border/80"
-                />
+                <ImageThumb file={file} />
               ) : (
                 <div className="flex h-16 w-16 flex-col items-center justify-center rounded-xl border border-border/80 bg-surface text-2xs font-semibold uppercase tracking-wider text-text-tertiary">
                   {file.name.split(".").pop()?.toUpperCase().slice(0, 4)}
@@ -528,5 +523,26 @@ export function ChatInput({
       )}
 
     </div>
+  );
+}
+
+// Preview of a queued image. The object URL is created once per file and
+// revoked when the preview goes away; creating it during render made a new
+// blob URL on every keystroke and never released any of them.
+function ImageThumb({ file }: { file: File }) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    const u = URL.createObjectURL(file);
+    setUrl(u);
+    return () => URL.revokeObjectURL(u);
+  }, [file]);
+  if (!url) return <div className="h-16 w-16 rounded-xl border border-border/80 bg-surface" />;
+  return (
+    /* eslint-disable-next-line @next/next/no-img-element */
+    <img
+      src={url}
+      alt={file.name}
+      className="h-16 w-16 rounded-xl object-cover border border-border/80"
+    />
   );
 }
