@@ -16,23 +16,32 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { txHash, address, signature } = (await req.json()) as {
+  const { txHash: rawTxHash, address, signature } = (await req.json()) as {
     txHash?: string;
     address?: string;
     signature?: string;
   };
 
-  if (!txHash || !address || !signature) {
+  if (!rawTxHash || !address || !signature) {
     return NextResponse.json(
       { error: "Missing txHash, address, or signature" },
       { status: 400 }
     );
   }
 
-  // 1) Prove the caller controls `address` (they signed for it).
+  // Hex is case-insensitive, but `reference` (the idempotency key) is not:
+  // keyed on the raw string, 0xABC… and 0xabc… would be two deposits for one
+  // transaction. Normalise before it's used for anything but the signature.
+  const txHash = rawTxHash.toLowerCase();
+  if (!/^0x[0-9a-f]{64}$/.test(txHash)) {
+    return NextResponse.json({ error: "Invalid txHash" }, { status: 400 });
+  }
+
+  // 1) Prove the caller controls `address` (they signed for it). The client
+  //    signed the hash as it sent it, so verify against that spelling.
   let recovered: string;
   try {
-    recovered = ethers.verifyMessage(depositMessage(txHash), signature);
+    recovered = ethers.verifyMessage(depositMessage(rawTxHash), signature);
   } catch {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
@@ -85,7 +94,7 @@ export async function POST(req: NextRequest) {
   }
 
   const tx = await provider.getTransaction(txHash);
-  if (!tx) {
+  if (!tx || tx.hash.toLowerCase() !== txHash) {
     return NextResponse.json({ error: "Transaction not found" }, { status: 400 });
   }
 
