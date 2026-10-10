@@ -123,5 +123,9 @@ export async function GET() {
       ...comingSoonModels,
       ...imageModels,
     ],
+  }, {
+    // Same for every user; prices move slowly. Lets the browser reuse it
+    // across page loads instead of rebuilding the router catalog each time.
+    headers: { "Cache-Control": "private, max-age=60, stale-while-revalidate=600" },
   });
 }
