@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { memo, useEffect, useRef, useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import {
   Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { createTokenBatcher } from "@/lib/token-batcher";
 import { Redirect, useRouter } from "expo-router";
 import {
   Plus,
@@ -65,8 +66,9 @@ interface Msg {
   reasoning?: string;
   imageUrl?: string;
   steps?: AgentStep[];
-  // Has a database id (receipt lookups only work for saved answers).
-  persisted?: boolean;
+  // The saved message's database id, once known. `id` stays the local one so
+  // the row keeps its key (and isn't remounted) when the answer is saved.
+  dbId?: string;
 }
 
 let idCounter = 0;
@@ -76,6 +78,10 @@ export default function Chat() {
   const router = useRouter();
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const renderItem = useCallback(
+    ({ item }: { item: Msg }) => <MessageRow item={item} styles={styles} colors={colors} />,
+    [styles, colors]
+  );
   const { session, loading } = useAuth();
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
@@ -218,7 +224,7 @@ export default function Chat() {
     try {
       const stored = await getChatMessages(id);
       setMessages(
-        stored.map((m) => ({ id: m.id, role: m.role, content: m.content, persisted: true }))
+        stored.map((m) => ({ id: m.id, role: m.role, content: m.content, dbId: m.id }))
       );
     } catch {
       setMessages([]);
@@ -259,6 +265,19 @@ export default function Chat() {
 
       const controller = new AbortController();
       abortRef.current = controller;
+      const tokens = createTokenBatcher((content, reasoning) =>
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === assistantMsg.id
+              ? {
+                  ...m,
+                  content: m.content + content,
+                  ...(reasoning ? { reasoning: (m.reasoning ?? "") + reasoning } : {}),
+                }
+              : m
+          )
+        )
+      );
       const final = await streamChat(
         {
           chatId,
@@ -268,42 +287,34 @@ export default function Chat() {
           style,
           attachments: outgoing.length ? outgoing : undefined,
         },
-        (chunk) =>
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === assistantMsg.id ? { ...m, content: m.content + chunk } : m
-            )
-          ),
-        (step) =>
+        (chunk) => tokens.push({ content: chunk }),
+        (step) => {
+          tokens.flush();
           setMessages((prev) =>
             prev.map((m) =>
               m.id === assistantMsg.id
                 ? { ...m, steps: [...(m.steps ?? []), step] }
                 : m
             )
-          ),
+          );
+        },
         {
-          onReasoning: (text) =>
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === assistantMsg.id
-                  ? { ...m, reasoning: (m.reasoning ?? "") + text }
-                  : m
-              )
-            ),
-          onPromoteReasoning: () =>
+          onReasoning: (text) => tokens.push({ reasoning: text }),
+          onPromoteReasoning: () => {
+            tokens.flush();
             setMessages((prev) =>
               prev.map((m) =>
                 m.id === assistantMsg.id
                   ? { ...m, content: (m.reasoning ?? "") + m.content, reasoning: undefined }
                   : m
               )
-            ),
+            );
+          },
           signal: controller.signal,
         }
-      );
-      // Adopt the persisted DB id so the on-chain receipt lookup resolves.
-      if (final?.messageId) setAssistant({ id: final.messageId, persisted: true });
+      ).finally(() => tokens.flush());
+      // Note the saved DB id so the on-chain receipt lookup resolves.
+      if (final?.messageId) setAssistant({ dbId: final.messageId });
     } catch (e) {
       if ((e as Error).name === "AbortError") {
         // Stopped: keep what streamed. (No DB id arrives, so no receipt.)
@@ -378,55 +389,13 @@ export default function Chat() {
             onContentSizeChange={() => {
               // Only follow the stream if the user is already near the bottom —
               // don't yank them up while they're reading earlier text.
+              // Jump (not animate) while streaming: an animated scroll per
+              // update stacks up and stutters.
               if (nearBottomRef.current) {
-                listRef.current?.scrollToEnd({ animated: true });
+                listRef.current?.scrollToEnd({ animated: !sending });
               }
             }}
-            renderItem={({ item }) => {
-              if (item.imageUrl) {
-                return (
-                  <View style={[styles.bubble, styles.aiBubble, styles.imageBubble]}>
-                    <Image source={{ uri: item.imageUrl }} style={styles.genImage} />
-                  </View>
-                );
-              }
-              if (item.role === "assistant") {
-                const thinking = item.content === "";
-                return (
-                  <View style={styles.assistantRow}>
-                    {item.steps && item.steps.length > 0 && (
-                      <StepsTrace steps={item.steps} active={thinking} />
-                    )}
-                    {thinking ? (
-                      item.reasoning ? (
-                        <View style={[styles.bubble, styles.aiBubble]}>
-                          <Text style={styles.reasoningLabel}>Thinking…</Text>
-                          <Text style={styles.reasoningText} numberOfLines={4}>
-                            {item.reasoning.slice(-400)}
-                          </Text>
-                        </View>
-                      ) : item.steps && item.steps.length > 0 ? null : (
-                        <View style={[styles.bubble, styles.aiBubble]}>
-                          <ActivityIndicator color={colors.accentBright} />
-                        </View>
-                      )
-                    ) : (
-                      <>
-                        <View style={[styles.bubble, styles.aiBubble]}>
-                          <AppMarkdown>{item.content}</AppMarkdown>
-                        </View>
-                        {item.persisted && <ReceiptBadge messageId={item.id} />}
-                      </>
-                    )}
-                  </View>
-                );
-              }
-              return (
-                <View style={[styles.bubble, styles.userBubble]}>
-                  <Text style={styles.userText}>{item.content}</Text>
-                </View>
-              );
-            }}
+            renderItem={renderItem}
           />
         )}
 
@@ -512,6 +481,62 @@ export default function Chat() {
     </SafeAreaView>
   );
 }
+
+// One chat row. Memoised: while an answer streams only its own row
+// re-renders, not every message in the list.
+const MessageRow = memo(function MessageRow({
+  item,
+  styles,
+  colors,
+}: {
+  item: Msg;
+  styles: ReturnType<typeof makeStyles>;
+  colors: Palette;
+}) {
+  if (item.imageUrl) {
+    return (
+      <View style={[styles.bubble, styles.aiBubble, styles.imageBubble]}>
+        <Image source={{ uri: item.imageUrl }} style={styles.genImage} />
+      </View>
+    );
+  }
+  if (item.role === "assistant") {
+    const thinking = item.content === "";
+    return (
+      <View style={styles.assistantRow}>
+        {item.steps && item.steps.length > 0 && (
+          <StepsTrace steps={item.steps} active={thinking} />
+        )}
+        {thinking ? (
+          item.reasoning ? (
+            <View style={[styles.bubble, styles.aiBubble]}>
+              <Text style={styles.reasoningLabel}>Thinking…</Text>
+              <Text style={styles.reasoningText} numberOfLines={4}>
+                {item.reasoning.slice(-400)}
+              </Text>
+            </View>
+          ) : item.steps && item.steps.length > 0 ? null : (
+            <View style={[styles.bubble, styles.aiBubble]}>
+              <ActivityIndicator color={colors.accentBright} />
+            </View>
+          )
+        ) : (
+          <>
+            <View style={[styles.bubble, styles.aiBubble]}>
+              <AppMarkdown>{item.content}</AppMarkdown>
+            </View>
+            {item.dbId && <ReceiptBadge messageId={item.dbId} />}
+          </>
+        )}
+      </View>
+    );
+  }
+  return (
+    <View style={[styles.bubble, styles.userBubble]}>
+      <Text style={styles.userText}>{item.content}</Text>
+    </View>
+  );
+});
 
 function StepsTrace({ steps, active }: { steps: AgentStep[]; active: boolean }) {
   const { colors } = useTheme();
