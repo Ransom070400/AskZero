@@ -645,3 +645,23 @@ html {
 .md-details > :not(summary):last-child {
   margin-bottom: 0;
 }
+
+/* Composer: a soft accent aura that breathes while an answer is streaming, so
+   "the model is working" is visible right where you'll type next. */
+.composer-working {
+  animation: composerGlow 2.4s ease-in-out infinite;
+}
+@keyframes composerGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 1px hsl(var(--accent) / 0.22), 0 0 22px -8px hsl(var(--accent) / 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 1px hsl(var(--accent) / 0.45), 0 0 34px -6px hsl(var(--accent) / 0.5);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .composer-working {
+    animation: none;
+    box-shadow: 0 0 0 1px hsl(var(--accent) / 0.35);
+  }
+}
