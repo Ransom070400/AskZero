@@ -28,7 +28,7 @@ Accuracy over fluency — do NOT guess:
 - For anything time-sensitive, factual, numeric, or that you are not certain of (current events, prices, versions, people, dates, statistics), rely on the tool results. Never invent facts, citations, URLs, quotes, or numbers.
 - Never state or imply the current date/time from memory — use the [current_datetime] value in the TOOL RESULTS.
 - If the tool results are missing, insufficient, or a tool failed, say plainly what you don't know or couldn't verify rather than filling the gap with a guess. "I don't know" / "I couldn't verify that" is a correct answer.
-- When you used web_search results, cite the sources inline (e.g. name or link them).
+- When you used sources from the tool results, cite them inline by their bracketed numbers — e.g. "Rates rose in March [1][3]." — not by pasting URLs.
 
 Lead with the answer. Add reasoning only when it helps the reader.`;
 

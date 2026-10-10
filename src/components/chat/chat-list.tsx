@@ -24,12 +24,13 @@ interface ChatListProps {
   hideReceipts?: boolean;
   onTransform?: (instruction: string) => void;
   onQuote?: (quotedText: string) => void;
+  onFollowup?: (text: string) => void;
 }
 
 // How close to the bottom (px) still counts as "following the conversation".
 const NEAR_BOTTOM_PX = 120;
 
-export function ChatList({ messages, isStreaming, modelLabel, modelName, onRegenerate, onRegenerateWith, regenModels, onRegenerateImage, onEdit, onOpenArtifact, onOpenAsArtifact, hideReceipts, onTransform, onQuote }: ChatListProps) {
+export function ChatList({ messages, isStreaming, modelLabel, modelName, onRegenerate, onRegenerateWith, regenModels, onRegenerateImage, onEdit, onOpenArtifact, onOpenAsArtifact, hideReceipts, onTransform, onQuote, onFollowup }: ChatListProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const [atBottom, setAtBottom] = useState(true);
@@ -119,6 +120,7 @@ export function ChatList({ messages, isStreaming, modelLabel, modelName, onRegen
                   hideReceipt={hideReceipts}
                   onTransform={!isStreaming ? onTransform : undefined}
                   onQuote={onQuote}
+                  onFollowup={isLast && !isStreaming ? onFollowup : undefined}
                 />
               </motion.div>
             );

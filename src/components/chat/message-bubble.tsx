@@ -33,7 +33,9 @@ const ChartBlock = dynamic(() => import("./chart-block").then((m) => m.ChartBloc
 });
 import { ReceiptBadge } from "./receipt-badge";
 import { TypingIndicator } from "./typing-indicator";
-import { ActivityPanel, type AgentStep } from "./activity-panel";
+import { ActivityPanel, type AgentStep, type ActivitySource } from "./activity-panel";
+import { FollowupChips, MarkdownLink, SourcesContext, SourcesRow } from "./citations";
+import { linkCitations } from "@/lib/citations";
 import { useSmoothText } from "@/hooks/use-smooth-text";
 
 // Markdown paragraph that fades in when it first appears. As the last paragraph
@@ -101,6 +103,8 @@ export interface Message {
   // text arrived — the span the activity timeline reports.
   startedAt?: number;
   answerStartedAt?: number;
+  // Suggested next questions (latest answer only; see /api/messages/[id]/followups).
+  followups?: string[];
   // The model that produced this answer (live: the one it was sent to;
   // history: from its inference receipt).
   answeredBy?: { provider: string; model: string };
@@ -540,6 +544,7 @@ const MARKDOWN_COMPONENTS = {
   pre: PreBlock as never,
   p: FadeP as never,
   table: TableBlock as never,
+  a: MarkdownLink as never,
 };
 
 // One markdown block, parsed only when its own text changes.
@@ -559,8 +564,12 @@ const MarkdownBlock = memo(function MarkdownBlock({ source }: { source: string }
 // streams, every finished block is memoised and only the last one re-parses
 // per token. Keys are positional, so a block keeps its DOM as it grows and
 // when the stream ends — nothing remounts or replays its fade-in.
-function AnswerMarkdown({ content }: { content: string }) {
-  const blocks = useMemo(() => splitMarkdownBlocks(content), [content]);
+// Bracketed source numbers become citation chips (see lib/citations.ts).
+function AnswerMarkdown({ content, sourceCount }: { content: string; sourceCount: number }) {
+  const blocks = useMemo(
+    () => splitMarkdownBlocks(content).map((b) => linkCitations(b, sourceCount)),
+    [content, sourceCount]
+  );
   return (
     <>
       {blocks.map((block, i) => (
@@ -586,6 +595,7 @@ export const MessageBubble = memo(function MessageBubble({
   onQuote,
   modelLabel,
   modelName,
+  onFollowup,
 }: {
   message: Message;
   onRegenerate?: () => void;
@@ -606,6 +616,8 @@ export const MessageBubble = memo(function MessageBubble({
   modelLabel?: string;
   // Display name for the model that wrote an answer.
   modelName?: (m: { provider: string; model: string }) => string;
+  // Send a suggested follow-up question.
+  onFollowup?: (text: string) => void;
 }) {
   const isUser = message.role === "user";
   const { formatCost } = useCurrency();
@@ -654,6 +666,15 @@ export const MessageBubble = memo(function MessageBubble({
   const shownContent = useSmoothText(
     message.content,
     !isUser && !!isStreaming && !!isLast
+  );
+
+  // Every source the agent found, in citation order ([1] is sources[0]).
+  const sources = useMemo<ActivitySource[]>(
+    () =>
+      (message.steps ?? []).flatMap((s) =>
+        s.type === "tool_result" ? s.sources ?? [] : []
+      ),
+    [message.steps]
   );
   const [prevMessages, setPrevMessages] = useState<
     | {
@@ -882,7 +903,9 @@ export const MessageBubble = memo(function MessageBubble({
           <TypingIndicator model={modelLabel} />
         )}
         <PreContext.Provider value={preContext}>
-          <AnswerMarkdown content={shownContent} />
+          <SourcesContext.Provider value={sources}>
+            <AnswerMarkdown content={shownContent} sourceCount={sources.length} />
+          </SourcesContext.Provider>
         </PreContext.Provider>
         {showCursor && (
           <span
@@ -952,6 +975,7 @@ export const MessageBubble = memo(function MessageBubble({
           ))}
         </div>
       )}
+      {!pending && !revealing && sources.length > 0 && <SourcesRow sources={sources} />}
       {message.artifacts && message.artifacts.length > 0 && onOpenArtifact && (
         <div className="mt-3 flex flex-wrap gap-2">
           {message.artifacts.map((art) => (
@@ -1035,6 +1059,9 @@ export const MessageBubble = memo(function MessageBubble({
           </span>
         )}
       </div>
+      {isLast && !isStreaming && onFollowup && message.followups && (
+        <FollowupChips followups={message.followups} onPick={onFollowup} />
+      )}
     </div>
   );
 });

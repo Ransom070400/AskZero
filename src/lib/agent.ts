@@ -13,6 +13,7 @@ import {
   webSearchTool,
   calculate,
   fetchUrlTool,
+  type Source,
 } from "./tools";
 import { tavilyConfigured } from "./tavily";
 import { routeAgent } from "./agent-gate";
@@ -22,7 +23,17 @@ export interface AgentStep {
   text?: string; // thinking text, or a short tool-result summary
   tool?: string; // tool name
   input?: string; // tool argument
+  sources?: Source[]; // pages a tool found or read, numbered in order
 }
+
+export interface AgentResult {
+  observations: string;
+  // Every source, in citation order: sources[0] is [1].
+  sources: Source[];
+}
+
+const CITE_NOTE =
+  "\nCite these sources inline by their bracketed numbers, e.g. [1] or [2][3], right after the claim they support.";
 
 // Only offer tools that can actually run — a planner that picks web_search
 // when search isn't configured just wastes a ~3s call.
@@ -70,10 +81,21 @@ function parseStep(out: string): {
   return { thinking, action, input };
 }
 
-async function runTool(action: ToolName, input: string): Promise<string> {
-  if (action === "web_search") return webSearchTool(input);
-  if (action === "calculate") return `${input} = ${calculate(input)}`;
-  return fetchUrlTool(input);
+async function runTool(
+  action: ToolName,
+  input: string,
+  nextNumber: number
+): Promise<{ text: string; sources: Source[] }> {
+  if (action === "web_search") return webSearchTool(input, nextNumber);
+  if (action === "calculate") return { text: `${input} = ${calculate(input)}`, sources: [] };
+  const page = await fetchUrlTool(input);
+  let title = input;
+  try {
+    title = new URL(input).hostname.replace(/^www\./, "");
+  } catch {
+    // keep the raw input
+  }
+  return { text: `[${nextNumber}] ${input}\n${page}`, sources: [{ title, url: input }] };
 }
 
 // Runs the loop, emitting each step. Returns the accumulated observations to
@@ -87,28 +109,35 @@ export async function runAgentLoop(
   message: string,
   emit: (step: AgentStep) => void,
   opts: { hasAttachments?: boolean } = {}
-): Promise<string> {
+): Promise<AgentResult> {
+  const sources: Source[] = [];
+  const done = (obs: string): AgentResult => ({
+    observations: sources.length ? obs + CITE_NOTE : obs,
+    sources,
+  });
   let observations = `\n\n---\nTOOL RESULTS (authoritative — base your answer on these, not memory):\n[current_datetime] ${
     currentDateTime().human
   }`;
 
   const route = routeAgent(message, opts);
-  if (route.kind === "skip") return observations;
+  if (route.kind === "skip") return done(observations);
   if (route.kind === "calculate") {
     try {
       const result = calculate(route.expression);
       emit({ type: "tool", tool: "calculate", input: route.expression });
       emit({ type: "tool_result", tool: "calculate", text: result });
-      return observations + `\n\n[calculate "${route.expression}"]\n${route.expression} = ${result}`;
+      return done(
+        observations + `\n\n[calculate "${route.expression}"]\n${route.expression} = ${result}`
+      );
     } catch {
-      return observations; // not actually computable — let the model answer
+      return done(observations); // not actually computable — let the model answer
     }
   }
 
   const search = tavilyConfigured();
   // Without web search the planner can only calculate or read a link, so a
   // message with neither numbers nor a URL can't use any tool — skip the call.
-  if (!search && !/\d|https?:\/\//i.test(message)) return observations;
+  if (!search && !/\d|https?:\/\//i.test(message)) return done(observations);
   const system = agentSystem(search);
   const scratch: { role: string; content: string }[] = [
     { role: "user", content: `User question: ${message}` },
@@ -140,12 +169,21 @@ export async function runAgentLoop(
 
     emit({ type: "tool", tool: action, input });
     let obs: string;
+    let found: Source[] = [];
     try {
-      obs = await runTool(action as ToolName, input);
+      const result = await runTool(action as ToolName, input, sources.length + 1);
+      obs = result.text;
+      found = result.sources;
+      sources.push(...found);
     } catch (e) {
       obs = `Error: ${(e as Error).message}`;
     }
-    emit({ type: "tool_result", tool: action, text: obs.slice(0, 200) });
+    emit({
+      type: "tool_result",
+      tool: action,
+      text: obs.slice(0, 200),
+      ...(found.length ? { sources: found } : {}),
+    });
     observations += `\n\n[${action} "${input}"]\n${obs}`;
     tools++;
 
@@ -160,5 +198,5 @@ export async function runAgentLoop(
     scratch.push({ role: "user", content: `OBSERVATION:\n${obs.slice(0, 3000)}` });
   }
 
-  return observations;
+  return done(observations);
 }
