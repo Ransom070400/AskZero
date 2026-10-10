@@ -2,7 +2,14 @@ import { NextRequest } from "next/server";
 import { getAuthedUser } from "@/lib/supabase/api-auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { saveAssistantMessage } from "@/lib/assistant-message";
-import { deductCredits, checkBalance } from "@/lib/credits";
+import { keepAlive } from "@/lib/wait-until";
+import { UpstreamError, type ProviderUsage } from "@/lib/upstream";
+import {
+  checkBalance,
+  reserveCredits,
+  settleCredits,
+  InsufficientCreditsError,
+} from "@/lib/credits";
 import { calculateCost } from "@/lib/pricing";
 import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { sanitizeInput, validateMessage } from "@/lib/sanitize";
@@ -244,7 +251,12 @@ export async function POST(req: NextRequest) {
     history?.reverse();
   }
 
-  const historyMessages = (history || []).map(
+  // An assistant turn with no text (an image-generation reply, or an answer
+  // that failed before producing anything) carries nothing for the model, and
+  // some providers reject empty content outright.
+  const historyMessages = (history || [])
+    .filter((m) => m.role !== "assistant" || m.content.trim())
+    .map(
     (m: {
       role: string;
       content: string;
@@ -302,374 +314,420 @@ export async function POST(req: NextRequest) {
   }
   const baseSystem = buildSystemPrompt(style) + memoryBlock;
 
-  const stream = new ReadableStream({
-    async start(controller) {
-      const encoder = new TextEncoder();
-      const send = (obj: unknown) =>
+  // Stop / disconnect: cancel() aborts the provider call so the generation
+  // stops costing us, while run() — kept alive with waitUntil — still bills
+  // and saves whatever was produced.
+  const upstream = new AbortController();
+  let clientGone = false;
+
+  const run = async (controller: ReadableStreamDefaultController<Uint8Array>) => {
+    const encoder = new TextEncoder();
+    const send = (obj: unknown) => {
+      if (clientGone) return;
+      try {
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(obj)}\n\n`));
-
-      // The client renders the user turn optimistically with a temporary id;
-      // hand it the persisted one so edit/retry can supersede it.
-      if (userMessageId) send({ userMessageId });
-
-      // 1) Agentic reasoning loop — emit each thinking/tool step live.
-      let observations = "";
-      if (message.trim()) {
-        try {
-          observations = await runAgentLoop(message, (s) => send(s), {
-            hasAttachments,
-          });
-        } catch {
-          observations = "";
-        }
+      } catch {
+        clientGone = true;
       }
+    };
+    const finish = () => {
+      if (clientGone) return;
+      try {
+        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+        controller.close();
+      } catch {
+        clientGone = true;
+      }
+    };
 
-      // 2) Final messages, with tool observations folded into the system prompt.
-      const messages = [
-        { role: "system" as const, content: baseSystem + observations },
-        ...historyMessages,
-      ];
-      const inputTokens =
-        estimateTokens(
-          messages
-            .map((m) =>
-              typeof m.content === "string"
-                ? m.content
-                : m.content
-                    .filter(
-                      (p): p is { type: "text"; text: string } => p.type === "text"
-                    )
-                    .map((p) => p.text)
-                    .join(" ")
-            )
-            .join(" ")
-        ) + attachments.length * 85; // ~85 tokens per image
+    // The client renders the user turn optimistically with a temporary id;
+    // hand it the persisted one so edit/retry can supersede it.
+    if (userMessageId) send({ userMessageId });
 
-      // Re-gate on the real input size. History, the system prompt and the tool
-      // observations dwarf the raw message, so the pre-flight projection can
-      // under-estimate badly on a long chat. Catching it here means we decline
-      // before spending money on inference rather than after.
-      const projectedNow = Math.max(
-        costForTokens(provider, model, inputTokens, TYPICAL_OUTPUT_TOKENS),
-        MIN_CREDITS
-      );
-      if (balance < projectedNow) {
+    // 1) Agentic reasoning loop — emit each thinking/tool step live.
+    let observations = "";
+    if (message.trim()) {
+      try {
+        observations = await runAgentLoop(message, (s) => send(s), {
+          hasAttachments,
+        });
+      } catch {
+        observations = "";
+      }
+    }
+    if (clientGone) return;
+
+    // 2) Final messages, with tool observations folded into the system prompt.
+    const messages = [
+      { role: "system" as const, content: baseSystem + observations },
+      ...historyMessages,
+    ];
+    const estimatedInputTokens =
+      estimateTokens(
+        messages
+          .map((m) =>
+            typeof m.content === "string"
+              ? m.content
+              : m.content
+                  .filter(
+                    (p): p is { type: "text"; text: string } => p.type === "text"
+                  )
+                  .map((p) => p.text)
+                  .join(" ")
+          )
+          .join(" ")
+      ) + attachments.length * 85; // ~85 tokens per image
+
+    // 3) Reserve the projected cost on the REAL input size (history, system
+    //    prompt and tool observations dwarf the raw message) before spending
+    //    anything on inference. The hold is swapped for the actual cost below,
+    //    so neither a disconnect nor a burst of parallel requests gets a free
+    //    answer.
+    const projectedNow = Math.max(
+      costForTokens(provider, model, estimatedInputTokens, TYPICAL_OUTPUT_TOKENS),
+      MIN_CREDITS
+    );
+    let holdId: string;
+    try {
+      holdId = await reserveCredits(user.id, projectedNow, {
+        chat_id: chatId,
+        model: model || "unknown",
+      });
+    } catch (err) {
+      if (err instanceof InsufficientCreditsError) {
         send({
           error: "Insufficient credits",
+          code: "insufficient_credits",
           balance: Number.isFinite(balance) ? balance : 0,
           required: projectedNow,
           depositUrl: "/deposit",
         });
-        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-        controller.close();
-        return;
+      } else {
+        console.error("reserveCredits failed", err);
+        send({ error: "Couldn't start this answer. Please try again.", code: "server" });
       }
+      finish();
+      return;
+    }
 
-      // 3) Call the model for the final answer (streamed).
-      let ogResponse: Response;
-      try {
-        if (provider.startsWith(INTEGRATE_PREFIX)) {
-          const integrateModel = findIntegrateModel(provider);
-          if (!integrateModel) {
-            send({ content: "[Error: unknown model]" });
-            controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-            controller.close();
-            return;
-          }
-          ogResponse = await sendIntegratePrompt(integrateModel, messages, {
-            stream: true,
-          });
-        } else if (provider.startsWith(ROUTER_PREFIX)) {
-          ogResponse = await sendRouterPrompt(
-            findRouterModel(provider)!,
-            messages,
-            { stream: true }
-          );
-        } else {
-          const { sendPrompt } = await import("@/lib/og-compute");
-          ogResponse = await sendPrompt(provider, messages, { stream: true });
-        }
-      } catch (err) {
-        const errMsg =
-          err instanceof Error ? err.message : "0G Compute unavailable";
-        send({ content: `[Error: ${errMsg}]` });
-        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-        controller.close();
-        return;
+    // 4) Call the model for the final answer (streamed).
+    let ogResponse: Response;
+    try {
+      const opts = { stream: true, signal: upstream.signal };
+      if (provider.startsWith(INTEGRATE_PREFIX)) {
+        ogResponse = await sendIntegratePrompt(findIntegrateModel(provider)!, messages, opts);
+      } else if (provider.startsWith(ROUTER_PREFIX)) {
+        ogResponse = await sendRouterPrompt(findRouterModel(provider)!, messages, opts);
+      } else {
+        const { sendPrompt } = await import("@/lib/og-compute");
+        ogResponse = await sendPrompt(provider, messages, opts);
       }
-
-      let fullResponse = "";
-      // Model reasoning is streamed to the UI as `{ reasoning }` events but is
-      // not part of the answer: it isn't saved or hashed into the receipt. It
-      // IS billed — providers charge reasoning as output tokens. It arrives as
-      // delta.reasoning_content / .reasoning, or inline as <think>…</think>
-      // (split out here).
-      let reasoningText = "";
-      const sendReasoning = (text: string) => {
-        reasoningText += text;
-        send({ reasoning: text });
-      };
-      // glm-5.1-fp8 (Integrate) ignores enable_thinking:false and streams its
-      // reasoning as plain content up to a bare </think> — treat everything
-      // before that as reasoning rather than showing it as the answer.
-      const implicitThink = provider.startsWith(INTEGRATE_PREFIX);
-      const think = new ThinkSplitter({ startInThink: implicitThink });
-      const emit = ({ content, reasoning }: { content: string; reasoning: string }) => {
-        if (reasoning) sendReasoning(reasoning);
-        if (content) {
-          fullResponse += content;
-          send({ content });
-        }
-      };
-      const reader = ogResponse.body!.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n");
-          buffer = lines.pop() || "";
-
-          for (const line of lines) {
-            const trimmed = line.trim();
-            if (!trimmed || !trimmed.startsWith("data: ")) continue;
-            const data = trimmed.slice(6);
-            if (data === "[DONE]") continue;
-
-            try {
-              const parsed = JSON.parse(data);
-              const delta = parsed.choices?.[0]?.delta ?? {};
-              const reasoning = delta.reasoning_content || delta.reasoning || "";
-              if (typeof reasoning === "string" && reasoning) {
-                sendReasoning(reasoning);
-              }
-              const content = delta.content || "";
-              if (content) emit(think.push(content));
-            } catch {
-              // skip malformed chunks
-            }
-          }
-        }
-      } catch (err) {
-        const errContent =
-          err instanceof Error ? err.message : "Stream error";
-        controller.enqueue(
-          encoder.encode(
-            `data: ${JSON.stringify({ content: `\n\n[Error: ${errContent}]` })}\n\n`
-          )
-        );
-      }
-
-      emit(think.flush());
-      // No </think> ever came, so there was no reasoning: what streamed as
-      // "reasoning" was the answer. Move it back (server + client).
-      if (implicitThink && !think.sawClose && reasoningText) {
-        fullResponse = reasoningText + fullResponse;
-        reasoningText = "";
-        send({ promoteReasoning: true });
-      }
-
-      // Calculate cost and settle. Reasoning counts as output.
-      const outputTokens = estimateTokens(fullResponse + reasoningText);
-      const actualCost = costForTokens(
-        provider,
-        model,
-        inputTokens,
-        outputTokens
+    } catch (err) {
+      await settleCredits(holdId, 0).catch((e) =>
+        console.error("Failed to release credit hold", e)
       );
+      if (!clientGone) {
+        console.error("model call failed", err);
+        send({
+          error:
+            err instanceof UpstreamError
+              ? err.message
+              : "The model is unavailable right now. Try again, or pick another model.",
+          code: "upstream",
+        });
+      }
+      finish();
+      return;
+    }
 
-      const LOW_BALANCE_THRESHOLD = 50;
-      const usageMeta = {
-        chat_id: chatId,
-        model: model || "unknown",
+    let fullResponse = "";
+    // Model reasoning is streamed to the UI as `{ reasoning }` events but is
+    // not part of the answer: it isn't saved or hashed into the receipt. It
+    // IS billed — providers charge reasoning as output tokens. It arrives as
+    // delta.reasoning_content / .reasoning, or inline as <think>…</think>
+    // (split out here).
+    let reasoningText = "";
+    const sendReasoning = (text: string) => {
+      reasoningText += text;
+      send({ reasoning: text });
+    };
+    // glm-5.1-fp8 (Integrate) ignores enable_thinking:false and streams its
+    // reasoning as plain content up to a bare </think> — treat everything
+    // before that as reasoning rather than showing it as the answer.
+    const implicitThink = provider.startsWith(INTEGRATE_PREFIX);
+    const think = new ThinkSplitter({ startInThink: implicitThink });
+    const emit = ({ content, reasoning }: { content: string; reasoning: string }) => {
+      if (reasoning) sendReasoning(reasoning);
+      if (content) {
+        fullResponse += content;
+        send({ content });
+      }
+    };
+    const reader = ogResponse.body!.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    // What the provider reported, when it did: real token counts and why it
+    // stopped ("length" = cut off at the output limit).
+    let usage: ProviderUsage | null = null;
+    let finishReason: string | null = null;
+    let streamError: string | null = null;
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed || !trimmed.startsWith("data: ")) continue;
+          const data = trimmed.slice(6);
+          if (data === "[DONE]") continue;
+
+          let parsed;
+          try {
+            parsed = JSON.parse(data);
+          } catch {
+            continue; // skip malformed chunks
+          }
+          if (parsed.error) {
+            console.error("upstream stream error", parsed.error);
+            streamError = "The model stopped with an error partway through.";
+            continue;
+          }
+          if (parsed.usage) {
+            usage = {
+              inputTokens: Number(parsed.usage.prompt_tokens) || 0,
+              outputTokens: Number(parsed.usage.completion_tokens) || 0,
+            };
+          }
+          const choice = parsed.choices?.[0];
+          if (choice?.finish_reason) finishReason = choice.finish_reason;
+          const delta = choice?.delta ?? {};
+          const reasoning = delta.reasoning_content || delta.reasoning || "";
+          if (typeof reasoning === "string" && reasoning) {
+            sendReasoning(reasoning);
+          }
+          const content = delta.content || "";
+          if (content) emit(think.push(content));
+        }
+      }
+    } catch (err) {
+      // Either the user stopped (we aborted the body) or the provider dropped.
+      if (!clientGone) {
+        console.error("upstream stream read failed", err);
+        streamError = "The connection to the model dropped partway through.";
+      }
+    }
+    const stopped = clientGone;
+
+    emit(think.flush());
+    // No </think> ever came, so there was no reasoning: what streamed as
+    // "reasoning" was the answer. Move it back (server + client).
+    if (implicitThink && !think.sawClose && reasoningText) {
+      fullResponse = reasoningText + fullResponse;
+      reasoningText = "";
+      send({ promoteReasoning: true });
+    }
+
+    // 5) Settle: bill on the provider's token counts when it reported them,
+    //    else on the estimate. Reasoning counts as output. Nothing produced
+    //    (the model failed before answering) means a full refund.
+    const produced = fullResponse.length > 0 || reasoningText.length > 0;
+    const inputTokens = usage?.inputTokens || estimatedInputTokens;
+    const outputTokens =
+      usage?.outputTokens || estimateTokens(fullResponse + reasoningText);
+    const actualCost = produced
+      ? costForTokens(provider, model, inputTokens, outputTokens)
+      : 0;
+
+    const LOW_BALANCE_THRESHOLD = 50;
+    try {
+      const settlement = await settleCredits(holdId, actualCost, {
         input_tokens: inputTokens,
         output_tokens: outputTokens,
-      };
-      try {
-        const newBalance = await deductCredits(
-          user.id,
-          actualCost,
-          usageMeta
-        );
-
-        if (newBalance < LOW_BALANCE_THRESHOLD && user.email) {
-          sendLowBalanceWarning(user.email, newBalance);
-        }
-      } catch {
-        // deduct_credits refuses to overdraw, so an answer that ran longer than
-        // projected lands here. Collect what's actually there instead of
-        // swallowing the failure: leaving the balance untouched would hand the
-        // user a free answer and let them farm more by parking just under the
-        // cost of an expensive reply. Draining to zero also means the next
-        // request is stopped by the gate above.
-        try {
-          const remaining = await checkBalance(user.id, supabase);
-          if (remaining > 0) {
-            await deductCredits(
-              user.id,
-              remaining,
-              { ...usageMeta, full_cost: actualCost, shortfall: actualCost - remaining }
-            );
-          }
-          if (user.email) sendLowBalanceWarning(user.email, 0);
-        } catch (err) {
-          console.error("Failed to settle credits after response", err);
-        }
+        usage_source: usage ? "provider" : "estimate",
+        ...(stopped ? { stopped: true } : {}),
+      });
+      if (
+        settlement.new_balance !== undefined &&
+        settlement.new_balance < LOW_BALANCE_THRESHOLD &&
+        user.email
+      ) {
+        sendLowBalanceWarning(user.email, settlement.new_balance);
       }
+    } catch (err) {
+      // The hold stays in place and the cron refunds it; log for follow-up.
+      console.error("Failed to settle credits after response", err);
+    }
 
-      // Save assistant message. In incognito this stays null, which cascades to
-      // skip the receipt, artifact persistence, auto-title, and memory commit.
-      // Assistant rows and receipts are service-role only, so a user can't
-      // write an answer the model never gave and get it receipted.
-      const assistantMsg = incognito
+    // 6) Save the answer — partial answers too (stopped or cut off), so what
+    //    the user saw survives a reload. Empty answers aren't saved: they'd
+    //    become empty turns that some providers reject. In incognito this
+    //    stays null, which skips the receipt, artifacts, title and memory.
+    //    Assistant rows and receipts are service-role only, so a user can't
+    //    write an answer the model never gave and get it receipted.
+    const assistantMsg =
+      incognito || !fullResponse
         ? null
         : await saveAssistantMessage(user.id, chatId, {
             content: fullResponse,
             token_count: outputTokens,
             cost_credits: actualCost,
+            ...(stopped || streamError || finishReason === "length"
+              ? {
+                  metadata: {
+                    incomplete: stopped ? "stopped" : streamError ? "error" : "length",
+                  },
+                }
+              : {}),
           }).catch((err) => {
             console.error("Failed to save assistant message", err);
             return null;
           });
 
-      const emittedArtifacts: { id: string; type: string; title: string }[] = [];
+    const emittedArtifacts: { id: string; type: string; title: string }[] = [];
 
-      if (assistantMsg) {
-        try {
-          const nonce = makeNonce();
-          const receipt = buildReceipt(
-            {
-              userId: user.id,
-              chatId,
-              messageId: assistantMsg.id,
-              provider,
-              model: model || "default",
-              inputTokens,
-              outputTokens,
-              costCredits: actualCost,
-              teeAttestation: null,
-              timestamp: Math.floor(Date.now() / 1000),
-              nonce,
-            },
-            messages,
-            fullResponse
-          );
-          const { error: receiptError } = await createAdminClient().rpc("record_receipt", {
-            p_user_id: user.id,
+    if (assistantMsg) {
+      try {
+        const nonce = makeNonce();
+        const receipt = buildReceipt(
+          {
+            userId: user.id,
+            chatId,
+            messageId: assistantMsg.id,
+            provider,
+            model: model || "default",
+            inputTokens,
+            outputTokens,
+            costCredits: actualCost,
+            teeAttestation: null,
+            timestamp: Math.floor(Date.now() / 1000),
+            nonce,
+          },
+          messages,
+          fullResponse
+        );
+        const { error: receiptError } = await createAdminClient().rpc("record_receipt", {
+          p_user_id: user.id,
+          p_chat_id: chatId,
+          p_message_id: assistantMsg.id,
+          p_provider: provider,
+          p_model: model || "default",
+          p_input_hash: receipt.inputHash,
+          p_output_hash: receipt.outputHash,
+          p_input_tokens: inputTokens,
+          p_output_tokens: outputTokens,
+          p_cost_credits: actualCost,
+          p_tee_attestation: null,
+          p_nonce: nonce,
+          p_receipt_hash: receipt.receiptHash,
+        });
+        if (receiptError) throw receiptError;
+      } catch (err) {
+        console.error("record_receipt failed", err);
+      }
+
+      try {
+        const detected = detectArtifacts(fullResponse);
+        for (const artifact of detected) {
+          // Link this artifact as a revision if a previous artifact in the
+          // same chat shares the same type AND title (case-insensitive).
+          // This is a deliberately conservative heuristic — distinct
+          // titles produce separate chains.
+          let parentId: string | null = null;
+          const { data: prev } = await supabase
+            .from("artifacts")
+            .select("id, parent_artifact_id")
+            .eq("chat_id", chatId)
+            .eq("type", artifact.type)
+            .ilike("title", artifact.title)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (prev) {
+            parentId = (prev.parent_artifact_id as string | null) ?? prev.id;
+          }
+
+          const { data: artifactId } = await supabase.rpc("record_artifact", {
             p_chat_id: chatId,
             p_message_id: assistantMsg.id,
-            p_provider: provider,
-            p_model: model || "default",
-            p_input_hash: receipt.inputHash,
-            p_output_hash: receipt.outputHash,
-            p_input_tokens: inputTokens,
-            p_output_tokens: outputTokens,
-            p_cost_credits: actualCost,
-            p_tee_attestation: null,
-            p_nonce: nonce,
-            p_receipt_hash: receipt.receiptHash,
+            p_type: artifact.type,
+            p_title: artifact.title,
+            p_language: artifact.language,
+            p_content: artifact.content,
+            p_parent_artifact_id: parentId,
           });
-          if (receiptError) throw receiptError;
-        } catch (err) {
-          console.error("record_receipt failed", err);
-        }
-
-        try {
-          const detected = detectArtifacts(fullResponse);
-          for (const artifact of detected) {
-            // Link this artifact as a revision if a previous artifact in the
-            // same chat shares the same type AND title (case-insensitive).
-            // This is a deliberately conservative heuristic — distinct
-            // titles produce separate chains.
-            let parentId: string | null = null;
-            const { data: prev } = await supabase
-              .from("artifacts")
-              .select("id, parent_artifact_id")
-              .eq("chat_id", chatId)
-              .eq("type", artifact.type)
-              .ilike("title", artifact.title)
-              .order("created_at", { ascending: false })
-              .limit(1)
-              .maybeSingle();
-            if (prev) {
-              parentId = (prev.parent_artifact_id as string | null) ?? prev.id;
-            }
-
-            const { data: artifactId } = await supabase.rpc("record_artifact", {
-              p_chat_id: chatId,
-              p_message_id: assistantMsg.id,
-              p_type: artifact.type,
-              p_title: artifact.title,
-              p_language: artifact.language,
-              p_content: artifact.content,
-              p_parent_artifact_id: parentId,
+          if (typeof artifactId === "string") {
+            emittedArtifacts.push({
+              id: artifactId,
+              type: artifact.type,
+              title: artifact.title,
             });
-            if (typeof artifactId === "string") {
-              emittedArtifacts.push({
-                id: artifactId,
-                type: artifact.type,
-                title: artifact.title,
-              });
-            }
           }
-        } catch (err) {
-          console.error("record_artifact failed", err);
         }
+      } catch (err) {
+        console.error("record_artifact failed", err);
       }
+    }
 
-      // Auto-title (skipped in incognito — there is no chat row).
-      if (!incognito) {
-        const { data: chatData } = await supabase
+    // Auto-title (skipped in incognito — there is no chat row).
+    if (!incognito) {
+      const { data: chatData } = await supabase
+        .from("chats")
+        .select("title")
+        .eq("id", chatId)
+        .single();
+
+      if (chatData?.title === "New Chat") {
+        await supabase
           .from("chats")
-          .select("title")
-          .eq("id", chatId)
-          .single();
-
-        if (chatData?.title === "New Chat") {
-          await supabase
-            .from("chats")
-            .update({ title: message.slice(0, 50) })
-            .eq("id", chatId);
-        }
+          .update({ title: message.slice(0, 50) })
+          .eq("id", chatId);
       }
+    }
 
-      controller.enqueue(
-        encoder.encode(
-          `data: ${JSON.stringify({
-            usage: {
-              input_tokens: inputTokens,
-              output_tokens: outputTokens,
-              cost: actualCost,
-            },
-            messageId: assistantMsg?.id ?? null,
-            artifacts: emittedArtifacts,
-          })}\n\n`
-        )
-      );
-      controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+    if (streamError) send({ error: streamError, code: "upstream" });
+    send({
+      usage: {
+        input_tokens: inputTokens,
+        output_tokens: outputTokens,
+        cost: actualCost,
+      },
+      finishReason,
+      messageId: assistantMsg?.id ?? null,
+      artifacts: emittedArtifacts,
+    });
+    finish();
 
-      // Commit long-term memory: distill durable facts, archive to 0G Storage,
-      // mirror into the searchable index. Best-effort and awaited before close
-      // so the work completes within the request (serverless-safe); the client
-      // already has [DONE], so this doesn't affect perceived latency.
-      if (assistantMsg && fullResponse.trim()) {
-        try {
-          await commitMemory(supabase, {
-            chatId,
-            userMessage: message,
-            assistantResponse: fullResponse,
-            transcript: messages,
-          });
-        } catch (err) {
-          console.error("commitMemory failed", err);
-        }
+    // Commit long-term memory: distill durable facts, archive to 0G Storage,
+    // mirror into the searchable index. Best-effort; the client already has
+    // [DONE], so this doesn't affect perceived latency. Only complete answers
+    // are worth remembering.
+    if (assistantMsg && !stopped && !streamError) {
+      try {
+        await commitMemory(supabase, {
+          chatId,
+          userMessage: message,
+          assistantResponse: fullResponse,
+          transcript: messages,
+        });
+      } catch (err) {
+        console.error("commitMemory failed", err);
       }
+    }
+  };
 
-      controller.close();
+  const stream = new ReadableStream({
+    start(controller) {
+      keepAlive(run(controller));
+    },
+    cancel() {
+      clientGone = true;
+      upstream.abort();
     },
   });
 
