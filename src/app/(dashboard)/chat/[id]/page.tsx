@@ -553,21 +553,41 @@ function ChatDetailContent() {
                 // treatment as the pre-stream 402 so it never fails silently.
                 if (parsed.error) {
                   const streamErr = String(parsed.error);
-                  const insufficient = streamErr === "Insufficient credits";
+                  const insufficient =
+                    parsed.code === "insufficient_credits" ||
+                    streamErr === "Insufficient credits";
+                  const note = insufficient
+                    ? "Insufficient credits. [Deposit funds](/deposit) to continue."
+                    : streamErr;
                   toast.error(insufficient ? "Insufficient credits" : streamErr);
+                  // Keep whatever streamed before the failure.
                   setMessages((prev) =>
                     prev.map((m) =>
                       m.id === assistantId
                         ? {
                             ...m,
-                            content: insufficient
-                              ? "Insufficient credits. [Deposit funds](/deposit) to continue."
-                              : `Error: ${streamErr}`,
+                            content: m.content
+                              ? `${m.content}\n\n_${note}_`
+                              : insufficient
+                                ? note
+                                : `Error: ${note}`,
                           }
                         : m
                     )
                   );
                   continue;
+                }
+                if (parsed.finishReason === "length") {
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === assistantId
+                        ? {
+                            ...m,
+                            content: `${m.content}\n\n_The answer hit the length limit. Ask to continue._`,
+                          }
+                        : m
+                    )
+                  );
                 }
                 if (
                   parsed.type === "thinking" ||
