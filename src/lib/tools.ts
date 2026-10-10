@@ -12,17 +12,73 @@ export function currentDateTime(): { iso: string; human: string } {
   return { iso: d.toISOString(), human: d.toUTCString() };
 }
 
-// Safe arithmetic only — strictly limited charset, no identifiers/calls.
+// Safe arithmetic only: a small recursive-descent parser over numbers,
+// + - * / % ^ (or **) and parentheses. No eval/Function — Workers forbid code
+// generation from strings, so the old Function() version always threw there.
+// Commas are thousands separators ("1,200").
 export function calculate(expr: string): string {
-  const cleaned = expr.replace(/\^/g, "**").trim();
-  if (!/^[0-9+\-*/%().,\s]+$/.test(cleaned)) {
+  const src = expr.replace(/,/g, "").replace(/\*\*/g, "^");
+  if (!/^[0-9+\-*/%^().\s]+$/.test(src)) {
     throw new Error("unsupported expression");
   }
-  // eslint-disable-next-line @typescript-eslint/no-implied-eval, no-new-func
-  const val = Function(`"use strict"; return (${cleaned});`)();
-  if (typeof val !== "number" || !Number.isFinite(val)) {
-    throw new Error("not a number");
-  }
+  const tokens = src.match(/\d*\.?\d+(?:e[+-]?\d+)?|[-+*/%^()]/gi) ?? [];
+  let pos = 0;
+  const peek = () => tokens[pos];
+  const next = () => tokens[pos++];
+
+  // expr := term (('+' | '-') term)*
+  const parseExpr = (): number => {
+    let v = parseTerm();
+    while (peek() === "+" || peek() === "-") {
+      v = next() === "+" ? v + parseTerm() : v - parseTerm();
+    }
+    return v;
+  };
+  // term := unary (('*' | '/' | '%') unary)*
+  const parseTerm = (): number => {
+    let v = parseUnary();
+    while (peek() === "*" || peek() === "/" || peek() === "%") {
+      const op = next();
+      const r = parseUnary();
+      v = op === "*" ? v * r : op === "/" ? v / r : v % r;
+    }
+    return v;
+  };
+  // unary := ('-' | '+') unary | power   (so -2^2 = -4)
+  const parseUnary = (): number => {
+    if (peek() === "-") {
+      next();
+      return -parseUnary();
+    }
+    if (peek() === "+") {
+      next();
+      return parseUnary();
+    }
+    return parsePower();
+  };
+  // power := primary ('^' unary)?   (right-associative)
+  const parsePower = (): number => {
+    const base = parsePrimary();
+    if (peek() === "^") {
+      next();
+      return Math.pow(base, parseUnary());
+    }
+    return base;
+  };
+  const parsePrimary = (): number => {
+    const t = next();
+    if (t === "(") {
+      const v = parseExpr();
+      if (next() !== ")") throw new Error("unbalanced parentheses");
+      return v;
+    }
+    if (t === undefined || !/^[\d.]/.test(t)) throw new Error("unsupported expression");
+    return Number(t);
+  };
+
+  const val = parseExpr();
+  if (pos !== tokens.length) throw new Error("unsupported expression");
+  if (!Number.isFinite(val)) throw new Error("not a number");
   return String(val);
 }
 
