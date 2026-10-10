@@ -167,6 +167,11 @@ export function ChatInput({
         return;
       }
     }
+    if (e.key === "Escape" && isStreaming && onStop) {
+      e.preventDefault();
+      onStop();
+      return;
+    }
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       if (canSend) triggerSend();
@@ -340,12 +345,7 @@ export function ChatInput({
               className="relative flex-shrink-0 group/att"
             >
               {file.type.startsWith("image/") ? (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img
-                  src={URL.createObjectURL(file)}
-                  alt={file.name}
-                  className="h-16 w-16 rounded-xl object-cover border border-border/80"
-                />
+                <ImageThumb file={file} />
               ) : (
                 <div className="flex h-16 w-16 flex-col items-center justify-center rounded-xl border border-border/80 bg-surface text-2xs font-semibold uppercase tracking-wider text-text-tertiary">
                   {file.name.split(".").pop()?.toUpperCase().slice(0, 4)}
@@ -355,7 +355,7 @@ export function ChatInput({
                 <button
                   onClick={() => onRemoveAttachment(i)}
                   aria-label="Remove attachment"
-                  className="press absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-foreground text-background shadow-md opacity-0 group-hover/att:opacity-100 transition-opacity duration-fast"
+                  className="press absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-foreground text-background shadow-md opacity-100 md:opacity-0 md:group-hover/att:opacity-100 focus-visible:opacity-100 transition-opacity duration-fast"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -375,7 +375,9 @@ export function ChatInput({
         onBlur={() => setFocused(false)}
         placeholder={placeholder}
         rows={1}
-        disabled={disabled}
+        // Stays typeable while an answer streams, so the next message can be
+        // drafted (sending is still blocked via canSend).
+        disabled={disabled && !isStreaming}
         className="block w-full resize-none bg-transparent px-4 pb-1 pt-3.5 text-[16px] leading-[1.5] text-foreground caret-accent outline-none placeholder:text-text-tertiary disabled:opacity-50 max-h-[200px]"
       />
 
@@ -528,5 +530,26 @@ export function ChatInput({
       )}
 
     </div>
+  );
+}
+
+// Preview of a queued image. The object URL is created once per file and
+// revoked when the preview goes away; creating it during render made a new
+// blob URL on every keystroke and never released any of them.
+function ImageThumb({ file }: { file: File }) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    const u = URL.createObjectURL(file);
+    setUrl(u);
+    return () => URL.revokeObjectURL(u);
+  }, [file]);
+  if (!url) return <div className="h-16 w-16 rounded-xl border border-border/80 bg-surface" />;
+  return (
+    /* eslint-disable-next-line @next/next/no-img-element */
+    <img
+      src={url}
+      alt={file.name}
+      className="h-16 w-16 rounded-xl object-cover border border-border/80"
+    />
   );
 }

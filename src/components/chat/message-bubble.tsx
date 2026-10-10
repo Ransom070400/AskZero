@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useRef } from "react";
+import React, { createContext, memo, useContext, useMemo, useState, useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import rehypeKatex from "rehype-katex";
@@ -10,6 +10,7 @@ import remarkDirective from "remark-directive";
 import { remarkAlert } from "remark-github-blockquote-alert";
 import { remarkDetails } from "@/lib/remark-details";
 import { prepareMathMarkdown } from "@/lib/markdown-math";
+import { splitMarkdownBlocks } from "@/lib/markdown-blocks";
 import { copyAnswer, copyAnswerPlain, copyTable } from "@/lib/copy-answer";
 import { useCurrency } from "@/lib/currency";
 import { Copy, Check, Download, ExternalLink, FileText, FileCode, History, Pencil, RotateCw, X, Search, Calculator, Globe, Loader2, WrapText, ListOrdered, Share2, ChevronDown, Wand2, Quote, Brain } from "lucide-react";
@@ -644,7 +645,46 @@ function inferArtifactType(
   return { type: "code", title: lang ? `${lang.toUpperCase()} snippet` : "Snippet" };
 }
 
-export function MessageBubble({
+// Plugin lists and component overrides are module constants: recreated per
+// render they'd defeat memoisation and make react-markdown rebuild its
+// processor every time.
+const REHYPE_PLUGINS = [rehypeHighlight, rehypeKatex];
+const REMARK_PLUGINS = [remarkGfm, remarkMath, remarkAlert, remarkDirective, remarkDetails];
+const MARKDOWN_COMPONENTS = {
+  pre: PreBlock as never,
+  p: FadeP as never,
+  table: TableBlock as never,
+};
+
+// One markdown block, parsed only when its own text changes.
+const MarkdownBlock = memo(function MarkdownBlock({ source }: { source: string }) {
+  return (
+    <ReactMarkdown
+      rehypePlugins={REHYPE_PLUGINS}
+      remarkPlugins={REMARK_PLUGINS}
+      components={MARKDOWN_COMPONENTS}
+    >
+      {prepareMathMarkdown(source)}
+    </ReactMarkdown>
+  );
+});
+
+// An answer rendered block by block (see lib/markdown-blocks.ts). While it
+// streams, every finished block is memoised and only the last one re-parses
+// per token. Keys are positional, so a block keeps its DOM as it grows and
+// when the stream ends — nothing remounts or replays its fade-in.
+function AnswerMarkdown({ content }: { content: string }) {
+  const blocks = useMemo(() => splitMarkdownBlocks(content), [content]);
+  return (
+    <>
+      {blocks.map((block, i) => (
+        <MarkdownBlock key={i} source={block} />
+      ))}
+    </>
+  );
+}
+
+export const MessageBubble = memo(function MessageBubble({
   message,
   onRegenerate,
   onRegenerateImage,
@@ -703,15 +743,24 @@ export function MessageBubble({
   };
 
   // Dismiss the button when the selection is cleared (click elsewhere, scroll).
+  // Only listens while the button is showing — one document listener per
+  // answer in a long chat adds up.
+  const quoteShown = quote !== null;
   useEffect(() => {
-    if (!onQuote) return;
+    if (!quoteShown) return;
     const onChange = () => {
       const s = window.getSelection();
       if (!s || s.isCollapsed) setQuote(null);
     };
     document.addEventListener("selectionchange", onChange);
     return () => document.removeEventListener("selectionchange", onChange);
-  }, [onQuote]);
+  }, [quoteShown]);
+
+  // Stable, so code blocks reading it don't re-render with every bubble render.
+  const preContext = useMemo(
+    () => (onOpenAsArtifact ? { messageId: message.id, onOpenAsArtifact } : null),
+    [message.id, onOpenAsArtifact]
+  );
   const [prevMessages, setPrevMessages] = useState<
     | {
         id: string;
@@ -868,7 +917,7 @@ export function MessageBubble({
           )}
         </div>
         {(onEdit || message.replacesId) && message.content && (
-          <div className="mt-1 flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover/user:opacity-100 transition-opacity duration-base ease-out">
+          <div className="mt-1 flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover/user:opacity-100 md:group-focus-within/user:opacity-100 transition-opacity duration-base ease-out">
             {onEdit && (
               <button
                 onClick={() => {
@@ -933,24 +982,8 @@ export function MessageBubble({
         {pending && !message.reasoning && (
           <TypingIndicator model={modelLabel} />
         )}
-        <PreContext.Provider
-          value={
-            onOpenAsArtifact
-              ? { messageId: message.id, onOpenAsArtifact }
-              : null
-          }
-        >
-          <ReactMarkdown
-            rehypePlugins={[rehypeHighlight, rehypeKatex]}
-            remarkPlugins={[remarkGfm, remarkMath, remarkAlert, remarkDirective, remarkDetails]}
-            components={{
-              pre: PreBlock as never,
-              p: FadeP as never,
-              table: TableBlock as never,
-            }}
-          >
-            {prepareMathMarkdown(message.content)}
-          </ReactMarkdown>
+        <PreContext.Provider value={preContext}>
+          <AnswerMarkdown content={message.content} />
         </PreContext.Provider>
         {showCursor && (
           <span
@@ -1055,7 +1088,7 @@ export function MessageBubble({
       <div
         className={cn(
           "mt-2 flex items-center gap-1 transition-opacity duration-base ease-out",
-          !isLast && "opacity-100 md:opacity-0 md:group-hover:opacity-100",
+          !isLast && "opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100",
           pending && "invisible"
         )}
       >
@@ -1105,4 +1138,4 @@ export function MessageBubble({
       </div>
     </div>
   );
-}
+});

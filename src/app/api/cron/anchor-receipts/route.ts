@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { anchorPendingReceipts } from "@/lib/receipt-anchor";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -15,9 +16,16 @@ async function handle(req: NextRequest) {
     });
   }
 
+  // Refund credit holds a crashed request never settled. Independent of
+  // anchoring, so a registry problem can't strand users' credits.
+  const { data: releasedHolds, error: holdsError } = await createAdminClient().rpc(
+    "release_stale_credit_holds"
+  );
+  if (holdsError) console.error("release_stale_credit_holds failed", holdsError);
+
   try {
     const result = await anchorPendingReceipts();
-    return Response.json(result);
+    return Response.json({ ...result, releasedHolds: releasedHolds ?? 0 });
   } catch (err) {
     const message = err instanceof Error ? err.message : "anchor failed";
     return new Response(JSON.stringify({ error: message }), { status: 500 });

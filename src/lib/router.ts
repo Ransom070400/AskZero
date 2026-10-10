@@ -11,6 +11,7 @@
 //   (none)  — no attestation; the model identity is the router's claim
 import type { ChatMessage } from "./og-compute";
 import { sendAnthropic } from "./anthropic-adapter";
+import { fetchUpstream, upstreamFailure, type UpstreamOptions } from "./upstream";
 
 export const ROUTER_PREFIX = "router:";
 
@@ -147,7 +148,7 @@ export function routerRetailCostCredits(
 export async function sendRouterPrompt(
   model: RouterModel,
   messages: ChatMessage[],
-  options: { stream?: boolean } = {}
+  options: UpstreamOptions = {}
 ): Promise<Response> {
   const apiKey = process.env.ROUTER_API_KEY;
   if (!apiKey) throw new Error("0G Router is not configured (ROUTER_API_KEY)");
@@ -162,7 +163,8 @@ export async function sendRouterPrompt(
     );
   }
 
-  const response = await fetch(`${BASE_URL}/chat/completions`, {
+  const stream = options.stream ?? true;
+  const response = await fetchUpstream(`${BASE_URL}/chat/completions`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -171,14 +173,10 @@ export async function sendRouterPrompt(
     body: JSON.stringify({
       model: model.id,
       messages,
-      stream: options.stream ?? true,
+      stream,
+      ...(stream ? { stream_options: { include_usage: true } } : {}),
     }),
-  });
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(
-      `0G Router error (${response.status}): ${text.slice(0, 500)}`
-    );
-  }
+  }, options.signal);
+  if (!response.ok) throw await upstreamFailure("0G Router", response);
   return response;
 }

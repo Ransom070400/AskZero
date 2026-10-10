@@ -7,6 +7,7 @@ import { Logo } from "@/components/ui/logo";
 import { SavingsCalculator } from "@/components/savings-calculator";
 import { ReceiptHero } from "@/components/landing/receipt-hero";
 import { MerkleSection } from "@/components/landing/merkle-section";
+import { HashStream } from "@/components/landing/hash-stream";
 
 const fade = (delay: number) => ({
   initial: { opacity: 0, y: 16 },
@@ -27,6 +28,7 @@ export default function LandingPage() {
       {/* Hero screen */}
       <div className="relative flex min-h-[100dvh] flex-col overflow-hidden">
         <AmbientGlow />
+        <HashStream />
 
       {/* Nav — single text link, no chrome */}
       <motion.header

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { memo, useEffect, useRef, useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import {
   Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { createTokenBatcher } from "@/lib/token-batcher";
 import { Redirect, useRouter } from "expo-router";
 import {
   Plus,
@@ -62,8 +63,12 @@ interface Msg {
   id: string;
   role: "user" | "assistant";
   content: string;
+  reasoning?: string;
   imageUrl?: string;
   steps?: AgentStep[];
+  // The saved message's database id, once known. `id` stays the local one so
+  // the row keeps its key (and isn't remounted) when the answer is saved.
+  dbId?: string;
 }
 
 let idCounter = 0;
@@ -73,6 +78,10 @@ export default function Chat() {
   const router = useRouter();
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const renderItem = useCallback(
+    ({ item }: { item: Msg }) => <MessageRow item={item} styles={styles} colors={colors} />,
+    [styles, colors]
+  );
   const { session, loading } = useAuth();
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
@@ -88,6 +97,11 @@ export default function Chat() {
   const modelRef = useRef<{ provider: string; model: string } | null>(null);
   const listRef = useRef<FlatList<Msg>>(null);
   const nearBottomRef = useRef(true);
+  const abortRef = useRef<AbortController | null>(null);
+  const stop = useCallback(() => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+  }, []);
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
 
   const ensureChatId = useCallback(async () => {
@@ -195,6 +209,7 @@ export default function Chat() {
   };
 
   const newChat = () => {
+    stop();
     chatIdRef.current = null;
     setMessages([]);
     setHistoryOpen(false);
@@ -203,11 +218,14 @@ export default function Chat() {
   const selectChat = async (id: string) => {
     setHistoryOpen(false);
     if (id === chatIdRef.current) return;
+    stop();
     setLoadingChat(true);
     chatIdRef.current = id;
     try {
       const stored = await getChatMessages(id);
-      setMessages(stored.map((m) => ({ id: m.id, role: m.role, content: m.content })));
+      setMessages(
+        stored.map((m) => ({ id: m.id, role: m.role, content: m.content, dbId: m.id }))
+      );
     } catch {
       setMessages([]);
     } finally {
@@ -245,6 +263,21 @@ export default function Chat() {
       const model = modelRef.current ?? (await getDefaultChatModel());
       const style = await getChatStyle();
 
+      const controller = new AbortController();
+      abortRef.current = controller;
+      const tokens = createTokenBatcher((content, reasoning) =>
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === assistantMsg.id
+              ? {
+                  ...m,
+                  content: m.content + content,
+                  ...(reasoning ? { reasoning: (m.reasoning ?? "") + reasoning } : {}),
+                }
+              : m
+          )
+        )
+      );
       const final = await streamChat(
         {
           chatId,
@@ -254,26 +287,55 @@ export default function Chat() {
           style,
           attachments: outgoing.length ? outgoing : undefined,
         },
-        (chunk) =>
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === assistantMsg.id ? { ...m, content: m.content + chunk } : m
-            )
-          ),
-        (step) =>
+        (chunk) => tokens.push({ content: chunk }),
+        (step) => {
+          tokens.flush();
           setMessages((prev) =>
             prev.map((m) =>
               m.id === assistantMsg.id
                 ? { ...m, steps: [...(m.steps ?? []), step] }
                 : m
             )
-          )
-      );
-      // Adopt the persisted DB id so the on-chain receipt lookup resolves.
-      if (final?.messageId) setAssistant({ id: final.messageId });
+          );
+        },
+        {
+          onReasoning: (text) => tokens.push({ reasoning: text }),
+          onPromoteReasoning: () => {
+            tokens.flush();
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantMsg.id
+                  ? { ...m, content: (m.reasoning ?? "") + m.content, reasoning: undefined }
+                  : m
+              )
+            );
+          },
+          signal: controller.signal,
+        }
+      ).finally(() => tokens.flush());
+      // Note the saved DB id so the on-chain receipt lookup resolves.
+      if (final?.messageId) setAssistant({ dbId: final.messageId });
     } catch (e) {
-      setAssistant({ content: `⚠️ ${(e as Error).message}` });
+      if ((e as Error).name === "AbortError") {
+        // Stopped: keep what streamed. (No DB id arrives, so no receipt.)
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === assistantMsg.id && !m.content ? { ...m, content: "_(stopped)_" } : m
+          )
+        );
+        return;
+      }
+      // Keep whatever streamed before the failure; add the error under it.
+      const msg = `⚠️ ${(e as Error).message}`;
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === assistantMsg.id
+            ? { ...m, content: m.content ? `${m.content}\n\n${msg}` : msg }
+            : m
+        )
+      );
     } finally {
+      abortRef.current = null;
       setSending(false);
       refreshBalance();
     }
@@ -327,48 +389,13 @@ export default function Chat() {
             onContentSizeChange={() => {
               // Only follow the stream if the user is already near the bottom —
               // don't yank them up while they're reading earlier text.
+              // Jump (not animate) while streaming: an animated scroll per
+              // update stacks up and stutters.
               if (nearBottomRef.current) {
-                listRef.current?.scrollToEnd({ animated: true });
+                listRef.current?.scrollToEnd({ animated: !sending });
               }
             }}
-            renderItem={({ item }) => {
-              if (item.imageUrl) {
-                return (
-                  <View style={[styles.bubble, styles.aiBubble, styles.imageBubble]}>
-                    <Image source={{ uri: item.imageUrl }} style={styles.genImage} />
-                  </View>
-                );
-              }
-              if (item.role === "assistant") {
-                const thinking = item.content === "";
-                return (
-                  <View style={styles.assistantRow}>
-                    {item.steps && item.steps.length > 0 && (
-                      <StepsTrace steps={item.steps} active={thinking} />
-                    )}
-                    {thinking ? (
-                      item.steps && item.steps.length > 0 ? null : (
-                        <View style={[styles.bubble, styles.aiBubble]}>
-                          <ActivityIndicator color={colors.accentBright} />
-                        </View>
-                      )
-                    ) : (
-                      <>
-                        <View style={[styles.bubble, styles.aiBubble]}>
-                          <AppMarkdown>{item.content}</AppMarkdown>
-                        </View>
-                        <ReceiptBadge messageId={item.id} />
-                      </>
-                    )}
-                  </View>
-                );
-              }
-              return (
-                <View style={[styles.bubble, styles.userBubble]}>
-                  <Text style={styles.userText}>{item.content}</Text>
-                </View>
-              );
-            }}
+            renderItem={renderItem}
           />
         )}
 
@@ -422,29 +449,94 @@ export default function Chat() {
             value={input}
             onChangeText={setInput}
             multiline
-            editable={!sending}
           />
-          <Pressable
-            style={[
-              styles.sendBtn,
-              (!input.trim() && attachments.length === 0) || sending
-                ? styles.disabled
-                : null,
-            ]}
-            onPress={send}
-            disabled={(!input.trim() && attachments.length === 0) || sending}
-          >
-            {busyAttach ? (
-              <ActivityIndicator color={colors.onAccent} size="small" />
-            ) : (
-              <Text style={styles.sendBtnText}>{sending ? "…" : "↑"}</Text>
-            )}
-          </Pressable>
+          {sending ? (
+            <Pressable
+              style={styles.sendBtn}
+              onPress={stop}
+              accessibilityLabel="Stop generating"
+              hitSlop={6}
+            >
+              <Square size={14} color={colors.onAccent} fill={colors.onAccent} />
+            </Pressable>
+          ) : (
+            <Pressable
+              style={[
+                styles.sendBtn,
+                !input.trim() && attachments.length === 0 ? styles.disabled : null,
+              ]}
+              onPress={send}
+              disabled={!input.trim() && attachments.length === 0}
+              accessibilityLabel="Send"
+            >
+              {busyAttach ? (
+                <ActivityIndicator color={colors.onAccent} size="small" />
+              ) : (
+                <Text style={styles.sendBtnText}>↑</Text>
+              )}
+            </Pressable>
+          )}
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
+
+// One chat row. Memoised: while an answer streams only its own row
+// re-renders, not every message in the list.
+const MessageRow = memo(function MessageRow({
+  item,
+  styles,
+  colors,
+}: {
+  item: Msg;
+  styles: ReturnType<typeof makeStyles>;
+  colors: Palette;
+}) {
+  if (item.imageUrl) {
+    return (
+      <View style={[styles.bubble, styles.aiBubble, styles.imageBubble]}>
+        <Image source={{ uri: item.imageUrl }} style={styles.genImage} />
+      </View>
+    );
+  }
+  if (item.role === "assistant") {
+    const thinking = item.content === "";
+    return (
+      <View style={styles.assistantRow}>
+        {item.steps && item.steps.length > 0 && (
+          <StepsTrace steps={item.steps} active={thinking} />
+        )}
+        {thinking ? (
+          item.reasoning ? (
+            <View style={[styles.bubble, styles.aiBubble]}>
+              <Text style={styles.reasoningLabel}>Thinking…</Text>
+              <Text style={styles.reasoningText} numberOfLines={4}>
+                {item.reasoning.slice(-400)}
+              </Text>
+            </View>
+          ) : item.steps && item.steps.length > 0 ? null : (
+            <View style={[styles.bubble, styles.aiBubble]}>
+              <ActivityIndicator color={colors.accentBright} />
+            </View>
+          )
+        ) : (
+          <>
+            <View style={[styles.bubble, styles.aiBubble]}>
+              <AppMarkdown>{item.content}</AppMarkdown>
+            </View>
+            {item.dbId && <ReceiptBadge messageId={item.dbId} />}
+          </>
+        )}
+      </View>
+    );
+  }
+  return (
+    <View style={[styles.bubble, styles.userBubble]}>
+      <Text style={styles.userText}>{item.content}</Text>
+    </View>
+  );
+});
 
 function StepsTrace({ steps, active }: { steps: AgentStep[]; active: boolean }) {
   const { colors } = useTheme();
@@ -637,6 +729,8 @@ const makeStyles = (colors: Palette) => StyleSheet.create({
   userBubble: { alignSelf: "flex-end", backgroundColor: colors.userBubble },
   aiBubble: { alignSelf: "flex-start", backgroundColor: colors.aiBubble },
   userText: { color: colors.onUserBubble, fontSize: 15.5, lineHeight: 22 },
+  reasoningLabel: { color: colors.textSecondary, fontSize: 13, fontWeight: "600", marginBottom: 4 },
+  reasoningText: { color: colors.textSecondary, fontSize: 13, lineHeight: 18, fontStyle: "italic" },
   aiText: { color: colors.aiText, fontSize: 15.5, lineHeight: 22 },
   imageBubble: { padding: 4, maxWidth: "80%" },
   genImage: { width: 240, height: 240, borderRadius: 14, backgroundColor: colors.surface },

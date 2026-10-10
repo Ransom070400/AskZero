@@ -111,6 +111,15 @@ export const OG_COMPUTE_COMING_SOON: {
 const INPUT_MARKUP = 3.0;
 const OUTPUT_MARKUP = 2.0;
 
+// The curated entry for a provider address, or undefined if it isn't one of
+// ours. Anything not listed here must never reach sendPrompt(): the broker
+// acknowledges and auto-funds whatever provider it's handed from our ledger.
+export function findOGComputeModel(provider: string): OGComputeModel | undefined {
+  return OG_COMPUTE_MODELS.find(
+    (x) => x.provider.toLowerCase() === provider.toLowerCase()
+  );
+}
+
 // Retail credit cost for a 0G Compute broker provider, or null if the provider
 // isn't one of ours (caller falls back to the static table).
 export function ogRetailCostCredits(
@@ -118,9 +127,7 @@ export function ogRetailCostCredits(
   inputTokens: number,
   outputTokens: number
 ): number | null {
-  const m = OG_COMPUTE_MODELS.find(
-    (x) => x.provider.toLowerCase() === provider.toLowerCase()
-  );
+  const m = findOGComputeModel(provider);
   if (!m) return null;
   return (
     neuronPriceToCredits(m.wholesaleNeuron.input, inputTokens) * INPUT_MARKUP +
