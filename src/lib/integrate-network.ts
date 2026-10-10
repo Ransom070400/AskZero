@@ -1,4 +1,5 @@
 import { neuronPriceToCredits, type ChatMessage } from "@/lib/og-compute";
+import { fetchUpstream, upstreamFailure, type UpstreamOptions } from "./upstream";
 
 export interface IntegrateModel {
   id: string;
@@ -94,11 +95,12 @@ export function findIntegrateModel(
 export async function sendIntegratePrompt(
   model: IntegrateModel,
   messages: ChatMessage[],
-  options: { stream?: boolean } = {}
+  options: UpstreamOptions = {}
 ): Promise<Response> {
   const url = `${model.baseUrl.replace(/\/+$/, "")}/chat/completions`;
+  const stream = options.stream ?? true;
 
-  const response = await fetch(url, {
+  const response = await fetchUpstream(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -107,19 +109,17 @@ export async function sendIntegratePrompt(
     body: JSON.stringify({
       model: model.upstreamModel,
       messages,
-      stream: options.stream ?? true,
+      stream,
+      // Ask for real token counts in the final chunk, so billing doesn't rely
+      // on a chars/4 estimate.
+      ...(stream ? { stream_options: { include_usage: true } } : {}),
       // GLM 5.1 is a reasoning model — thinking is on by default and emits
       // tokens into `reasoning` instead of `content`. The chat UI only renders
       // `content`, so disable thinking to keep replies visible.
       chat_template_kwargs: { enable_thinking: false },
     }),
-  });
+  }, options.signal);
 
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(
-      `Integrate Network error (${response.status}): ${text.slice(0, 500)}`
-    );
-  }
+  if (!response.ok) throw await upstreamFailure("Integrate Network", response);
   return response;
 }

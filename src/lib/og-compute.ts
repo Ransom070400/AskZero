@@ -4,6 +4,7 @@ import {
   createZGComputeNetworkBroker,
   createZGComputeNetworkReadOnlyBroker,
 } from "@0glabs/0g-serving-broker";
+import { fetchUpstream, upstreamFailure, type UpstreamOptions } from "./upstream";
 
 type Broker = Awaited<ReturnType<typeof createZGComputeNetworkBroker>>;
 type ReadOnlyBroker = Awaited<
@@ -111,7 +112,7 @@ async function ensureAcknowledged(
 export async function sendPrompt(
   providerAddress: string,
   messages: ChatMessage[],
-  options: { stream?: boolean } = {}
+  options: UpstreamOptions = {}
 ): Promise<Response> {
   const b = await getBroker();
 
@@ -133,7 +134,8 @@ export async function sendPrompt(
     );
   }
 
-  const response = await fetch(`${endpoint}/chat/completions`, {
+  const stream = options.stream ?? true;
+  const response = await fetchUpstream(`${endpoint}/chat/completions`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -142,14 +144,12 @@ export async function sendPrompt(
     body: JSON.stringify({
       model,
       messages,
-      stream: options.stream ?? true,
+      stream,
+      ...(stream ? { stream_options: { include_usage: true } } : {}),
     }),
-  });
+  }, options.signal);
 
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`0G Compute error (${response.status}): ${text}`);
-  }
+  if (!response.ok) throw await upstreamFailure("0G Compute", response);
 
   return response;
 }
