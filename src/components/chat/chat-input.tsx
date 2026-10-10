@@ -167,6 +167,11 @@ export function ChatInput({
         return;
       }
     }
+    if (e.key === "Escape" && isStreaming && onStop) {
+      e.preventDefault();
+      onStop();
+      return;
+    }
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       if (canSend) triggerSend();
@@ -350,7 +355,7 @@ export function ChatInput({
                 <button
                   onClick={() => onRemoveAttachment(i)}
                   aria-label="Remove attachment"
-                  className="press absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-foreground text-background shadow-md opacity-0 group-hover/att:opacity-100 transition-opacity duration-fast"
+                  className="press absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-foreground text-background shadow-md opacity-100 md:opacity-0 md:group-hover/att:opacity-100 focus-visible:opacity-100 transition-opacity duration-fast"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -370,7 +375,9 @@ export function ChatInput({
         onBlur={() => setFocused(false)}
         placeholder={placeholder}
         rows={1}
-        disabled={disabled}
+        // Stays typeable while an answer streams, so the next message can be
+        // drafted (sending is still blocked via canSend).
+        disabled={disabled && !isStreaming}
         className="block w-full resize-none bg-transparent px-4 pb-1 pt-3.5 text-[16px] leading-[1.5] text-foreground caret-accent outline-none placeholder:text-text-tertiary disabled:opacity-50 max-h-[200px]"
       />
 

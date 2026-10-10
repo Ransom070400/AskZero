@@ -53,11 +53,28 @@ export function ChatList({ messages, isStreaming, modelLabel, modelName, onRegen
   // we never yank someone who has scrolled up to read earlier messages. Use an
   // instant jump while streaming (smooth-scrolling on every token thrashes and
   // feels laggy on mobile) and a smooth scroll when a finished message lands.
+  // Two exceptions: opening a chat jumps straight to the end (no smooth scroll
+  // through the whole history), and sending a message always follows it.
+  const prevCount = useRef(0);
   useEffect(() => {
+    const before = prevCount.current;
+    prevCount.current = messages.length;
     if (
       typeof window !== "undefined" &&
       window.location.hash.startsWith("#msg-")
     ) {
+      return;
+    }
+    if (before === 0 && messages.length > 0) {
+      scrollToBottom("auto");
+      return;
+    }
+    const sent =
+      messages.length > before &&
+      messages.slice(before).some((m) => m.role === "user");
+    if (sent) {
+      setAtBottom(true);
+      scrollToBottom("smooth");
       return;
     }
     if (!atBottom) return;
@@ -70,6 +87,9 @@ export function ChatList({ messages, isStreaming, modelLabel, modelName, onRegen
         ref={scrollRef}
         onScroll={updateAtBottom}
         className="h-full overflow-y-auto overscroll-contain"
+        role="log"
+        aria-live="polite"
+        aria-busy={isStreaming}
       >
         <div className="mx-auto max-w-chat space-y-4 md:space-y-6 px-4 py-4">
           {messages.map((msg, i) => {

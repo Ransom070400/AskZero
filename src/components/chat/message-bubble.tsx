@@ -917,7 +917,7 @@ export const MessageBubble = memo(function MessageBubble({
           )}
         </div>
         {(onEdit || message.replacesId) && message.content && (
-          <div className="mt-1 flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover/user:opacity-100 transition-opacity duration-base ease-out">
+          <div className="mt-1 flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover/user:opacity-100 md:group-focus-within/user:opacity-100 transition-opacity duration-base ease-out">
             {onEdit && (
               <button
                 onClick={() => {
@@ -1088,7 +1088,7 @@ export const MessageBubble = memo(function MessageBubble({
       <div
         className={cn(
           "mt-2 flex items-center gap-1 transition-opacity duration-base ease-out",
-          !isLast && "opacity-100 md:opacity-0 md:group-hover:opacity-100",
+          !isLast && "opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100",
           pending && "invisible"
         )}
       >
