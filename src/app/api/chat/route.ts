@@ -218,7 +218,7 @@ export async function POST(req: NextRequest) {
       .select("role, content, metadata")
       .eq("chat_id", chatId)
       .is("deleted_at", null)
-      .order("created_at", { ascending: true })
+      .order("created_at", { ascending: false })
       .limit(50);
 
     if (primary.error?.code === "42703") {
@@ -226,12 +226,16 @@ export async function POST(req: NextRequest) {
         .from("messages")
         .select("role, content, metadata")
         .eq("chat_id", chatId)
-        .order("created_at", { ascending: true })
+        .order("created_at", { ascending: false })
         .limit(50);
       history = fallback.data;
     } else {
       history = primary.data;
     }
+    // Fetched newest-first so the window is the LAST 50 messages (ascending +
+    // limit would be the first 50, and a long chat would never see the new
+    // turn); put them back in chronological order for the model.
+    history?.reverse();
   }
 
   const historyMessages = (history || []).map(

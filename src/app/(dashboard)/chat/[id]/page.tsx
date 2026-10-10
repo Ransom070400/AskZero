@@ -184,18 +184,20 @@ function ChatDetailContent() {
         .select("id, role, content, token_count, cost_credits, metadata, replaces_id")
         .eq("chat_id", chatId)
         .is("deleted_at", null)
-        .order("created_at", { ascending: true })
+        .order("created_at", { ascending: false })
         .limit(100);
       if (primary.error?.code === "42703") {
         return supabase
           .from("messages")
           .select("id, role, content, token_count, cost_credits, metadata")
           .eq("chat_id", chatId)
-          .order("created_at", { ascending: true })
+          .order("created_at", { ascending: false })
           .limit(100);
       }
       return primary;
     };
+    // A late response for a chat we've already left must not overwrite it.
+    let cancelled = false;
     Promise.all([
       loadMessages(),
       supabase
@@ -208,6 +210,7 @@ function ChatDetailContent() {
         .select("message_id, provider, model")
         .eq("chat_id", chatId),
     ]).then(([msgRes, artRes, receiptRes]) => {
+      if (cancelled) return;
       const answeredBy = new Map<string, { provider: string; model: string }>();
       for (const r of (receiptRes.data ?? []) as {
         message_id: string;
@@ -240,6 +243,9 @@ function ChatDetailContent() {
         byMessage.set(a.message_id, list);
       }
       if (data && data.length > 0) {
+        // Fetched newest-first so long chats show their LAST 100 messages;
+        // display them chronologically.
+        data.reverse();
         setMessages(
           data.map((m) => ({
             id: m.id,
@@ -256,6 +262,9 @@ function ChatDetailContent() {
       }
       setLoadingHistory(false);
     });
+    return () => {
+      cancelled = true;
+    };
   }, [chatId]);
 
   const uploadFiles = async (files: File[]): Promise<Attachment[]> => {
