@@ -1,6 +1,10 @@
 import { NextRequest } from "next/server";
 import { getAuthedUser } from "@/lib/supabase/api-auth";
-import { checkBalance, deductCredits } from "@/lib/credits";
+import {
+  reserveCredits,
+  settleCredits,
+  InsufficientCreditsError,
+} from "@/lib/credits";
 import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import {
   isSttConfigured,
@@ -41,40 +45,32 @@ export async function POST(req: NextRequest) {
     return json({ error: "Unsupported file type" }, 415);
   }
 
+  // Hold the cost up front; it's refunded if transcription fails or comes
+  // back empty.
   const cost = sttCostCredits();
+  let holdId: string;
   try {
-    const balance = await checkBalance(user.id);
-    if (balance < cost) {
-      return json(
-        { error: "Insufficient credits", balance, depositUrl: "/deposit" },
-        402
-      );
+    holdId = await reserveCredits(user.id, cost, { kind: "stt", model: sttModel() });
+  } catch (err) {
+    if (err instanceof InsufficientCreditsError) {
+      return json({ error: "Insufficient credits", depositUrl: "/deposit" }, 402);
     }
-  } catch {
-    // proceed — balance lookup failures shouldn't hard-block transcription
+    console.error("reserveCredits failed for transcription", err);
+    return json({ error: "Voice input is not available right now" }, 503);
   }
 
-  let text: string;
+  let text = "";
   try {
     const result = await transcribeAudio(file, { filename: file.name });
     text = result.text;
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "Transcription failed";
-    return json({ error: msg }, 502);
-  }
-
-  // Only charge when we actually got something back.
-  if (text) {
-    try {
-      await deductCredits(user.id, cost, {
-        kind: "stt",
-        model: sttModel(),
-        bytes: file.size,
-        chars: text.length,
-      });
-    } catch {
-      console.error("deductCredits failed for transcription");
-    }
+    console.error("transcription failed", err);
+    return json({ error: "Transcription failed. Please try again." }, 502);
+  } finally {
+    await settleCredits(holdId, text ? cost : 0, {
+      bytes: file.size,
+      chars: text.length,
+    }).catch((err) => console.error("settleCredits failed for transcription", err));
   }
 
   return json({ text }, 200);
