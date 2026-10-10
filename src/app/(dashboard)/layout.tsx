@@ -26,16 +26,16 @@ export default function DashboardLayout({
 
         {/* Main Content */}
         <div className="flex flex-1 flex-col overflow-hidden min-w-0">
-          {/* Mobile header */}
-          <div className="flex items-center md:hidden border-b border-border bg-background">
-            <MobileSidebar />
+          {/* One header for both layouts (two TopNavs meant every page load
+              fetched the user and balance twice); the menu button and its
+              divider are mobile-only. */}
+          <div className="flex items-center border-b border-border bg-background md:block md:border-b-0 md:bg-transparent">
+            <div className="md:hidden">
+              <MobileSidebar />
+            </div>
             <div className="flex-1 min-w-0">
               <TopNav />
             </div>
-          </div>
-          {/* Desktop header */}
-          <div className="hidden md:block">
-            <TopNav />
           </div>
           <AccountNotice />
           <main className="flex-1 overflow-y-auto overscroll-contain pb-[env(safe-area-inset-bottom)] md:pb-0">
