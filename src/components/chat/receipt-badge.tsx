@@ -17,6 +17,105 @@ import {
   ArrowRight,
 } from "lucide-react";
 
+// How long the seal moment holds before the badge settles.
+const SEAL_MS = 2600;
+
+// A wax-seal style stamp: the ring draws itself, then the check is pressed in.
+function SealStamp() {
+  return (
+    <motion.svg
+      viewBox="0 0 20 20"
+      className="h-4 w-4"
+      initial={{ rotate: -90, scale: 0.4, opacity: 0 }}
+      animate={{ rotate: 0, scale: 1, opacity: 1 }}
+      transition={{ type: "spring", stiffness: 260, damping: 16 }}
+      aria-hidden
+    >
+      <motion.circle
+        cx="10"
+        cy="10"
+        r="8.25"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeDasharray="2 1.6"
+        initial={{ pathLength: 0 }}
+        animate={{ pathLength: 1 }}
+        transition={{ duration: 0.55, ease: "easeOut" }}
+      />
+      <motion.circle
+        cx="10"
+        cy="10"
+        r="5.75"
+        fill="currentColor"
+        fillOpacity={0.15}
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        transition={{ delay: 0.3, type: "spring", stiffness: 400, damping: 14 }}
+      />
+      <motion.path
+        d="M7.2 10.2l1.9 1.9 3.8-4"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        initial={{ pathLength: 0 }}
+        animate={{ pathLength: 1 }}
+        transition={{ delay: 0.45, duration: 0.3, ease: "easeOut" }}
+      />
+    </motion.svg>
+  );
+}
+
+// "0x3f2a…9c1d", optionally decoding from random hex into the real value.
+const HEX = "0123456789abcdef";
+function ScrambleHash({
+  value,
+  animate,
+  className,
+}: {
+  value: string;
+  animate: boolean;
+  className?: string;
+}) {
+  const target = `${value.slice(0, 6)}…${value.slice(-4)}`;
+  const [shown, setShown] = useState(animate ? "" : target);
+  useEffect(() => {
+    if (!animate) {
+      setShown(target);
+      return;
+    }
+    const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) {
+      setShown(target);
+      return;
+    }
+    // Each character cycles through random hex, settling left to right.
+    const start = performance.now();
+    let frame = 0;
+    const tick = (now: number) => {
+      const settled = Math.floor((now - start) / 45);
+      setShown(
+        target
+          .split("")
+          .map((c, i) =>
+            i < settled || c === "…" || (i < 2 && c !== "…")
+              ? c
+              : HEX[Math.floor(Math.random() * 16)]
+          )
+          .join("")
+      );
+      if (settled < target.length) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [target, animate]);
+  return (
+    <span className={cn("font-mono tabular-nums tracking-tight", className)}>{shown}</span>
+  );
+}
+
 interface ReceiptResponse {
   receipt: {
     provider: string;
@@ -92,12 +191,15 @@ export function ReceiptBadge({
   useEffect(() => {
     const wasStreamingBefore = wasStreaming.current;
     wasStreaming.current = !!isStreaming;
-    // Fire only on the streaming→done transition for the last answer.
+    // Fire only on the streaming→done transition for the last answer: stamp
+    // the seal, and fetch the receipt so its real hash can settle into view.
     if (spotlight && wasStreamingBefore && !isStreaming) {
       setSealing(true);
-      const t = setTimeout(() => setSealing(false), 900);
+      void fetchReceipt();
+      const t = setTimeout(() => setSealing(false), SEAL_MS);
       return () => clearTimeout(t);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isStreaming, spotlight]);
 
   useEffect(() => {
@@ -131,8 +233,7 @@ export function ReceiptBadge({
     }
   };
 
-  const load = async () => {
-    setOpen(true);
+  const fetchReceipt = async () => {
     if (data || state === "loading") return;
     setState("loading");
     try {
@@ -146,6 +247,11 @@ export function ReceiptBadge({
     }
   };
 
+  const load = async () => {
+    setOpen(true);
+    await fetchReceipt();
+  };
+
   const anchored = !!data?.batch?.tx_hash;
 
   return (
@@ -153,23 +259,31 @@ export function ReceiptBadge({
       <span className="relative inline-flex items-center gap-1.5">
         <motion.button
           onClick={load}
-          animate={sealing ? { scale: [1, 1.18, 1] } : { scale: 1 }}
-          transition={{ duration: 0.7, ease: "easeOut" }}
+          animate={sealing ? { scale: [1, 1.12, 1] } : { scale: 1 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
           className={cn(
-            "press relative inline-flex items-center gap-1 overflow-hidden rounded-lg px-1.5 py-1 text-2xs font-medium transition-colors",
-            sealing ? "text-success" : "text-text-tertiary hover:text-accent"
+            "press relative inline-flex items-center gap-1.5 overflow-hidden rounded-lg px-1.5 py-1 text-2xs font-medium transition-colors",
+            sealing ? "bg-success/10 text-success" : "text-text-tertiary hover:text-accent"
           )}
           title="This answer has a tamper-proof receipt — tap to see it"
         >
-          <ShieldCheck className="h-3.5 w-3.5" />
-          {sealing ? "Sealed" : "Verified"}
+          {sealing ? <SealStamp /> : <ShieldCheck className="h-3.5 w-3.5" />}
+          {sealing ? "Sealed" : anchored ? "On-chain" : "Verified"}
+          {/* The receipt's own hash decodes into place as the seal lands. */}
+          {(sealing || data) && data?.receipt.receipt_hash && (
+            <ScrambleHash
+              value={data.receipt.receipt_hash}
+              animate={sealing}
+              className={sealing ? "text-success/80" : "text-text-tertiary"}
+            />
+          )}
           {sealing && (
             <motion.span
               aria-hidden
-              className="absolute inset-0 -skew-x-12 bg-gradient-to-r from-transparent via-success/40 to-transparent"
+              className="absolute inset-0 -skew-x-12 bg-gradient-to-r from-transparent via-success/30 to-transparent"
               initial={{ x: "-130%" }}
               animate={{ x: "130%" }}
-              transition={{ duration: 0.7, ease: "easeOut" }}
+              transition={{ duration: 0.9, ease: "easeOut", delay: 0.35 }}
             />
           )}
         </motion.button>
