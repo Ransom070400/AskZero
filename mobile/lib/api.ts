@@ -415,10 +415,19 @@ export async function verifyReceipt(messageId: string): Promise<VerifyResult> {
   return res.json();
 }
 
+export interface StreamExtras {
+  // Model reasoning, streamed before the answer. Not part of the answer.
+  onReasoning?: (text: string) => void;
+  // The server decided what streamed as reasoning was really the answer
+  // (a model that never closed </think>): move it into the content.
+  onPromoteReasoning?: () => void;
+}
+
 export async function streamChat(
   params: StreamChatParams,
   onChunk: (text: string) => void,
-  onStep?: (step: AgentStep) => void
+  onStep?: (step: AgentStep) => void,
+  extras: StreamExtras = {}
 ): Promise<StreamFinal> {
   const res = await expoFetch(`${API_URL}/api/chat`, {
     method: "POST",
@@ -430,14 +439,21 @@ export async function streamChat(
   });
 
   if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`chat → ${res.status} ${text}`);
+    const body = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new Error(
+      body.error === "Insufficient credits"
+        ? "You're out of credits — top up in Settings to keep chatting."
+        : res.status === 429
+          ? "Too many requests — wait a moment and try again."
+          : body.error || `Something went wrong (${res.status}).`
+    );
   }
 
   const reader = res.body!.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
   let final: StreamFinal = {};
+  let streamError: string | null = null;
 
   while (true) {
     const { done, value } = await reader.read();
@@ -454,7 +470,16 @@ export async function streamChat(
       if (data === "[DONE]" || data === "") continue;
       try {
         const parsed = JSON.parse(data);
-        if (
+        if (typeof parsed.error === "string") {
+          streamError =
+            parsed.error === "Insufficient credits"
+              ? "You're out of credits — top up in Settings to keep chatting."
+              : parsed.error;
+        } else if (typeof parsed.reasoning === "string") {
+          extras.onReasoning?.(parsed.reasoning);
+        } else if (parsed.promoteReasoning) {
+          extras.onPromoteReasoning?.();
+        } else if (
           parsed.type === "thinking" ||
           parsed.type === "tool" ||
           parsed.type === "tool_result"
@@ -471,5 +496,6 @@ export async function streamChat(
     }
   }
 
+  if (streamError) throw new Error(streamError);
   return final;
 }

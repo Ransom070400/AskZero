@@ -62,8 +62,11 @@ interface Msg {
   id: string;
   role: "user" | "assistant";
   content: string;
+  reasoning?: string;
   imageUrl?: string;
   steps?: AgentStep[];
+  // Has a database id (receipt lookups only work for saved answers).
+  persisted?: boolean;
 }
 
 let idCounter = 0;
@@ -207,7 +210,9 @@ export default function Chat() {
     chatIdRef.current = id;
     try {
       const stored = await getChatMessages(id);
-      setMessages(stored.map((m) => ({ id: m.id, role: m.role, content: m.content })));
+      setMessages(
+        stored.map((m) => ({ id: m.id, role: m.role, content: m.content, persisted: true }))
+      );
     } catch {
       setMessages([]);
     } finally {
@@ -267,12 +272,38 @@ export default function Chat() {
                 ? { ...m, steps: [...(m.steps ?? []), step] }
                 : m
             )
-          )
+          ),
+        {
+          onReasoning: (text) =>
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantMsg.id
+                  ? { ...m, reasoning: (m.reasoning ?? "") + text }
+                  : m
+              )
+            ),
+          onPromoteReasoning: () =>
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantMsg.id
+                  ? { ...m, content: (m.reasoning ?? "") + m.content, reasoning: undefined }
+                  : m
+              )
+            ),
+        }
       );
       // Adopt the persisted DB id so the on-chain receipt lookup resolves.
-      if (final?.messageId) setAssistant({ id: final.messageId });
+      if (final?.messageId) setAssistant({ id: final.messageId, persisted: true });
     } catch (e) {
-      setAssistant({ content: `⚠️ ${(e as Error).message}` });
+      // Keep whatever streamed before the failure; add the error under it.
+      const msg = `⚠️ ${(e as Error).message}`;
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === assistantMsg.id
+            ? { ...m, content: m.content ? `${m.content}\n\n${msg}` : msg }
+            : m
+        )
+      );
     } finally {
       setSending(false);
       refreshBalance();
@@ -347,7 +378,14 @@ export default function Chat() {
                       <StepsTrace steps={item.steps} active={thinking} />
                     )}
                     {thinking ? (
-                      item.steps && item.steps.length > 0 ? null : (
+                      item.reasoning ? (
+                        <View style={[styles.bubble, styles.aiBubble]}>
+                          <Text style={styles.reasoningLabel}>Thinking…</Text>
+                          <Text style={styles.reasoningText} numberOfLines={4}>
+                            {item.reasoning.slice(-400)}
+                          </Text>
+                        </View>
+                      ) : item.steps && item.steps.length > 0 ? null : (
                         <View style={[styles.bubble, styles.aiBubble]}>
                           <ActivityIndicator color={colors.accentBright} />
                         </View>
@@ -357,7 +395,7 @@ export default function Chat() {
                         <View style={[styles.bubble, styles.aiBubble]}>
                           <AppMarkdown>{item.content}</AppMarkdown>
                         </View>
-                        <ReceiptBadge messageId={item.id} />
+                        {item.persisted && <ReceiptBadge messageId={item.id} />}
                       </>
                     )}
                   </View>
@@ -637,6 +675,8 @@ const makeStyles = (colors: Palette) => StyleSheet.create({
   userBubble: { alignSelf: "flex-end", backgroundColor: colors.userBubble },
   aiBubble: { alignSelf: "flex-start", backgroundColor: colors.aiBubble },
   userText: { color: colors.onUserBubble, fontSize: 15.5, lineHeight: 22 },
+  reasoningLabel: { color: colors.textSecondary, fontSize: 13, fontWeight: "600", marginBottom: 4 },
+  reasoningText: { color: colors.textSecondary, fontSize: 13, lineHeight: 18, fontStyle: "italic" },
   aiText: { color: colors.aiText, fontSize: 15.5, lineHeight: 22 },
   imageBubble: { padding: 4, maxWidth: "80%" },
   genImage: { width: 240, height: 240, borderRadius: 14, backgroundColor: colors.surface },
