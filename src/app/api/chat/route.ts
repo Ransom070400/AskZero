@@ -178,6 +178,16 @@ export async function POST(req: NextRequest) {
   }
 
   // Save user message (skipped entirely in incognito — nothing is persisted).
+  // A chat started from the home screen navigates with a client-made id and
+  // no row yet; create it here, with its first message, so starting a chat
+  // needs no round trip of its own. ON CONFLICT DO NOTHING: a retry, or an id
+  // that's already taken (whose owner check then fails the insert below).
+  if (body.createChat === true && !incognito) {
+    await supabase
+      .from("chats")
+      .upsert({ id: chatId, user_id: user.id }, { onConflict: "id", ignoreDuplicates: true });
+  }
+
   const metadata = attachments.length > 0 ? { attachments } : {};
   let userMessageId: string | null = null;
   if (!incognito) {

@@ -1,5 +1,9 @@
 // Client-side helpers for reading the chat route's SSE stream.
 
+// Fired when a chat was created, retitled or updated, so the sidebar refreshes
+// without waiting for the next navigation.
+export const CHATS_CHANGED_EVENT = "askzero:chats-changed";
+
 // Read `data: …` events until the stream ends, calling onEvent with each
 // parsed JSON payload. [DONE] and malformed events are skipped.
 export async function readSSE<T = Record<string, unknown>>(

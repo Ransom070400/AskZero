@@ -51,18 +51,12 @@ export default function ChatPage() {
       return;
     }
 
-    // Create a new chat
-    const res = await fetch("/api/chats", { method: "POST" });
-    if (!res.ok) {
-      setSending(false);
-      return;
-    }
-
-    const { id } = await res.json();
-
-    // Navigate to chat with the initial message as a search param. The chosen
-    // model travels via useModelSelection's saved selection.
-    router.push(`/chat/${id}?q=${encodeURIComponent(text)}`);
+    // Navigate straight away with a client-made id; the chat row is created
+    // with the first message (new=1 tells the chat page to ask for that),
+    // so starting a chat costs no round trip before the page opens. The
+    // chosen model travels via useModelSelection's saved selection.
+    const id = crypto.randomUUID();
+    router.push(`/chat/${id}?new=1&q=${encodeURIComponent(text)}`);
   };
 
   return (

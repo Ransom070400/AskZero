@@ -21,7 +21,7 @@ import type {
   ArtifactRef,
   AgentStep,
 } from "@/components/chat/message-bubble";
-import { readSSE, createTokenBatcher } from "@/lib/chat-stream";
+import { readSSE, createTokenBatcher, CHATS_CHANGED_EVENT } from "@/lib/chat-stream";
 
 // One event from /api/chat's stream (fields vary by event).
 interface StreamEvent {
@@ -208,6 +208,9 @@ function ChatDetailContent() {
 
   useEffect(() => {
     if (isIncognito) return; // nothing to load — ephemeral session
+    // A chat just started from the home screen has no history yet (its row
+    // is created with the first message).
+    if (searchParams.get("new") === "1") return;
     setLoadingHistory(true);
     const supabase = createClient();
     const loadMessages = async () => {
@@ -489,6 +492,10 @@ function ChatDetailContent() {
               style,
               replacesId: opts.replacesId,
               incognito: isIncognito,
+              // First message of a chat started from the home screen: the
+              // server creates the chat row (see chat/page.tsx).
+              createChat:
+                searchParams.get("new") === "1" && messagesRef.current.length === 0,
               // Ephemeral: the server has nothing to load, so we send the
               // in-memory transcript (prior turns + this message). An edit or
               // retry replaces a turn, so the transcript stops before it.
@@ -584,6 +591,9 @@ function ChatDetailContent() {
                 setMessages((prev) =>
                   prev.map((m) => (m.id === userMsg.id ? { ...m, id: persistedId } : m))
                 );
+                // The chat row exists now (a new chat's is created with its
+                // first message), so the sidebar can show it.
+                window.dispatchEvent(new Event(CHATS_CHANGED_EVENT));
                 return;
               }
 
@@ -634,6 +644,8 @@ function ChatDetailContent() {
                 }));
               }
               if (parsed.usage) {
+                // The answer is saved and a new chat has its title.
+                window.dispatchEvent(new Event(CHATS_CHANGED_EVENT));
                 const { usage, messageId, artifacts } = parsed;
                 updateAssistant((m) => ({
                   ...m,
@@ -839,6 +851,9 @@ function ChatDetailContent() {
     if (q && !initialSent.current && selectedModel) {
       initialSent.current = true;
       sendMessage(q);
+      // Drop ?q / ?new so a reload shows the chat instead of sending the
+      // message again (and, for a new chat, skipping its history).
+      history.replaceState(null, "", window.location.pathname + window.location.hash);
     }
   }, [searchParams, sendMessage, selectedModel]);
 
