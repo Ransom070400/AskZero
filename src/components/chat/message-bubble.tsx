@@ -23,7 +23,14 @@ import {
 import removeMarkdown from "remove-markdown";
 import { cn } from "@/lib/utils";
 import { MermaidBlock } from "./mermaid-block";
-import { ChartBlock } from "./chart-block";
+import dynamic from "next/dynamic";
+
+// recharts is large and only needed when an answer contains a chart, so it
+// loads on first use instead of with every chat page.
+const ChartBlock = dynamic(() => import("./chart-block").then((m) => m.ChartBlock), {
+  ssr: false,
+  loading: () => <div className="my-3 h-64 animate-pulse rounded-xl bg-surface/60" />,
+});
 import { ReceiptBadge } from "./receipt-badge";
 import { TypingIndicator } from "./typing-indicator";
 

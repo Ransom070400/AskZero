@@ -38,7 +38,14 @@ interface StreamEvent {
   artifacts?: ArtifactRef[];
 }
 import { CHAT_STYLES, type ChatStyle } from "@/lib/system-prompt";
-import { ArtifactPanel } from "@/components/artifact/artifact-panel";
+import dynamic from "next/dynamic";
+
+// The artifact workspace (renderers, live React preview) only loads when an
+// artifact is opened.
+const ArtifactPanel = dynamic(
+  () => import("@/components/artifact/artifact-panel").then((m) => m.ArtifactPanel),
+  { ssr: false }
+);
 import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
 import { useModelSelection } from "@/hooks/use-model-selection";
 import { setIncognitoHasMessages } from "@/lib/incognito-state";
@@ -95,6 +102,10 @@ function ChatDetailContent() {
   // Lifts the composer above the iOS software keyboard (see hook for why).
   const keyboardInset = useKeyboardInset();
   const initialSent = useRef(false);
+  // Opened from the home screen with a client-made id: the chat row doesn't
+  // exist until its first message creates it (see chat/page.tsx). Read once,
+  // since ?new is dropped from the URL after that message is sent.
+  const startedNew = useRef(searchParams.get("new") === "1");
   const abortRef = useRef<AbortController | null>(null);
   // Set synchronously on send, so a second Enter during the upload step (before
   // isStreaming has re-rendered) can't send the message twice.
@@ -210,7 +221,7 @@ function ChatDetailContent() {
     if (isIncognito) return; // nothing to load — ephemeral session
     // A chat just started from the home screen has no history yet (its row
     // is created with the first message).
-    if (searchParams.get("new") === "1") return;
+    if (startedNew.current) return;
     setLoadingHistory(true);
     const supabase = createClient();
     const loadMessages = async () => {
@@ -494,8 +505,7 @@ function ChatDetailContent() {
               incognito: isIncognito,
               // First message of a chat started from the home screen: the
               // server creates the chat row (see chat/page.tsx).
-              createChat:
-                searchParams.get("new") === "1" && messagesRef.current.length === 0,
+              createChat: startedNew.current && messagesRef.current.length === 0,
               // Ephemeral: the server has nothing to load, so we send the
               // in-memory transcript (prior turns + this message). An edit or
               // retry replaces a turn, so the transcript stops before it.
