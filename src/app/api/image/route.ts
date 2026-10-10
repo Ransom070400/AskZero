@@ -3,6 +3,7 @@ import { getAuthedUser } from "@/lib/supabase/api-auth";
 import { checkBalance, deductCredits } from "@/lib/credits";
 import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { sanitizeInput } from "@/lib/sanitize";
+import { saveAssistantMessage } from "@/lib/assistant-message";
 import {
   generateImage,
   imageGenCostCredits,
@@ -107,19 +108,13 @@ export async function POST(req: NextRequest) {
   };
 
   // Persist assistant message holding the image
-  const { data: assistantMsg, error: assistantErr } = await supabase
-    .from("messages")
-    .insert({
-      chat_id: chatId,
-      role: "assistant",
-      content: "",
-      token_count: 0,
-      cost_credits: cost,
-      metadata: { attachments: [attachment] },
-    })
-    .select("id")
-    .single();
-  if (assistantErr || !assistantMsg) {
+  const assistantMsg = await saveAssistantMessage(user.id, chatId, {
+    content: "",
+    token_count: 0,
+    cost_credits: cost,
+    metadata: { attachments: [attachment] },
+  }).catch(() => null);
+  if (!assistantMsg) {
     return new Response(
       JSON.stringify({ error: "Failed to save image message" }),
       { status: 500 }

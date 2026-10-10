@@ -1,5 +1,7 @@
 import { NextRequest } from "next/server";
 import { getAuthedUser } from "@/lib/supabase/api-auth";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { saveAssistantMessage } from "@/lib/assistant-message";
 import { deductCredits, checkBalance } from "@/lib/credits";
 import { calculateCost } from "@/lib/pricing";
 import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
@@ -507,19 +509,18 @@ export async function POST(req: NextRequest) {
 
       // Save assistant message. In incognito this stays null, which cascades to
       // skip the receipt, artifact persistence, auto-title, and memory commit.
-      const { data: assistantMsg } = incognito
-        ? { data: null as { id: string } | null }
-        : await supabase
-            .from("messages")
-            .insert({
-              chat_id: chatId,
-              role: "assistant",
-              content: fullResponse,
-              token_count: outputTokens,
-              cost_credits: actualCost,
-            })
-            .select("id")
-            .single();
+      // Assistant rows and receipts are service-role only, so a user can't
+      // write an answer the model never gave and get it receipted.
+      const assistantMsg = incognito
+        ? null
+        : await saveAssistantMessage(user.id, chatId, {
+            content: fullResponse,
+            token_count: outputTokens,
+            cost_credits: actualCost,
+          }).catch((err) => {
+            console.error("Failed to save assistant message", err);
+            return null;
+          });
 
       const emittedArtifacts: { id: string; type: string; title: string }[] = [];
 
@@ -543,7 +544,8 @@ export async function POST(req: NextRequest) {
             messages,
             fullResponse
           );
-          await supabase.rpc("record_receipt", {
+          const { error: receiptError } = await createAdminClient().rpc("record_receipt", {
+            p_user_id: user.id,
             p_chat_id: chatId,
             p_message_id: assistantMsg.id,
             p_provider: provider,
@@ -557,6 +559,7 @@ export async function POST(req: NextRequest) {
             p_nonce: nonce,
             p_receipt_hash: receipt.receiptHash,
           });
+          if (receiptError) throw receiptError;
         } catch (err) {
           console.error("record_receipt failed", err);
         }
