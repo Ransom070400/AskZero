@@ -13,7 +13,7 @@ import { prepareMathMarkdown } from "@/lib/markdown-math";
 import { splitMarkdownBlocks } from "@/lib/markdown-blocks";
 import { copyAnswer, copyAnswerPlain, copyTable } from "@/lib/copy-answer";
 import { useCurrency } from "@/lib/currency";
-import { Copy, Check, Download, ExternalLink, FileText, FileCode, History, Pencil, RotateCw, X, Search, Calculator, Globe, Loader2, WrapText, ListOrdered, Share2, ChevronDown, Wand2, Quote, Brain } from "lucide-react";
+import { Copy, Check, Download, ExternalLink, FileText, FileCode, History, Pencil, RotateCw, X, WrapText, ListOrdered, Share2, ChevronDown, Wand2, Quote } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,6 +33,8 @@ const ChartBlock = dynamic(() => import("./chart-block").then((m) => m.ChartBloc
 });
 import { ReceiptBadge } from "./receipt-badge";
 import { TypingIndicator } from "./typing-indicator";
+import { ActivityPanel, type AgentStep } from "./activity-panel";
+import { useSmoothText } from "@/hooks/use-smooth-text";
 
 // Markdown paragraph that fades in when it first appears. As the last paragraph
 // grows during streaming its element persists (same position), so it fades once
@@ -50,128 +52,6 @@ function FadeP({
       {...props}
       className={cn("animate-in fade-in-0 duration-500", className)}
     />
-  );
-}
-
-// The model's own reasoning. While it's thinking (no answer yet) the latest
-// lines stream in under a live timer; once the answer starts it collapses to
-// "Thought for Ns", expandable to the full trace.
-function ThinkingBlock({
-  text,
-  startedAt,
-  ms,
-  active,
-}: {
-  text: string;
-  startedAt?: number;
-  ms?: number;
-  active: boolean;
-}) {
-  const [open, setOpen] = useState(false);
-  const [now, setNow] = useState(() => Date.now());
-  const bodyRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!active) return;
-    const t = setInterval(() => setNow(Date.now()), 500);
-    return () => clearInterval(t);
-  }, [active]);
-
-  // Keep the newest reasoning in view while it streams.
-  useEffect(() => {
-    if (active && bodyRef.current) {
-      bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
-    }
-  }, [text, active]);
-
-  const elapsed = active ? now - (startedAt ?? now) : ms;
-  const secs = elapsed != null ? Math.max(1, Math.round(elapsed / 1000)) : null;
-
-  if (active) {
-    return (
-      <div className="mb-3" role="status" aria-live="polite">
-        <div className="flex items-center gap-2 text-sm">
-          <Brain className="h-3.5 w-3.5 text-accent" />
-          <span className="shimmer-text font-medium">Thinking</span>
-          {secs != null && (
-            <span className="tabular-nums text-text-tertiary">{secs}s</span>
-          )}
-        </div>
-        <div
-          ref={bodyRef}
-          className="mt-1.5 max-h-28 overflow-hidden whitespace-pre-wrap border-l-2 border-border pl-3 text-sm leading-relaxed text-text-tertiary [mask-image:linear-gradient(to_bottom,transparent,black_40%)]"
-        >
-          {text}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="mb-2">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
-        className="press -ml-2 inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-sm text-text-tertiary transition-colors duration-fast hover:bg-surface hover:text-foreground"
-      >
-        <Brain className="h-3.5 w-3.5" />
-        {secs != null ? `Thought for ${secs}s` : "Thoughts"}
-        <ChevronDown
-          className={cn(
-            "h-3.5 w-3.5 transition-transform duration-fast",
-            open && "rotate-180"
-          )}
-        />
-      </button>
-      {open && (
-        <div className="mt-1.5 max-h-80 overflow-y-auto whitespace-pre-wrap border-l-2 border-border pl-3 text-sm leading-relaxed text-text-tertiary animate-in fade-in-0">
-          {text}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// Live agent "thinking" trace — reasoning + tool steps shown above the answer.
-function StepsTrace({ steps, active }: { steps: AgentStep[]; active: boolean }) {
-  const toolLabel = (tool?: string) =>
-    tool === "web_search"
-      ? "Searching the web"
-      : tool === "calculate"
-        ? "Calculating"
-        : "Reading page";
-  const ToolIcon = ({ tool }: { tool?: string }) => {
-    const cls = "h-3.5 w-3.5 text-accent shrink-0";
-    if (tool === "calculate") return <Calculator className={cls} />;
-    if (tool === "fetch_url") return <Globe className={cls} />;
-    return <Search className={cls} />;
-  };
-  return (
-    <div className="mb-2 space-y-1.5 border-l-2 border-accent/25 pl-3">
-      {steps.map((s, i) => {
-        if (s.type === "thinking") {
-          return (
-            <p key={i} className="text-sm italic leading-snug text-text-tertiary">
-              {s.text}
-            </p>
-          );
-        }
-        if (s.type === "tool") {
-          return (
-            <div key={i} className="flex items-center gap-1.5 text-sm text-text-secondary">
-              <ToolIcon tool={s.tool} />
-              <span>
-                {toolLabel(s.tool)}
-                {s.input ? <span className="text-accent"> · {s.input}</span> : null}
-              </span>
-            </div>
-          );
-        }
-        return null;
-      })}
-      {active && <Loader2 className="h-3.5 w-3.5 animate-spin text-accent" />}
-    </div>
   );
 }
 
@@ -200,12 +80,7 @@ export interface ArtifactRef {
   title: string;
 }
 
-export interface AgentStep {
-  type: "thinking" | "tool" | "tool_result";
-  text?: string;
-  tool?: string;
-  input?: string;
-}
+export type { AgentStep };
 
 export interface Message {
   id: string;
@@ -222,6 +97,10 @@ export interface Message {
   reasoning?: string;
   thinkingStartedAt?: number;
   thinkingMs?: number;
+  // Live answers only: when the request was sent and when the first answer
+  // text arrived — the span the activity timeline reports.
+  startedAt?: number;
+  answerStartedAt?: number;
   // The model that produced this answer (live: the one it was sent to;
   // history: from its inference receipt).
   answeredBy?: { provider: string; model: string };
@@ -768,6 +647,14 @@ export const MessageBubble = memo(function MessageBubble({
     () => (onOpenAsArtifact ? { messageId: message.id, onOpenAsArtifact } : null),
     [message.id, onOpenAsArtifact]
   );
+
+  // The answer as revealed so far: streamed text plays out word by word at an
+  // even pace rather than in bursts (see use-smooth-text). Hooks run before
+  // the user-message early return below.
+  const shownContent = useSmoothText(
+    message.content,
+    !isUser && !!isStreaming && !!isLast
+  );
   const [prevMessages, setPrevMessages] = useState<
     | {
         id: string;
@@ -961,22 +848,27 @@ export const MessageBubble = memo(function MessageBubble({
   // The caret means "text is landing here", so it must not appear until there
   // is text. While pending the shimmer label owns this slot; showing both put
   // a blinking caret next to the word "Thinking".
-  const showCursor = isStreaming && isLast && !pending;
+  const revealing = shownContent.length < message.content.length;
+  const showCursor = (isStreaming && isLast && !pending) || revealing;
+  const hasActivity = !!message.reasoning || (message.steps?.length ?? 0) > 0;
   const assistantImages =
     message.attachments?.filter((a) => a.type.startsWith("image/")) ?? [];
 
   return (
     <div id={`msg-${message.id}`} className="group scroll-mt-20">
-      {message.reasoning && (
-        <ThinkingBlock
-          text={message.reasoning}
-          startedAt={message.thinkingStartedAt}
-          ms={message.thinkingMs}
+      {hasActivity && (
+        <ActivityPanel
+          steps={message.steps ?? []}
+          reasoning={message.reasoning}
           active={!!pending}
+          startedAt={message.startedAt ?? message.thinkingStartedAt}
+          endedAt={
+            message.answerStartedAt ??
+            (message.thinkingStartedAt && message.thinkingMs != null
+              ? message.thinkingStartedAt + message.thinkingMs
+              : undefined)
+          }
         />
-      )}
-      {message.steps && message.steps.length > 0 && (
-        <StepsTrace steps={message.steps} active={!message.content} />
       )}
       <div
         className="answer prose max-w-none"
@@ -986,11 +878,11 @@ export const MessageBubble = memo(function MessageBubble({
       >
         {/* Pending answer: the label lives inside this same prose container,
             so the first token replaces it rather than landing above it. */}
-        {pending && !message.reasoning && (
+        {pending && !hasActivity && (
           <TypingIndicator model={modelLabel} />
         )}
         <PreContext.Provider value={preContext}>
-          <AnswerMarkdown content={message.content} />
+          <AnswerMarkdown content={shownContent} />
         </PreContext.Provider>
         {showCursor && (
           <span

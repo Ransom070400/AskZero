@@ -484,6 +484,7 @@ function ChatDetailContent() {
             role: "assistant",
             content: "",
             answeredBy: opts.model ?? selectedModel,
+            startedAt: Date.now(),
           },
         ]);
 
@@ -577,6 +578,7 @@ function ChatDetailContent() {
               ...(content
                 ? {
                     content: m.content + content,
+                    answerStartedAt: m.answerStartedAt ?? Date.now(),
                     // First answer token ends the thinking phase.
                     thinkingMs:
                       m.thinkingMs ??
@@ -640,7 +642,7 @@ function ChatDetailContent() {
                 parsed.type === "tool" ||
                 parsed.type === "tool_result"
               ) {
-                const step = parsed as AgentStep;
+                const step = { ...(parsed as AgentStep), at: Date.now() };
                 updateAssistant((m) => ({ ...m, steps: [...(m.steps ?? []), step] }));
               }
               if (parsed.promoteReasoning) {
