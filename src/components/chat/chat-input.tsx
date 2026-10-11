@@ -3,6 +3,7 @@
 import { useRef, useEffect, useState } from "react";
 import {
   ArrowUp,
+  FileText,
   Loader2,
   Mic,
   Paperclip,
@@ -100,6 +101,12 @@ export function ChatInput({
   const [recordError, setRecordError] = useState<string | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  // The live mic stream, for the recording waveform.
+  const [micStream, setMicStream] = useState<MediaStream | null>(null);
+  // Highlighted row in the slash-command menu (arrow keys move it).
+  const [slashIndex, setSlashIndex] = useState(0);
+  // Files dragged anywhere over the window (see the drop overlay).
+  const [windowDrag, setWindowDrag] = useState(false);
 
   const allowedTypes = allowImages
     ? ALL_ALLOWED_TYPES
@@ -131,6 +138,47 @@ export function ChatInput({
         )
       : [];
   const showSlash = focused && slashMatches.length > 0;
+  const activeSlash = Math.min(slashIndex, Math.max(slashMatches.length - 1, 0));
+  useEffect(() => setSlashIndex(0), [slashQuery]);
+
+  // Full-window drop zone: dragging files anywhere over the page shows an
+  // overlay, and dropping them anywhere attaches them. Counting enter/leave
+  // pairs, since dragleave fires on every child element crossed.
+  useEffect(() => {
+    if (!onAttach) return;
+    let depth = 0;
+    const hasFiles = (e: DragEvent) => !!e.dataTransfer?.types.includes("Files");
+    const enter = (e: DragEvent) => {
+      if (!hasFiles(e)) return;
+      depth++;
+      setWindowDrag(true);
+    };
+    const leave = (e: DragEvent) => {
+      if (!hasFiles(e)) return;
+      depth = Math.max(0, depth - 1);
+      if (depth === 0) setWindowDrag(false);
+    };
+    const over = (e: DragEvent) => {
+      if (hasFiles(e)) e.preventDefault();
+    };
+    const drop = (e: DragEvent) => {
+      if (!hasFiles(e)) return;
+      e.preventDefault();
+      depth = 0;
+      setWindowDrag(false);
+      if (e.dataTransfer?.files.length) addFilesRef.current(e.dataTransfer.files);
+    };
+    window.addEventListener("dragenter", enter);
+    window.addEventListener("dragleave", leave);
+    window.addEventListener("dragover", over);
+    window.addEventListener("drop", drop);
+    return () => {
+      window.removeEventListener("dragenter", enter);
+      window.removeEventListener("dragleave", leave);
+      window.removeEventListener("dragover", over);
+      window.removeEventListener("drop", drop);
+    };
+  }, [onAttach]);
 
   const runCommand = (cmd: SlashCommand) => {
     cmd.run();
@@ -156,9 +204,15 @@ export function ChatInput({
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (showSlash) {
-      if (e.key === "Enter" && !e.shiftKey) {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
         e.preventDefault();
-        runCommand(slashMatches[0]);
+        const n = slashMatches.length;
+        setSlashIndex((i) => (i + (e.key === "ArrowDown" ? 1 : n - 1)) % n);
+        return;
+      }
+      if ((e.key === "Enter" && !e.shiftKey) || e.key === "Tab") {
+        e.preventDefault();
+        runCommand(slashMatches[activeSlash]);
         return;
       }
       if (e.key === "Escape") {
@@ -192,6 +246,9 @@ export function ChatInput({
     }
     if (valid.length > 0) onAttach(valid);
   };
+  // The window drop listener is registered once; it calls the latest addFiles.
+  const addFilesRef = useRef(addFiles);
+  addFilesRef.current = addFiles;
 
   const handlePaste = (e: React.ClipboardEvent) => {
     const files = e.clipboardData?.files;
@@ -206,13 +263,6 @@ export function ChatInput({
     }
   };
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragOver(false);
-    if (e.dataTransfer.files.length > 0) {
-      addFiles(e.dataTransfer.files);
-    }
-  };
 
   // --- Voice input (speech-to-text via whisper-large-v3 on 0G) ---
 
@@ -271,6 +321,7 @@ export function ChatInput({
       };
       mediaRecorderRef.current = recorder;
       recorder.start();
+      setMicStream(stream);
       setRecording(true);
     } catch {
       setRecordError("Microphone access denied");
@@ -281,6 +332,7 @@ export function ChatInput({
     const r = mediaRecorderRef.current;
     if (r && r.state !== "inactive") r.stop();
     setRecording(false);
+    setMicStream(null);
   };
 
   // Stop any in-flight recording if the composer unmounts.
@@ -294,20 +346,33 @@ export function ChatInput({
   return (
     <div
       className={cn(
-        "relative rounded-3xl border bg-elevated/80 backdrop-blur-sm",
+        "composer relative rounded-3xl border bg-elevated/80 backdrop-blur-md",
+        "shadow-[0_1px_2px_rgb(0_0_0/0.04),0_8px_24px_-12px_rgb(0_0_0/0.18)]",
         "transition-[border-color,box-shadow,background-color] duration-base ease-out",
         focused
           ? "border-accent/60 shadow-ring bg-elevated"
-          : "border-border/70",
-        dragOver && "border-accent bg-accent-muted"
+          : "border-border/70 hover:border-border-strong",
+        (dragOver || windowDrag) && "border-accent bg-accent-muted",
+        isStreaming && "composer-working"
       )}
       onDragOver={(e) => {
         e.preventDefault();
         setDragOver(true);
       }}
       onDragLeave={() => setDragOver(false)}
-      onDrop={handleDrop}
     >
+      {/* Full-window drop target (see the window drag listeners above). */}
+      {windowDrag && (
+        <div className="pointer-events-none fixed inset-0 z-overlay flex items-center justify-center bg-background/70 backdrop-blur-sm animate-in fade-in-0 duration-150">
+          <div className="flex flex-col items-center gap-3 rounded-3xl border-2 border-dashed border-accent/70 bg-elevated/90 px-12 py-10 shadow-2xl animate-in zoom-in-95 duration-200">
+            <Paperclip className="h-8 w-8 text-accent" />
+            <p className="text-base font-semibold text-foreground">Drop to attach</p>
+            <p className="text-sm text-text-tertiary">
+              {allowImages ? "Images and PDFs, up to 10 MB" : "PDFs, up to 10 MB"}
+            </p>
+          </div>
+        </div>
+      )}
       {/* Slash-command menu */}
       {showSlash && (
         <div className="absolute bottom-full left-0 right-0 mb-2 overflow-hidden rounded-2xl border border-border bg-elevated shadow-xl">
@@ -320,9 +385,10 @@ export function ChatInput({
                 e.preventDefault();
                 runCommand(cmd);
               }}
+              onMouseEnter={() => setSlashIndex(i)}
               className={cn(
                 "flex w-full items-center gap-3 px-3.5 py-2.5 text-left transition-colors",
-                i === 0 ? "bg-surface" : "hover:bg-surface"
+                i === activeSlash ? "bg-surface" : "hover:bg-surface"
               )}
             >
               <span className="font-mono text-sm font-semibold text-accent">
@@ -347,8 +413,18 @@ export function ChatInput({
               {file.type.startsWith("image/") ? (
                 <ImageThumb file={file} />
               ) : (
-                <div className="flex h-16 w-16 flex-col items-center justify-center rounded-xl border border-border/80 bg-surface text-2xs font-semibold uppercase tracking-wider text-text-tertiary">
-                  {file.name.split(".").pop()?.toUpperCase().slice(0, 4)}
+                <div className="flex h-16 w-52 items-center gap-2.5 rounded-xl border border-border/80 bg-surface px-3 animate-in fade-in-0 zoom-in-95 duration-200">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-error/10 text-error">
+                    <FileText className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium text-foreground">
+                      {file.name}
+                    </span>
+                    <span className="block text-xs text-text-tertiary">
+                      {file.name.split(".").pop()?.toUpperCase()} · {formatBytes(file.size)}
+                    </span>
+                  </span>
                 </div>
               )}
               {onRemoveAttachment && (
@@ -392,6 +468,8 @@ export function ChatInput({
           e.target.value = "";
         }}
       />
+
+      {recording && micStream && <RecordingWave stream={micStream} />}
 
       {/* Toolbar: actions on the left; model, cost, mic and send on the right */}
       <div className="flex items-center gap-1 px-2 pb-2">
@@ -488,10 +566,28 @@ export function ChatInput({
           {isStreaming && onStop ? (
             <button
               aria-label="Stop generating"
+              title="Stop (Esc)"
               onClick={onStop}
-              className="press shrink-0 flex h-9 w-9 items-center justify-center rounded-full bg-foreground text-background shadow-sm hover:opacity-90 transition-[opacity,box-shadow] duration-fast ease-out"
+              className="press relative shrink-0 flex h-9 w-9 items-center justify-center rounded-full bg-foreground text-background shadow-sm hover:opacity-90 transition-[opacity,box-shadow] duration-fast ease-out animate-in zoom-in-75 duration-200"
             >
-              <Square className="h-[14px] w-[14px] fill-current" />
+              {/* Indeterminate progress ring while the answer streams. */}
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 36 36"
+                className="absolute -inset-[3px] h-[42px] w-[42px] animate-spin [animation-duration:1.4s]"
+              >
+                <circle
+                  cx="18"
+                  cy="18"
+                  r="16.5"
+                  fill="none"
+                  stroke="hsl(var(--accent))"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeDasharray="26 78"
+                />
+              </svg>
+              <Square className="h-[12px] w-[12px] fill-current" />
             </button>
           ) : (
             <button
@@ -501,8 +597,8 @@ export function ChatInput({
               className={cn(
                 "press shrink-0 flex h-9 w-9 items-center justify-center rounded-full transition-[background-color,opacity,transform,box-shadow] duration-fast ease-out",
                 canSend
-                  ? "bg-accent text-white shadow-sm hover:bg-accent-hover hover:shadow-md"
-                  : "bg-surface text-text-tertiary opacity-60"
+                  ? "bg-accent text-white shadow-sm shadow-accent/30 hover:bg-accent-hover hover:shadow-md hover:shadow-accent/40 scale-100"
+                  : "bg-surface text-text-tertiary opacity-60 scale-95"
               )}
             >
               <ArrowUp className="h-[18px] w-[18px]" />
@@ -510,6 +606,12 @@ export function ChatInput({
           )}
         </div>
       </div>
+
+      {focused && value.trim() && !isStreaming && !recording && (
+        <div className="pointer-events-none absolute -bottom-5 right-4 hidden text-2xs text-text-tertiary animate-in fade-in-0 duration-300 md:block">
+          <kbd className="font-sans">Enter</kbd> to send · <kbd className="font-sans">Shift + Enter</kbd> for a new line
+        </div>
+      )}
 
       {rejectedImage && (
         <div className="px-4 pb-2 text-2xs font-medium text-warning">
@@ -524,7 +626,7 @@ export function ChatInput({
           ) : transcribing ? (
             <span className="text-text-tertiary">Transcribing…</span>
           ) : (
-            <span className="text-error">Recording… tap the square to stop</span>
+            <span className="text-text-tertiary">Listening… tap the square when you&apos;re done</span>
           )}
         </div>
       )}
@@ -551,5 +653,71 @@ function ImageThumb({ file }: { file: File }) {
       alt={file.name}
       className="h-16 w-16 rounded-xl object-cover border border-border/80"
     />
+  );
+}
+
+function formatBytes(n: number): string {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${Math.round(n / 1024)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+// Live microphone level as a row of bars, plus elapsed time.
+const WAVE_BARS = 40;
+function RecordingWave({ stream }: { stream: MediaStream }) {
+  const [levels, setLevels] = useState<number[]>(() => Array(WAVE_BARS).fill(0.05));
+  const [startedAt] = useState(() => Date.now());
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const Ctx =
+      window.AudioContext ??
+      (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!Ctx) return;
+    const ctx = new Ctx();
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 512;
+    ctx.createMediaStreamSource(stream).connect(analyser);
+    const data = new Uint8Array(analyser.fftSize);
+    let frame = 0;
+    let lastPush = 0;
+    const tick = (t: number) => {
+      // Sample ~16 times a second: each new level scrolls in from the right.
+      if (t - lastPush > 60) {
+        lastPush = t;
+        analyser.getByteTimeDomainData(data);
+        let sum = 0;
+        for (let k = 0; k < data.length; k++) sum += ((data[k] - 128) / 128) ** 2;
+        const rms = Math.sqrt(sum / data.length);
+        const level = Math.min(1, Math.max(0.05, rms * 4));
+        setLevels((prev) => [...prev.slice(1), level]);
+        setNow(Date.now());
+      }
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => {
+      cancelAnimationFrame(frame);
+      void ctx.close();
+    };
+  }, [stream]);
+
+  const secs = Math.floor((now - startedAt) / 1000);
+  return (
+    <div className="flex items-center gap-3 px-4 pb-1 pt-1 animate-in fade-in-0 duration-200" aria-hidden="true">
+      <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-error" />
+      <div className="flex h-8 flex-1 items-center gap-[3px] overflow-hidden">
+        {levels.map((l, i) => (
+          <span
+            key={i}
+            className="w-[3px] shrink-0 rounded-full bg-accent transition-[height] duration-75"
+            style={{ height: `${Math.round(l * 100)}%`, opacity: 0.35 + l * 0.65 }}
+          />
+        ))}
+      </div>
+      <span className="shrink-0 tabular-nums text-xs text-text-tertiary">
+        {Math.floor(secs / 60)}:{String(secs % 60).padStart(2, "0")}
+      </span>
+    </div>
   );
 }

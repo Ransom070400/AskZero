@@ -30,7 +30,7 @@ import {
 } from "@/lib/router";
 import { buildReceipt, makeNonce } from "@/lib/receipts";
 import { buildSystemPrompt, type ChatStyle } from "@/lib/system-prompt";
-import { runAgentLoop } from "@/lib/agent";
+import { runAgentLoop, type AgentResult, type AgentStep } from "@/lib/agent";
 import { detectArtifacts } from "@/lib/artifact-detect";
 import { TYPICAL_OUTPUT_TOKENS } from "@/lib/estimate";
 import { ThinkSplitter } from "@/lib/think-split";
@@ -335,9 +335,20 @@ export async function POST(req: NextRequest) {
             .then(formatMemoriesForPrompt)
             .catch(() => "")
         : Promise.resolve("");
+    // Agent steps are kept with the answer, so its activity timeline and
+    // sources survive a reload.
+    const activity: AgentStep[] = [];
+    const noAgent: AgentResult = { observations: "", sources: [] };
     const observationsP = message.trim()
-      ? runAgentLoop(message, (s) => send(s), { hasAttachments }).catch(() => "")
-      : Promise.resolve("");
+      ? runAgentLoop(
+          message,
+          (step) => {
+            activity.push(step);
+            send(step);
+          },
+          { hasAttachments }
+        ).catch(() => noAgent)
+      : Promise.resolve(noAgent);
 
     let userMessageId: string | null;
     try {
@@ -352,7 +363,7 @@ export async function POST(req: NextRequest) {
     // hand it the persisted one so edit/retry can supersede it.
     if (userMessageId) send({ userMessageId });
 
-    const [historyRows, memoryBlock, observations] = await Promise.all([
+    const [historyRows, memoryBlock, { observations }] = await Promise.all([
       historyP.catch(() => [] as HistoryRow[]),
       memoryP,
       observationsP,
@@ -607,13 +618,12 @@ export async function POST(req: NextRequest) {
             content: fullResponse,
             token_count: outputTokens,
             cost_credits: actualCost,
-            ...(stopped || streamError || finishReason === "length"
-              ? {
-                  metadata: {
-                    incomplete: stopped ? "stopped" : streamError ? "error" : "length",
-                  },
-                }
-              : {}),
+            metadata: {
+              ...(activity.length ? { activity } : {}),
+              ...(stopped || streamError || finishReason === "length"
+                ? { incomplete: stopped ? "stopped" : streamError ? "error" : "length" }
+                : {}),
+            },
           }).catch((err) => {
             console.error("Failed to save assistant message", err);
             return null;

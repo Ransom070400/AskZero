@@ -82,12 +82,29 @@ export function calculate(expr: string): string {
   return String(val);
 }
 
-export async function webSearchTool(query: string): Promise<string> {
+export interface Source {
+  title: string;
+  url: string;
+}
+
+// Results are numbered from `firstNumber` so numbers stay unique across
+// several searches in one answer; the model cites them as [n] and the UI
+// turns those into source chips.
+export async function webSearchTool(
+  query: string,
+  firstNumber = 1
+): Promise<{ text: string; sources: Source[] }> {
   const results = await tavilySearch(query, { maxResults: 5 });
-  if (!results.length) return "No results.";
-  return results
-    .map((r, i) => `(${i + 1}) ${r.title} — ${r.url}\n${r.content.slice(0, 400)}`)
-    .join("\n\n");
+  if (!results.length) return { text: "No results.", sources: [] };
+  return {
+    text: results
+      .map(
+        (r, i) =>
+          `[${firstNumber + i}] ${r.title} — ${r.url}\n${r.content.slice(0, 400)}`
+      )
+      .join("\n\n"),
+    sources: results.map((r) => ({ title: r.title, url: r.url })),
+  };
 }
 
 export async function fetchUrlTool(url: string): Promise<string> {

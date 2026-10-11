@@ -272,7 +272,7 @@ function ChatDetailContent() {
             content: string;
             token_count: number | null;
             cost_credits: number | null;
-            metadata?: { attachments?: Attachment[] };
+            metadata?: { attachments?: Attachment[]; activity?: AgentStep[] };
             replaces_id?: string | null;
           }[]
         | null;
@@ -300,6 +300,8 @@ function ChatDetailContent() {
             tokenCount: m.token_count,
             costCredits: m.cost_credits,
             attachments: m.metadata?.attachments,
+            // The answer's saved agent steps: its activity timeline and sources.
+            steps: m.metadata?.activity,
             artifacts: byMessage.get(m.id),
             replacesId: m.replaces_id ?? undefined,
             answeredBy: answeredBy.get(m.id),
@@ -403,6 +405,21 @@ function ChatDetailContent() {
     [chatId, imageSize]
   );
 
+  // Suggested follow-ups for a finished answer (see FollowupChips).
+  const loadFollowups = useCallback(async (messageId: string) => {
+    try {
+      const res = await fetch(`/api/messages/${messageId}/followups`, { method: "POST" });
+      if (!res.ok) return;
+      const { followups } = (await res.json()) as { followups?: string[] };
+      if (!followups?.length) return;
+      setMessages((prev) =>
+        prev.map((m) => (m.id === messageId ? { ...m, followups } : m))
+      );
+    } catch {
+      // suggestions are optional
+    }
+  }, []);
+
   const sendMessage = useCallback(
     async (
       text: string,
@@ -484,6 +501,7 @@ function ChatDetailContent() {
             role: "assistant",
             content: "",
             answeredBy: opts.model ?? selectedModel,
+            startedAt: Date.now(),
           },
         ]);
 
@@ -577,6 +595,7 @@ function ChatDetailContent() {
               ...(content
                 ? {
                     content: m.content + content,
+                    answerStartedAt: m.answerStartedAt ?? Date.now(),
                     // First answer token ends the thinking phase.
                     thinkingMs:
                       m.thinkingMs ??
@@ -586,6 +605,12 @@ function ChatDetailContent() {
             }))
           );
 
+          // Set when the answer was saved complete; follow-ups are then
+          // suggested for it (after the stream, so they never delay it).
+          let savedAnswerId: string | null = null;
+          let streamFailed = false;
+          const finishedOk = (e: StreamEvent) =>
+            !streamFailed && e.finishReason !== "length";
           try {
             await readSSE<StreamEvent>(res.body!, (parsed) => {
               if (parsed.content || typeof parsed.reasoning === "string") {
@@ -611,6 +636,7 @@ function ChatDetailContent() {
               // pushes the cost past the balance) or the model can fail
               // partway. Keep whatever streamed before the failure.
               if (parsed.error) {
+                streamFailed = true;
                 const streamErr = String(parsed.error);
                 const insufficient =
                   parsed.code === "insufficient_credits" ||
@@ -640,7 +666,7 @@ function ChatDetailContent() {
                 parsed.type === "tool" ||
                 parsed.type === "tool_result"
               ) {
-                const step = parsed as AgentStep;
+                const step = { ...(parsed as AgentStep), at: Date.now() };
                 updateAssistant((m) => ({ ...m, steps: [...(m.steps ?? []), step] }));
               }
               if (parsed.promoteReasoning) {
@@ -657,6 +683,7 @@ function ChatDetailContent() {
                 // The answer is saved and a new chat has its title.
                 window.dispatchEvent(new Event(CHATS_CHANGED_EVENT));
                 const { usage, messageId, artifacts } = parsed;
+                if (messageId && finishedOk(parsed)) savedAnswerId = messageId;
                 updateAssistant((m) => ({
                   ...m,
                   // adopt the persisted DB id so the receipt lookup works
@@ -673,6 +700,7 @@ function ChatDetailContent() {
           } finally {
             tokens.flush();
           }
+          if (savedAnswerId) void loadFollowups(savedAnswerId);
         } catch (err) {
           const aborted =
             err instanceof DOMException && err.name === "AbortError";
@@ -701,7 +729,7 @@ function ChatDetailContent() {
         sendingRef.current = false;
       }
     },
-    [chatId, isStreaming, selectedModel, attachments, style, runImageGeneration]
+    [chatId, isStreaming, selectedModel, attachments, style, runImageGeneration, loadFollowups]
   );
 
   const handleStop = useCallback(() => {
@@ -841,6 +869,14 @@ function ChatDetailContent() {
     [regenerate]
   );
 
+  // Stable across renders (bubbles are memoised); always sends with the
+  // latest sendMessage.
+  const sendRef = useRef(sendMessage);
+  sendRef.current = sendMessage;
+  const handleFollowup = useCallback((text: string) => {
+    void sendRef.current(text);
+  }, []);
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -932,6 +968,7 @@ function ChatDetailContent() {
         hideReceipts={isIncognito}
         onTransform={(instruction) => sendMessage(instruction)}
         onQuote={handleQuote}
+        onFollowup={handleFollowup}
       />
       )}
 
