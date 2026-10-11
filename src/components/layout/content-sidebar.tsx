@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "@/lib/toast";
 import { Logo } from "@/components/ui/logo";
+import { CHATS_CHANGED_EVENT } from "@/lib/chat-stream";
 
 interface Chat {
   id: string;
@@ -487,6 +488,12 @@ export function ContentSidebar() {
   useEffect(() => {
     fetchChats();
   }, [fetchChats, pathname]);
+
+  // A chat page reports new/retitled chats as they happen.
+  useEffect(() => {
+    window.addEventListener(CHATS_CHANGED_EVENT, fetchChats);
+    return () => window.removeEventListener(CHATS_CHANGED_EVENT, fetchChats);
+  }, [fetchChats]);
 
   // Debounced full-text search over message content. Title matching stays
   // local (instant) while content matching hits the server.

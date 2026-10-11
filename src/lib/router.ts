@@ -159,7 +159,7 @@ export async function sendRouterPrompt(
       model.id,
       { Authorization: `Bearer ${apiKey}`, "x-api-key": apiKey },
       messages,
-      { ...options, label: "0G Router" }
+      { ...options, label: "0G Router", promptCache: true }
     );
   }
 

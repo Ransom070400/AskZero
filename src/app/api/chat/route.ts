@@ -127,22 +127,30 @@ export async function POST(req: NextRequest) {
   // Router models are priced from the live catalog, and billing looks them up
   // synchronously — load it first, and refuse ids the router doesn't list
   // (otherwise they'd silently fall through to the cheap static price table).
-  if (provider.startsWith(ROUTER_PREFIX)) {
-    await loadRouterCatalog();
-    if (!findRouterModel(provider)) {
-      return new Response(
-        JSON.stringify({ error: "That model is no longer available." }),
-        { status: 400 }
-      );
-    }
-  } else if (
-    // Anything else is a 0G Compute provider address, and only the curated
-    // ones are allowed: the broker acknowledges and funds whatever provider it
-    // is handed from the shared ledger, so an arbitrary address would let a
-    // caller route our 0G (and their prompts) to a provider they control.
-    provider.startsWith(INTEGRATE_PREFIX)
-      ? !findIntegrateModel(provider)
-      : !findOGComputeModel(provider)
+  // The balance read runs alongside it.
+  //
+  // The balance gate has to clear this answer's PROJECTED cost, not a flat
+  // floor, so it fails fast with a 402 instead of opening a stream. The real
+  // guarantee is the credit hold taken before the model call.
+  const [, balanceRead] = await Promise.all([
+    provider.startsWith(ROUTER_PREFIX) ? loadRouterCatalog() : null,
+    checkBalance(user.id, supabase).catch(() => null),
+  ]);
+  // Unreadable balance: proceed and let the hold be the backstop rather than
+  // failing a request over a transient read error.
+  const balance = balanceRead ?? Number.POSITIVE_INFINITY;
+
+  if (
+    provider.startsWith(ROUTER_PREFIX)
+      ? !findRouterModel(provider)
+      : // Anything else is a 0G Compute provider address, and only the curated
+        // ones are allowed: the broker acknowledges and funds whatever provider
+        // it is handed from the shared ledger, so an arbitrary address would
+        // let a caller route our 0G (and their prompts) to a provider they
+        // control.
+        provider.startsWith(INTEGRATE_PREFIX)
+        ? !findIntegrateModel(provider)
+        : !findOGComputeModel(provider)
   ) {
     return new Response(
       JSON.stringify({ error: "That model is no longer available." }),
@@ -150,17 +158,6 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Check balance. The gate has to clear this answer's PROJECTED cost, not a
-  // flat floor. deduct_credits refuses to overdraw, so a user parked just above
-  // a fixed floor would fail the post-answer deduction and — because that
-  // failure was swallowed — keep both their balance and the answer, forever.
-  let balance = Number.POSITIVE_INFINITY;
-  try {
-    balance = await checkBalance(user.id, supabase);
-  } catch {
-    // Balance unreadable — proceed and let the (atomic) settlement below be the
-    // backstop rather than failing a request over a transient read error.
-  }
   const projectedCost = Math.max(
     costForTokens(provider, model, estimateTokens(message), TYPICAL_OUTPUT_TOKENS),
     MIN_CREDITS
@@ -177,11 +174,29 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Save user message (skipped entirely in incognito — nothing is persisted).
+  type HistoryRow = {
+    id?: string;
+    role: string;
+    content: string;
+    metadata?: {
+      attachments?: { name?: string; type: string; url: string; extractedText?: string }[];
+    };
+  };
+
+  // Save the user turn (skipped entirely in incognito — nothing is persisted).
+  // A chat started from the home screen navigates with a client-made id and
+  // no row yet; create it here, with its first message, so starting a chat
+  // needs no round trip of its own. ON CONFLICT DO NOTHING: a retry, or an id
+  // that's already taken (whose owner check then fails the insert).
   const metadata = attachments.length > 0 ? { attachments } : {};
-  let userMessageId: string | null = null;
-  if (!incognito) {
-    const { data: userRow, error: insertError } = await supabase
+  const saveUserTurn = async (): Promise<string | null> => {
+    if (incognito) return null;
+    if (body.createChat === true) {
+      await supabase
+        .from("chats")
+        .upsert({ id: chatId, user_id: user.id }, { onConflict: "id", ignoreDuplicates: true });
+    }
+    const { data, error } = await supabase
       .from("messages")
       .insert({
         chat_id: chatId,
@@ -193,126 +208,95 @@ export async function POST(req: NextRequest) {
       })
       .select("id")
       .single();
-    userMessageId = userRow?.id ?? null;
+    if (error || !data) throw error ?? new Error("insert failed");
+    return data.id as string;
+  };
 
-    if (insertError) {
-      return new Response(
-        JSON.stringify({ error: "Failed to save message" }),
-        { status: 500 }
-      );
+  // Load the conversation before this turn (active branch only — soft-deleted
+  // edit branches stay in the DB but are excluded from the model context).
+  // Runs alongside the insert, so the new turn may or may not be in the result:
+  // the caller drops it by id and appends it itself. Fetched newest-first so
+  // the window is the LAST messages (ascending + limit would be the first
+  // ones, and a long chat would never see the new turn), then reversed.
+  // Falls back without the deleted_at filter if that migration
+  // (20260520010000_message_edit_branches.sql) hasn't been applied.
+  const loadHistory = async (): Promise<HistoryRow[]> => {
+    if (incognito) {
+      // Ephemeral: the client owns the transcript, current message included.
+      // Text-only, capped to the same window as persisted chats.
+      const provided = Array.isArray(body.history) ? body.history : [];
+      return provided
+        .filter(
+          (m: { role?: string; content?: unknown }) =>
+            (m?.role === "user" || m?.role === "assistant") &&
+            typeof m?.content === "string"
+        )
+        .slice(-50)
+        .map((m: { role: string; content: string }) => ({
+          role: m.role,
+          content: m.content,
+        }));
     }
-  }
-
-  // Load conversation history (active branch only — soft-deleted edit
-  // branches stay in the DB but are excluded from the model context).
-  // Falls back without the deleted_at filter if the column isn't there
-  // yet (i.e. the 20260520010000_message_edit_branches.sql migration
-  // hasn't been applied) — otherwise the silent failure would send the
-  // model an empty conversation and yield generic-looking replies.
-  let history: { role: string; content: string; metadata?: { attachments?: { name?: string; type: string; url: string; extractedText?: string }[] } }[] | null = null;
-  if (incognito) {
-    // Ephemeral: the client owns the transcript. Use it directly (text-only in
-    // Phase 1), capped to the same window as persisted chats.
-    const provided = Array.isArray(body.history) ? body.history : [];
-    history = provided
-      .filter(
-        (m: { role?: string; content?: unknown }) =>
-          (m?.role === "user" || m?.role === "assistant") &&
-          typeof m?.content === "string"
-      )
-      .slice(-50)
-      .map((m: { role: string; content: string }) => ({
-        role: m.role,
-        content: m.content,
-      }));
-  } else {
     const primary = await supabase
       .from("messages")
-      .select("role, content, metadata")
+      .select("id, role, content, metadata")
       .eq("chat_id", chatId)
       .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .limit(50);
+    const rows =
+      primary.error?.code === "42703"
+        ? (
+            await supabase
+              .from("messages")
+              .select("id, role, content, metadata")
+              .eq("chat_id", chatId)
+              .order("created_at", { ascending: false })
+              .limit(50)
+          ).data
+        : primary.data;
+    return ((rows ?? []) as HistoryRow[]).reverse();
+  };
 
-    if (primary.error?.code === "42703") {
-      const fallback = await supabase
-        .from("messages")
-        .select("role, content, metadata")
-        .eq("chat_id", chatId)
-        .order("created_at", { ascending: false })
-        .limit(50);
-      history = fallback.data;
-    } else {
-      history = primary.data;
+  const toModelMessage = (m: HistoryRow) => {
+    const atts = m.metadata?.attachments || [];
+    const imgAtts = atts.filter((a) => a.type.startsWith("image/"));
+    const pdfAtts = atts.filter(
+      (a) => a.type === "application/pdf" && a.extractedText
+    );
+
+    // Inline PDF text into the user content so the model can read it.
+    let textContent = m.content;
+    if (pdfAtts.length > 0 && m.role === "user") {
+      const pdfBlocks = pdfAtts
+        .map(
+          (a) =>
+            `[Attached PDF: ${a.name || "document.pdf"}]\n${a.extractedText}`
+        )
+        .join("\n\n");
+      textContent = textContent
+        ? `${textContent}\n\n${pdfBlocks}`
+        : pdfBlocks;
     }
-    // Fetched newest-first so the window is the LAST 50 messages (ascending +
-    // limit would be the first 50, and a long chat would never see the new
-    // turn); put them back in chronological order for the model.
-    history?.reverse();
-  }
 
-  // An assistant turn with no text (an image-generation reply, or an answer
-  // that failed before producing anything) carries nothing for the model, and
-  // some providers reject empty content outright.
-  const historyMessages = (history || [])
-    .filter((m) => m.role !== "assistant" || m.content.trim())
-    .map(
-    (m: {
-      role: string;
-      content: string;
-      metadata?: {
-        attachments?: { name?: string; type: string; url: string; extractedText?: string }[];
-      };
-    }) => {
-      const atts = m.metadata?.attachments || [];
-      const imgAtts = atts.filter((a) => a.type.startsWith("image/"));
-      const pdfAtts = atts.filter(
-        (a) => a.type === "application/pdf" && a.extractedText
-      );
-
-      // Inline PDF text into the user content so the model can read it.
-      let textContent = m.content;
-      if (pdfAtts.length > 0 && m.role === "user") {
-        const pdfBlocks = pdfAtts
-          .map(
-            (a) =>
-              `[Attached PDF: ${a.name || "document.pdf"}]\n${a.extractedText}`
-          )
-          .join("\n\n");
-        textContent = textContent
-          ? `${textContent}\n\n${pdfBlocks}`
-          : pdfBlocks;
-      }
-
-      if (imgAtts.length > 0 && m.role === "user") {
-        return {
-          role: m.role as "user" | "assistant" | "system",
-          content: [
-            { type: "text" as const, text: textContent },
-            ...imgAtts.map((a) => ({
-              type: "image_url" as const,
-              image_url: { url: a.url },
-            })),
-          ],
-        };
-      }
-
+    if (imgAtts.length > 0 && m.role === "user") {
       return {
         role: m.role as "user" | "assistant" | "system",
-        content: textContent,
+        content: [
+          { type: "text" as const, text: textContent },
+          ...imgAtts.map((a) => ({
+            type: "image_url" as const,
+            image_url: { url: a.url },
+          })),
+        ],
       };
     }
-  );
 
-  // Recall long-term memory (best-effort) and build the base system prompt. The
-  // agent/tool loop runs INSIDE the stream so its thinking + tool steps stream
-  // live to the UI before the answer.
-  let memoryBlock = "";
-  if (!incognito && message.trim()) {
-    const recalled = await recallMemories(supabase, message, 6);
-    memoryBlock = formatMemoriesForPrompt(recalled);
-  }
-  const baseSystem = buildSystemPrompt(style) + memoryBlock;
+    return {
+      role: m.role as "user" | "assistant" | "system",
+      content: textContent,
+    };
+  };
 
   // Stop / disconnect: cancel() aborts the provider call so the generation
   // stops costing us, while run() — kept alive with waitUntil — still bills
@@ -340,26 +324,72 @@ export async function POST(req: NextRequest) {
       }
     };
 
+    // 1) Everything the answer needs, at once: save the user turn, load the
+    //    history, recall long-term memory, and run the agent/tool loop (its
+    //    thinking + tool steps stream live to the UI before the answer).
+    const savedTurn = saveUserTurn();
+    const historyP = loadHistory();
+    const memoryP =
+      !incognito && message.trim()
+        ? recallMemories(supabase, message, 6)
+            .then(formatMemoriesForPrompt)
+            .catch(() => "")
+        : Promise.resolve("");
+    const observationsP = message.trim()
+      ? runAgentLoop(message, (s) => send(s), { hasAttachments }).catch(() => "")
+      : Promise.resolve("");
+
+    let userMessageId: string | null;
+    try {
+      userMessageId = await savedTurn;
+    } catch (err) {
+      console.error("Failed to save user message", err);
+      send({ error: "Couldn't save your message. Please try again.", code: "server" });
+      finish();
+      return;
+    }
     // The client renders the user turn optimistically with a temporary id;
     // hand it the persisted one so edit/retry can supersede it.
     if (userMessageId) send({ userMessageId });
 
-    // 1) Agentic reasoning loop — emit each thinking/tool step live.
-    let observations = "";
-    if (message.trim()) {
-      try {
-        observations = await runAgentLoop(message, (s) => send(s), {
-          hasAttachments,
-        });
-      } catch {
-        observations = "";
-      }
-    }
+    const [historyRows, memoryBlock, observations] = await Promise.all([
+      historyP.catch(() => [] as HistoryRow[]),
+      memoryP,
+      observationsP,
+    ]);
     if (clientGone) return;
 
-    // 2) Final messages, with tool observations folded into the system prompt.
+    // An assistant turn with no text (an image-generation reply, or an answer
+    // that failed before producing anything) carries nothing for the model,
+    // and some providers reject empty content outright.
+    const turnRows = incognito
+      ? historyRows
+      : [
+          ...historyRows.filter((m) => m.id !== userMessageId),
+          { role: "user", content: message, metadata },
+        ];
+    const historyMessages = turnRows
+      .filter((m) => m.role !== "assistant" || m.content.trim())
+      .map(toModelMessage);
+
+    // 2) Final messages. The system prompt and earlier turns are byte-stable
+    //    from one turn to the next, so providers can serve that prefix from
+    //    their prompt cache (faster first token, cheaper input). Everything
+    //    specific to this turn — recalled memory and tool results, which carry
+    //    the current time — rides on the latest user message instead of the
+    //    system prompt, where it would change the prefix every time.
+    const turnContext = `${memoryBlock}${observations}`.trim();
+    const last = historyMessages[historyMessages.length - 1];
+    if (turnContext && last?.role === "user") {
+      const prefix = `${turnContext}\n\n---\n\n`;
+      historyMessages[historyMessages.length - 1] =
+        typeof last.content === "string"
+          ? { ...last, content: prefix + last.content }
+          : { ...last, content: [{ type: "text" as const, text: prefix }, ...last.content] };
+    }
+
     const messages = [
-      { role: "system" as const, content: baseSystem + observations },
+      { role: "system" as const, content: buildSystemPrompt(style) },
       ...historyMessages,
     ];
     const estimatedInputTokens =
