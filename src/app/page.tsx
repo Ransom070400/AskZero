@@ -31,7 +31,7 @@ export default function LandingPage() {
             <motion.p {...reveal(0.05)} className="text-sm font-semibold text-accent-hover">AI that fits your day</motion.p>
             <motion.h1 {...reveal(0.12)} className="mt-4 max-w-xl font-display text-4xl font-bold leading-[1.02] tracking-[-0.045em] sm:text-5xl md:text-6xl lg:text-[64px]">Ask more. Pay less.</motion.h1>
             <motion.p {...reveal(0.2)} className="mt-5 max-w-lg text-lg leading-relaxed text-white/70">
-              AskZero helps you write, learn, plan, research, and create. There is no monthly subscription. You only pay for what you use.
+              Write, learn, plan, research, and create with one AI assistant. No monthly subscription. Pay only for what you use.
             </motion.p>
             <motion.div {...reveal(0.28)} className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link href="/signup" className="press inline-flex items-center justify-center gap-2 rounded-full bg-white px-6 py-3.5 text-md font-semibold text-ink transition-colors hover:bg-white/90">

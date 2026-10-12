@@ -14,6 +14,16 @@ export function ZeroGuide() {
   return (
     <div className="relative mx-auto flex aspect-square w-full max-w-[560px] items-center justify-center" aria-hidden>
       <div className="absolute inset-[12%] rounded-full bg-accent/20 blur-[72px]" />
+      <motion.span
+        animate={reduced ? undefined : { y: [0, -11, 0], opacity: [0.35, 1, 0.35] }}
+        transition={reduced ? undefined : { duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute right-[8%] top-[26%] z-20 h-3 w-3 rounded-full bg-accent-hover shadow-[0_0_24px_hsl(var(--accent-hover)/0.8)]"
+      />
+      <motion.span
+        animate={reduced ? undefined : { y: [0, 9, 0], opacity: [1, 0.35, 1] }}
+        transition={reduced ? undefined : { duration: 3.8, repeat: Infinity, ease: "easeInOut", delay: 0.4 }}
+        className="absolute bottom-[22%] left-[10%] z-20 h-2 w-2 rounded-full bg-white/75"
+      />
       <motion.div
         initial={reduced ? false : { opacity: 0, scale: 0.92, y: 28 }}
         animate={
