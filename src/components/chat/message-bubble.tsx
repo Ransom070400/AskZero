@@ -126,7 +126,7 @@ function ActionButton({
     <button
       onClick={onClick}
       aria-label={label}
-      className="press inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
+      className="press inline-flex h-9 md:h-7 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
     >
       {children}
     </button>
@@ -159,7 +159,7 @@ function ShareBtn({ text }: { text: string }) {
     <button
       onClick={share}
       aria-label="Share"
-      className="press inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
+      className="press inline-flex h-9 md:h-7 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
     >
       {copied ? <Check className="h-3.5 w-3.5 text-success" /> : <Share2 className="h-3.5 w-3.5" />}
       {copied ? "Copied" : "Share"}
@@ -191,7 +191,7 @@ function RegenerateMenu({
       <DropdownMenuTrigger asChild>
         <button
           aria-label="Regenerate"
-          className="press inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
+          className="press inline-flex h-9 md:h-7 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
         >
           <RotateCw className="h-3.5 w-3.5" />
           Retry
@@ -232,7 +232,7 @@ function RewriteMenu({ onTransform }: { onTransform: (instruction: string) => vo
       <DropdownMenuTrigger asChild>
         <button
           aria-label="Rewrite this answer"
-          className="press inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
+          className="press inline-flex h-9 md:h-7 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
         >
           <Wand2 className="h-3.5 w-3.5" />
           Rewrite
@@ -273,7 +273,7 @@ function CopyBtn({
       className={
         small
           ? "press inline-flex h-6 items-center gap-1 rounded-md px-1.5 text-2xs font-medium text-text-tertiary hover:bg-background/60 hover:text-foreground transition-colors duration-fast ease-out"
-          : "press inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
+          : "press inline-flex h-9 md:h-7 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
       }
     >
       {copied ? (
@@ -365,7 +365,7 @@ function AnswerCopy({
         type="button"
         onClick={() => run("rich")}
         aria-label={copied ? "Copied" : "Copy answer"}
-        className="press inline-flex h-7 items-center gap-1.5 rounded-l-full py-0 pl-2.5 pr-1.5 text-xs font-medium text-text-tertiary transition-colors duration-fast ease-out hover:bg-surface hover:text-foreground"
+        className="press inline-flex h-9 md:h-7 items-center gap-1.5 rounded-l-full py-0 pl-2.5 pr-1.5 text-xs font-medium text-text-tertiary transition-colors duration-fast ease-out hover:bg-surface hover:text-foreground"
       >
         {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
         {copied ? "Copied" : "Copy"}
@@ -375,7 +375,7 @@ function AnswerCopy({
           <button
             type="button"
             aria-label="More copy options"
-            className="press inline-flex h-7 items-center rounded-r-full pl-0.5 pr-2 text-text-tertiary transition-colors duration-fast hover:bg-surface hover:text-foreground"
+            className="press inline-flex h-9 md:h-7 items-center rounded-r-full pl-0.5 pr-2 text-text-tertiary transition-colors duration-fast hover:bg-surface hover:text-foreground"
           >
             <ChevronDown className="h-3 w-3" />
           </button>
@@ -738,7 +738,7 @@ export const MessageBubble = memo(function MessageBubble({
             <div className="mt-2 flex justify-end gap-1">
               <button
                 onClick={() => setEditing(false)}
-                className="press inline-flex h-7 items-center gap-1 rounded-full px-2.5 text-xs font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast"
+                className="press inline-flex h-9 md:h-7 items-center gap-1 rounded-full px-2.5 text-xs font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast"
               >
                 <X className="h-3.5 w-3.5" />
                 Cancel
@@ -746,7 +746,7 @@ export const MessageBubble = memo(function MessageBubble({
               <button
                 onClick={submitEdit}
                 disabled={!editValue.trim()}
-                className="press inline-flex h-7 items-center gap-1 rounded-full bg-accent px-3 text-xs font-semibold text-white shadow-sm hover:bg-accent-hover disabled:opacity-50"
+                className="press inline-flex h-9 md:h-7 items-center gap-1 rounded-full bg-accent px-3 text-xs font-semibold text-white shadow-sm hover:bg-accent-hover disabled:opacity-50"
               >
                 Save & resend
               </button>
@@ -840,7 +840,7 @@ export const MessageBubble = memo(function MessageBubble({
                   setEditing(true);
                 }}
                 aria-label="Edit message"
-                className="press inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
+                className="press inline-flex h-9 md:h-7 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
               >
                 <Pencil className="h-3.5 w-3.5" />
                 Edit
@@ -851,7 +851,7 @@ export const MessageBubble = memo(function MessageBubble({
                 onClick={fetchPrev}
                 disabled={loadingPrev}
                 aria-label={showPrev ? "Hide previous version" : "View previous version"}
-                className="press inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out disabled:opacity-50"
+                className="press inline-flex h-9 md:h-7 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out disabled:opacity-50"
               >
                 <History className="h-3.5 w-3.5" />
                 {loadingPrev ? "Loading…" : showPrev ? "Hide previous" : "Previous version"}
