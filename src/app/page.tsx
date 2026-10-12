@@ -1,10 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight, BookOpen, BriefcaseBusiness, ShieldCheck, Sparkles } from "lucide-react";
 import { Logo } from "@/components/ui/logo";
+import { ZeroGuide } from "@/components/landing/zero-guide";
 import { SavingsCalculator } from "@/components/savings-calculator";
 
 const reveal = (delay = 0) => ({
@@ -41,17 +41,10 @@ export default function LandingPage() {
                 See what you could pay
               </a>
             </motion.div>
-            <motion.p {...reveal(0.34)} className="mt-4 text-sm text-white/50">Start free. Add credit only when you need it.</motion.p>
           </div>
 
           <motion.div {...reveal(0.18)} className="relative mx-auto w-full max-w-[620px] lg:max-w-none">
-            <div className="relative aspect-[1.16] overflow-hidden rounded-[28px] border border-white/15 bg-white/5 shadow-[0_28px_80px_rgba(0,0,0,0.28)]">
-              <Image src="/images/askzero-everyday-ai-hero.png" alt="A woman using AskZero while studying and working at home" fill priority sizes="(max-width: 1024px) 100vw, 55vw" className="object-cover object-center" />
-              <div className="absolute inset-0 bg-gradient-to-t from-ink/60 via-transparent to-transparent" />
-              <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-7">
-                <p className="max-w-sm text-lg font-semibold leading-snug text-white sm:text-xl">One place for the questions that move your day forward.</p>
-              </div>
-            </div>
+            <ZeroGuide />
           </motion.div>
         </section>
 
