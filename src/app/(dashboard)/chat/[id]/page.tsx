@@ -1057,7 +1057,7 @@ function ChatDetailContent() {
       </div>
       </div>
       {openArtifactId && (
-        <div className="fixed inset-0 z-overlay bg-background md:relative md:z-auto md:flex-1 md:border-l md:border-border/70">
+        <div className="fixed inset-0 z-overlay bg-background pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] md:relative md:z-auto md:flex-1 md:border-l md:border-border/70 md:p-0">
           <ArtifactPanel
             artifactId={openArtifactId}
             onClose={() => setOpenArtifactId(null)}

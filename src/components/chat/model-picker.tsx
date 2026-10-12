@@ -375,7 +375,7 @@ export function ModelPicker({
       <DropdownMenuContent
         align="end"
         side={side}
-        className="max-h-[min(70vh,32rem)] w-80 overflow-y-auto overscroll-contain p-1"
+        className="max-h-[min(70dvh,32rem)] w-[min(20rem,calc(100vw-1.5rem))] overflow-y-auto overscroll-contain p-1"
       >
         {/* Mounted only while open, so the drill-down resets on every open. */}
         <PickerPanel
