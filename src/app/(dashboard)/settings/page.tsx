@@ -649,7 +649,7 @@ function Row({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between gap-4 px-5 py-4">
+    <div className="flex flex-col items-stretch gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
       <div className="min-w-0">
         <p className="text-md font-semibold text-foreground">{title}</p>
         {subtitle && (
@@ -658,7 +658,7 @@ function Row({
           </p>
         )}
       </div>
-      <div className="shrink-0">{children}</div>
+      <div className="min-w-0 sm:shrink-0 sm:text-right">{children}</div>
     </div>
   );
 }

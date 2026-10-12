@@ -47,7 +47,7 @@ export function SavingsCalculator() {
 
   return (
     <section
-      id="savings"
+      id="pricing"
       className="relative border-t border-white/10 bg-ink px-6 py-20 text-white md:py-28"
     >
       <div className="mx-auto w-full max-w-3xl">
@@ -59,14 +59,14 @@ export function SavingsCalculator() {
           className="space-y-3 text-center"
         >
           <p className="text-xs font-medium text-white/40">
-            pay by the question, not the month
+            Simple, pay-as-you-go pricing
           </p>
           <h2 className="font-display text-3xl font-bold tracking-[-0.03em] sm:text-4xl md:text-5xl">
-            Stop paying for AI you don&apos;t use
+            See what AskZero could cost you
           </h2>
           <p className="mx-auto max-w-md text-base leading-relaxed text-white/55">
-            A subscription charges one flat price whether you ask 3 questions or
-            300. Here, you only pay for the ones you actually ask.
+            Tell us how often you use AI. We will estimate your monthly cost
+            next to a typical flat subscription.
           </p>
         </motion.div>
 
@@ -146,15 +146,15 @@ export function SavingsCalculator() {
               href="/signup"
               className="press group inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-md font-semibold text-black transition-[background-color,transform] duration-fast ease-out hover:bg-white/90"
             >
-              start free — pay only when you ask
+              Try AskZero free
               <ArrowRight className="h-4 w-4 transition-transform duration-fast group-hover:translate-x-0.5" />
             </Link>
           </div>
         </motion.div>
 
         <p className="mx-auto mt-5 max-w-lg text-center text-2xs leading-relaxed text-white/30">
-          Estimate at current rates — you pay for the tokens you use, no
-          subscription. Heavier users pay more but are never locked in. New
+          Estimate at current rates. You pay for the tokens you use and there is no
+          subscription. Heavier users pay more, but nobody is locked in. New
           accounts start with free credits.
         </p>
       </div>

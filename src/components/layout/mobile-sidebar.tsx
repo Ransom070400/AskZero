@@ -17,11 +17,16 @@ export function MobileSidebar() {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="md:hidden">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-11 w-11 md:hidden"
+          aria-label="Open navigation"
+        >
           <Menu className="h-5 w-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-72 p-0">
+      <SheetContent side="left" className="w-[min(18rem,calc(100vw-2.5rem))] p-0">
         <Sidebar />
       </SheetContent>
     </Sheet>

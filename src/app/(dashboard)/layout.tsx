@@ -29,7 +29,7 @@ export default function DashboardLayout({
           {/* One header for both layouts (two TopNavs meant every page load
               fetched the user and balance twice); the menu button and its
               divider are mobile-only. */}
-          <div className="flex items-center border-b border-border bg-background md:block md:border-b-0 md:bg-transparent">
+          <div className="flex items-center border-b border-border bg-background pt-[env(safe-area-inset-top)] md:block md:border-b-0 md:bg-transparent md:pt-0">
             <div className="md:hidden">
               <MobileSidebar />
             </div>
@@ -38,7 +38,7 @@ export default function DashboardLayout({
             </div>
           </div>
           <AccountNotice />
-          <main className="flex-1 overflow-y-auto overscroll-contain pb-[env(safe-area-inset-bottom)] md:pb-0">
+          <main className="flex-1 min-h-0 overflow-y-auto overscroll-contain pb-[env(safe-area-inset-bottom)] md:pb-0">
             {children}
           </main>
         </div>

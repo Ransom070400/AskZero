@@ -364,7 +364,7 @@ export function ChatInput({
       {/* Full-window drop target (see the window drag listeners above). */}
       {windowDrag && (
         <div className="pointer-events-none fixed inset-0 z-overlay flex items-center justify-center bg-background/70 backdrop-blur-sm animate-in fade-in-0 duration-150">
-          <div className="flex flex-col items-center gap-3 rounded-3xl border-2 border-dashed border-accent/70 bg-elevated/90 px-12 py-10 shadow-2xl animate-in zoom-in-95 duration-200">
+          <div className="flex max-w-[calc(100vw-2rem)] flex-col items-center gap-3 rounded-3xl border-2 border-dashed border-accent/70 bg-elevated/90 px-6 py-8 text-center shadow-2xl animate-in zoom-in-95 duration-200 sm:px-12 sm:py-10">
             <Paperclip className="h-8 w-8 text-accent" />
             <p className="text-base font-semibold text-foreground">Drop to attach</p>
             <p className="text-sm text-text-tertiary">
@@ -485,7 +485,7 @@ export function ChatInput({
                 <Plus className="h-[18px] w-[18px]" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" side={menuSide} className="w-[19rem] p-1">
+            <DropdownMenuContent align="start" side={menuSide} className="w-[min(19rem,calc(100vw-2rem))] p-1">
               {onAttach && (
                 <DropdownMenuItem
                   onClick={() => fileInputRef.current?.click()}
@@ -537,7 +537,7 @@ export function ChatInput({
           </span>
         )}
 
-        <div className="ml-auto flex min-w-0 items-center gap-1">
+        <div className="ml-auto flex min-w-0 items-center gap-0.5 sm:gap-1">
           {toolbarRight}
 
           <button
