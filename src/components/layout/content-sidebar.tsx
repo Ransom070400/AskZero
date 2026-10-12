@@ -187,14 +187,14 @@ function ChatRow({
         </span>
       ) : (
         <span className="flex shrink-0 items-center pl-1">
-          <span className="pr-0.5 text-2xs tabular-nums text-text-tertiary/70 group-hover/row:hidden">
+          <span className="pr-0.5 text-2xs tabular-nums text-text-tertiary/70 group-hover/row:hidden max-md:hidden">
             {relativeTime(chat.updated_at)}
           </span>
           <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
               aria-label="Chat options"
-              className="press hidden shrink-0 items-center justify-center rounded-md p-1 text-text-tertiary transition-colors duration-fast hover:bg-background hover:text-foreground group-hover/row:flex data-[state=open]:flex"
+              className="press hidden shrink-0 items-center justify-center rounded-md p-1 text-text-tertiary transition-colors duration-fast hover:bg-background hover:text-foreground group-hover/row:flex data-[state=open]:flex max-md:flex max-md:p-2"
             >
               <MoreHorizontal className="h-3.5 w-3.5" />
             </button>
@@ -459,7 +459,9 @@ function Rail({
   );
 }
 
-export function ContentSidebar() {
+// "sheet": full width inside the mobile menu — never collapses to the rail.
+export function ContentSidebar({ variant = "desktop" }: { variant?: "desktop" | "sheet" }) {
+  const inSheet = variant === "sheet";
   const pathname = usePathname();
   const router = useTransitionRouter();
   const [chats, setChats] = useState<Chat[]>([]);
@@ -614,11 +616,13 @@ export function ContentSidebar() {
   return (
     <div
       className={cn(
-        "hidden md:flex h-full flex-col border-r border-border/70 bg-surface transition-[width] duration-base ease-out",
-        railCollapsed ? "w-[64px]" : "w-[268px]"
+        inSheet
+          ? "flex h-full w-full flex-col bg-surface"
+          : "hidden md:flex h-full flex-col border-r border-border/70 bg-surface transition-[width] duration-base ease-out",
+        !inSheet && (railCollapsed ? "w-[64px]" : "w-[268px]")
       )}
     >
-      {railCollapsed ? (
+      {railCollapsed && !inSheet ? (
         <Rail
           onExpand={toggleCollapsed}
           onNew={() => router.push("/chat")}
@@ -633,14 +637,14 @@ export function ContentSidebar() {
       {/* Brand */}
       <div className="flex items-center justify-between px-5 h-14">
         <Logo size={22} />
-        <button
+        {!inSheet && <button
           onClick={toggleCollapsed}
           title="Collapse sidebar"
           aria-label="Collapse sidebar"
           className="press flex h-7 w-7 items-center justify-center rounded-md text-text-tertiary hover:bg-elevated hover:text-foreground transition-colors duration-fast"
         >
           <PanelLeftClose className="h-4 w-4" />
-        </button>
+        </button>}
       </div>
 
       {/* Search */}
