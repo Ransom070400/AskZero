@@ -96,8 +96,8 @@ export function EmptyState({ composer, onSuggestionClick }: EmptyStateProps) {
   const category = CATEGORIES.find((c) => c.id === active) ?? CATEGORIES[0];
 
   return (
-    <div className="mx-auto flex w-full max-w-chat flex-1 flex-col items-center justify-center px-1 py-10 md:py-16">
-      <div className={cn(enter, "mb-8")}>
+    <div className="mx-auto flex w-full max-w-chat flex-1 flex-col items-center justify-center px-0 py-8 sm:px-1 sm:py-10 md:py-16">
+      <div className={cn(enter, "mb-6 sm:mb-8")}>
         <Logo size={52} animated />
       </div>
 
@@ -109,8 +109,8 @@ export function EmptyState({ composer, onSuggestionClick }: EmptyStateProps) {
       </div>
 
       {/* Suggestions: category tabs + prompts for the active one */}
-      <div className={cn(enter, "mt-6 w-full delay-200")}>
-        <div className="flex flex-wrap items-center justify-center gap-1.5">
+      <div className={cn(enter, "mt-5 w-full sm:mt-6 delay-200")}>
+        <div className="flex snap-x snap-mandatory items-center gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:justify-center sm:overflow-visible sm:px-0 sm:pb-0">
           {CATEGORIES.map((c) => {
             const Icon = c.icon;
             const isActive = c.id === active;
@@ -120,7 +120,7 @@ export function EmptyState({ composer, onSuggestionClick }: EmptyStateProps) {
                 type="button"
                 onClick={() => setActive(c.id)}
                 className={cn(
-                  "press inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors duration-fast",
+                  "press inline-flex shrink-0 snap-start items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors duration-fast",
                   isActive
                     ? "border-border-strong bg-elevated text-foreground"
                     : "border-border/70 text-text-tertiary hover:bg-elevated hover:text-foreground"
@@ -155,7 +155,7 @@ export function EmptyState({ composer, onSuggestionClick }: EmptyStateProps) {
       <div
         className={cn(
           enter,
-          "mt-8 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 delay-300"
+          "mt-7 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 px-2 text-center sm:mt-8 sm:gap-x-5 sm:px-0 delay-300"
         )}
       >
         {WHY.map((w) => {

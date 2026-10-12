@@ -92,7 +92,7 @@ export function ChatList({ messages, isStreaming, modelLabel, modelName, onRegen
         aria-live="polite"
         aria-busy={isStreaming}
       >
-        <div className="mx-auto max-w-chat space-y-4 md:space-y-6 px-4 py-4">
+        <div className="mx-auto max-w-chat space-y-4 px-3 py-3 sm:px-4 md:space-y-6 md:py-4">
           {messages.map((msg, i) => {
             const isLast = i === messages.length - 1;
             return (

@@ -51,12 +51,12 @@ export function TopNav() {
     undefined;
 
   return (
-    <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b border-border/70 glass-nav px-3 md:px-6">
+    <header className="sticky top-0 z-10 flex h-14 min-w-0 items-center justify-between border-b border-border/70 glass-nav px-2 sm:px-3 md:px-6">
       <Link href="/chat" className="hidden md:flex items-center">
         <Logo size={20} />
       </Link>
 
-      <div className="ml-auto flex items-center gap-1.5 md:gap-2">
+      <div className="ml-auto flex min-w-0 items-center gap-0.5 sm:gap-1.5 md:gap-2">
         {/* Incognito toggle — start an ephemeral chat (not saved, not
             remembered), or leave one (confirming first if it has messages). */}
         {inIncognito ? (

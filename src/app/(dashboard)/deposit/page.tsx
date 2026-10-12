@@ -307,7 +307,7 @@ function DepositContent() {
         <h2 className="text-sm font-medium text-text-tertiary">
           Pay with
         </h2>
-        <div className="inline-flex w-full rounded-2xl border border-border/70 bg-elevated/60 p-1">
+        <div className="grid w-full grid-cols-2 rounded-2xl border border-border/70 bg-elevated/60 p-1 sm:grid-cols-4">
           <CurrencyTab
             label="₦ Naira"
             active={!pay0G && currency === "NGN"}
@@ -511,7 +511,7 @@ function CurrencyTab({
       aria-disabled={comingSoon || undefined}
       title={comingSoon ? "Coming soon" : undefined}
       className={cn(
-        "press flex-1 rounded-xl px-3 py-2 text-sm font-semibold transition-[background-color,color,box-shadow] duration-fast ease-out",
+        "press min-w-0 rounded-xl px-2 py-2 text-sm font-semibold transition-[background-color,color,box-shadow] duration-fast ease-out sm:px-3",
         comingSoon
           ? "cursor-not-allowed text-text-tertiary/60"
           : active
