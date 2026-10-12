@@ -32,7 +32,6 @@ const NEAR_BOTTOM_PX = 120;
 
 export function ChatList({ messages, isStreaming, modelLabel, modelName, onRegenerate, onRegenerateWith, regenModels, onRegenerateImage, onEdit, onOpenArtifact, onOpenAsArtifact, hideReceipts, onTransform, onQuote, onFollowup }: ChatListProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
   const [atBottom, setAtBottom] = useState(true);
   // Only animate messages that arrive *after* mount — the initial history load
   // (and switching chats) should paint instantly, not cascade.
@@ -46,8 +45,12 @@ export function ChatList({ messages, isStreaming, modelLabel, modelName, onRegen
     setAtBottom(distance < NEAR_BOTTOM_PX);
   }, []);
 
+  // Scroll the list's own container, not scrollIntoView: that also scrolls
+  // every scrollable ancestor (the dashboard's <main>), which on iOS shifts
+  // the whole page and hides the header or composer.
   const scrollToBottom = useCallback((behavior: ScrollBehavior) => {
-    bottomRef.current?.scrollIntoView({ behavior });
+    const el = scrollRef.current;
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior });
   }, []);
 
   // Auto-follow new content ONLY when the user is already near the bottom, so
@@ -132,7 +135,6 @@ export function ChatList({ messages, isStreaming, modelLabel, modelName, onRegen
             messages[messages.length - 1]?.role !== "assistant" && (
               <TypingIndicator model={modelLabel} />
             )}
-          <div ref={bottomRef} />
         </div>
       </div>
 
