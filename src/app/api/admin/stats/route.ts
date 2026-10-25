@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { ethers } from "ethers";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 
 // Add admin emails here
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "").split(",").map((e) => e.trim()).filter(Boolean);
@@ -41,24 +42,32 @@ export async function GET() {
         .select("id", { count: "exact", head: true })
         .eq("type", "deposit")
         .eq("status", "completed"),
-      db
-        .from("transactions")
-        .select("amount")
-        .eq("type", "deposit")
-        .eq("status", "completed"),
-      db
-        .from("transactions")
-        .select("amount")
-        .eq("type", "usage")
-        .eq("status", "completed"),
+      // Summed row by row, so page past PostgREST's ~1000-row cap.
+      fetchAll<{ amount: number }>((f, t) =>
+        db
+          .from("transactions")
+          .select("amount")
+          .eq("type", "deposit")
+          .eq("status", "completed")
+          .range(f, t)
+      ),
+      fetchAll<{ amount: number }>((f, t) =>
+        db
+          .from("transactions")
+          .select("amount")
+          .eq("type", "usage")
+          .eq("status", "completed")
+          .range(f, t)
+      ),
     ]);
 
-  const totalRevenue =
-    revenueRes.data?.reduce((sum, t) => sum + Number(t.amount), 0) || 0;
+  const totalRevenue = revenueRes.reduce((sum, t) => sum + Number(t.amount), 0);
 
   // Usage amounts are stored as negative values
-  const totalUsageCredits =
-    usageRes.data?.reduce((sum, t) => sum + Math.abs(Number(t.amount)), 0) || 0;
+  const totalUsageCredits = usageRes.reduce(
+    (sum, t) => sum + Math.abs(Number(t.amount)),
+    0
+  );
 
   // Recent transactions (all users — service-role client bypasses RLS)
   const { data: recentTx } = await db
