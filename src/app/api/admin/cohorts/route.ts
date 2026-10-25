@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 
 // Cohort analytics for a small user base (tens–hundreds): the acquisition →
 // value → revenue funnel plus retention, so features are chosen from behavior,
@@ -10,24 +11,6 @@ const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "")
   .split(",")
   .map((e) => e.trim())
   .filter(Boolean);
-
-const PAGE = 1000;
-const MAX_PAGES = 50; // safety cap (50k rows) — far above a tens-of-users base
-
-// PostgREST caps a single response at ~1000 rows, so page through with range().
-async function fetchAll<T>(
-  make: (from: number, to: number) => PromiseLike<{ data: T[] | null }>
-): Promise<T[]> {
-  const out: T[] = [];
-  for (let p = 0; p < MAX_PAGES; p++) {
-    const from = p * PAGE;
-    const { data } = await make(from, from + PAGE - 1);
-    if (!data || data.length === 0) break;
-    out.push(...data);
-    if (data.length < PAGE) break;
-  }
-  return out;
-}
 
 export async function GET() {
   const supabase = await createClient();
