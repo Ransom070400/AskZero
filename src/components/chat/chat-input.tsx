@@ -449,6 +449,7 @@ export function ChatInput({
       )}
 
       <textarea
+        aria-label="Message"
         ref={textareaRef}
         value={value}
         onChange={(e) => onChange(e.target.value)}

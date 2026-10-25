@@ -578,6 +578,7 @@ function PickerPanel({
         <label className="flex items-center gap-2 rounded-lg border border-border/70 bg-elevated/60 px-2.5 py-1.5 focus-within:border-border-strong">
           <Search className="h-3.5 w-3.5 shrink-0 text-text-tertiary" />
           <input
+            aria-label="Search models"
             autoFocus
             value={query}
             onChange={(e) => setQuery(e.target.value)}

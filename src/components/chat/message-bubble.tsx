@@ -720,6 +720,7 @@ export const MessageBubble = memo(function MessageBubble({
         <div className="flex justify-end">
           <div className="w-full max-w-[85%] md:max-w-[72%] rounded-3xl rounded-br-lg bg-elevated border border-accent/40 px-4 py-3 shadow-sm">
             <textarea
+              aria-label="Edit message"
               value={editValue}
               onChange={(e) => setEditValue(e.target.value)}
               onKeyDown={(e) => {
