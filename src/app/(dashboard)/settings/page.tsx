@@ -624,7 +624,7 @@ function MemorySection() {
               <button
                 onClick={() => handleDelete(m.id)}
                 aria-label="Forget this memory"
-                className="press shrink-0 rounded-lg p-1.5 text-text-tertiary opacity-100 transition-[color,background-color,opacity] duration-fast hover:bg-surface hover:text-error md:opacity-0 md:group-hover/mem:opacity-100"
+                className="press shrink-0 rounded-lg p-1.5 text-text-tertiary opacity-100 transition-[color,background-color,opacity] duration-fast hover:bg-surface hover:text-error md:opacity-0 md:group-hover/mem:opacity-100 focus-visible:opacity-100"
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
