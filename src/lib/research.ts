@@ -79,6 +79,13 @@ async function mapLimit<T, R>(
   return out;
 }
 
+// The strings in a parsed model reply, or [] if it wasn't a JSON array.
+function stringArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((v): v is string => typeof v === "string")
+    : [];
+}
+
 export async function runResearch(
   query: string,
   depth: ResearchDepth,
@@ -96,9 +103,12 @@ export async function runResearch(
     `Break this research question into ${tier.queries} focused, non-overlapping web-search queries that together cover it comprehensively. Return ONLY a JSON array of strings.\n\nQuestion: ${query}`,
     { system: "You are a research planner.", temperature: 0.3 }
   );
-  const queries = (extractJson<string[]>(planRaw) ?? [query])
-    .filter((q) => typeof q === "string" && q.trim())
+  // The planner sometimes wraps its list in an object; anything that isn't an
+  // array of strings falls back to searching the question itself.
+  const queries = stringArray(extractJson<unknown>(planRaw))
+    .filter((q) => q.trim())
     .slice(0, tier.queries);
+  if (queries.length === 0) queries.push(query);
   emit({ phase: "planning", queries });
 
   // 2) Search — Tavily returns extracted content, no scraping needed.
@@ -136,7 +146,7 @@ export async function runResearch(
       n: i + 1,
       title: src.title,
       url: src.url,
-      claims: (extractJson<string[]>(raw) ?? []).filter((c) => typeof c === "string"),
+      claims: stringArray(extractJson<unknown>(raw)),
     };
   });
 
