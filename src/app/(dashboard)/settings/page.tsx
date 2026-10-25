@@ -19,6 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { toast } from "@/lib/toast";
 
 interface Profile {
   display_name: string;
@@ -68,13 +69,21 @@ export default function SettingsPage() {
   }, [fetchProfile]);
 
   const handleSave = async () => {
-    if (!user || !displayName.trim()) return;
+    const name = displayName.trim();
+    if (!user || !name) return;
     setSaving(true);
-    await supabase
+    const { error } = await supabase
       .from("profiles")
-      .update({ display_name: displayName.trim() })
+      .update({ display_name: name })
       .eq("id", user.id);
     setSaving(false);
+    if (error) {
+      toast.error("Couldn't save your name");
+      return;
+    }
+    // Keep the saved value in sync so the Save button disables again.
+    setProfile((p) => (p ? { ...p, display_name: name } : p));
+    setDisplayName(name);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -106,9 +115,13 @@ export default function SettingsPage() {
 
   const copyId = () => {
     if (!user) return;
-    navigator.clipboard.writeText(user.id);
-    setCopiedId(true);
-    setTimeout(() => setCopiedId(false), 1500);
+    navigator.clipboard.writeText(user.id).then(
+      () => {
+        setCopiedId(true);
+        setTimeout(() => setCopiedId(false), 1500);
+      },
+      () => toast.error("Couldn't copy")
+    );
   };
 
   const initials = profile?.display_name
@@ -169,6 +182,7 @@ export default function SettingsPage() {
         >
           <div className="flex items-center gap-2">
             <Input
+              aria-label="Display name"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
               className="h-9 w-44 text-right"
@@ -363,10 +377,11 @@ export default function SettingsPage() {
                 </p>
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-text-tertiary">
+                <label htmlFor="delete-confirm" className="text-xs font-medium text-text-tertiary">
                   Type <span className="font-mono">DELETE</span> to confirm
                 </label>
                 <Input
+                  id="delete-confirm"
                   value={deleteConfirmText}
                   onChange={(e) => setDeleteConfirmText(e.target.value)}
                   placeholder="DELETE"
@@ -538,8 +553,13 @@ function MemorySection() {
 
   const handleDelete = async (id: string) => {
     // Optimistic — RLS lets a user delete only their own rows.
+    const before = memories;
     setMemories((prev) => prev.filter((m) => m.id !== id));
-    await supabase.from("memories").delete().eq("id", id);
+    const { error } = await supabase.from("memories").delete().eq("id", id);
+    if (error) {
+      setMemories(before);
+      toast.error("Couldn't forget that memory");
+    }
   };
 
   return (
@@ -608,7 +628,7 @@ function MemorySection() {
               <button
                 onClick={() => handleDelete(m.id)}
                 aria-label="Forget this memory"
-                className="press shrink-0 rounded-lg p-1.5 text-text-tertiary opacity-100 transition-[color,background-color,opacity] duration-fast hover:bg-surface hover:text-error md:opacity-0 md:group-hover/mem:opacity-100"
+                className="press shrink-0 rounded-lg p-1.5 text-text-tertiary opacity-100 transition-[color,background-color,opacity] duration-fast hover:bg-surface hover:text-error md:opacity-0 md:group-hover/mem:opacity-100 focus-visible:opacity-100"
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
@@ -681,6 +701,7 @@ function Segmented<T extends string>({
           <button
             key={opt.value}
             onClick={() => onChange(opt.value)}
+            aria-pressed={active}
             className={cn(
               "press flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition-[background-color,color,box-shadow] duration-fast ease-out",
               active

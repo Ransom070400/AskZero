@@ -362,7 +362,7 @@ export function ModelPicker({
       <DropdownMenuTrigger asChild>
         <button
           disabled={disabled}
-          aria-label="Choose model"
+          aria-label={`Choose model (current: ${active?.label.split(" · ")[0] ?? "none"})`}
           className="press group inline-flex h-8 min-w-0 items-center gap-1 rounded-full px-2.5 text-sm font-medium text-text-secondary transition-colors duration-fast ease-out hover:bg-surface hover:text-foreground disabled:opacity-50"
         >
           <span className="truncate">
@@ -375,7 +375,7 @@ export function ModelPicker({
       <DropdownMenuContent
         align="end"
         side={side}
-        className="max-h-[min(70vh,32rem)] w-80 overflow-y-auto overscroll-contain p-1"
+        className="max-h-[min(70dvh,32rem)] w-[min(20rem,calc(100vw-1.5rem))] overflow-y-auto overscroll-contain p-1"
       >
         {/* Mounted only while open, so the drill-down resets on every open. */}
         <PickerPanel
@@ -578,6 +578,7 @@ function PickerPanel({
         <label className="flex items-center gap-2 rounded-lg border border-border/70 bg-elevated/60 px-2.5 py-1.5 focus-within:border-border-strong">
           <Search className="h-3.5 w-3.5 shrink-0 text-text-tertiary" />
           <input
+            aria-label="Search models"
             autoFocus
             value={query}
             onChange={(e) => setQuery(e.target.value)}

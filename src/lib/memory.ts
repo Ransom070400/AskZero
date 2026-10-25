@@ -11,6 +11,7 @@
 
 import { embed, toVectorLiteral } from "@/lib/embeddings";
 import { putJSON } from "@/lib/og-storage";
+import { stripThinkTrace } from "@/lib/llm";
 import type { ChatMessage } from "@/lib/og-compute";
 import type { createClient } from "@/lib/supabase/server";
 
@@ -115,7 +116,7 @@ async function distill(
 
     const data = await res.json();
     const content: string = data?.choices?.[0]?.message?.content ?? "";
-    return parseMemories(content);
+    return parseMemories(stripThinkTrace(content));
   } catch (err) {
     console.error("distill threw:", err);
     return [];

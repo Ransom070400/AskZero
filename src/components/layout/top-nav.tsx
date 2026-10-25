@@ -87,7 +87,7 @@ export function TopNav() {
         {/* User menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="rounded-full">
+            <Button variant="ghost" size="icon" className="rounded-full" aria-label="Account menu">
               <Avatar className="h-8 w-8">
                 {avatarUrl && !avatarError ? (
                   <AvatarImage

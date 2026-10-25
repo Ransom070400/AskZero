@@ -115,7 +115,8 @@ export async function POST(req: NextRequest) {
 
   // 4) Enough confirmations.
   const currentBlock = await provider.getBlockNumber();
-  const confirmations = currentBlock - receipt.blockNumber;
+  // The block that mined the tx is its first confirmation.
+  const confirmations = currentBlock - receipt.blockNumber + 1;
   if (confirmations < REQUIRED_CONFIRMATIONS) {
     return NextResponse.json(
       {

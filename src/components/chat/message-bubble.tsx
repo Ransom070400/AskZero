@@ -37,6 +37,7 @@ import { ActivityPanel, type AgentStep, type ActivitySource } from "./activity-p
 import { FollowupChips, MarkdownLink, SourcesContext, SourcesRow } from "./citations";
 import { linkCitations } from "@/lib/citations";
 import { useSmoothText } from "@/hooks/use-smooth-text";
+import { toast } from "@/lib/toast";
 
 // Markdown paragraph that fades in when it first appears. As the last paragraph
 // grows during streaming its element persists (same position), so it fades once
@@ -126,7 +127,7 @@ function ActionButton({
     <button
       onClick={onClick}
       aria-label={label}
-      className="press inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
+      className="press inline-flex h-9 md:h-7 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
     >
       {children}
     </button>
@@ -159,7 +160,7 @@ function ShareBtn({ text }: { text: string }) {
     <button
       onClick={share}
       aria-label="Share"
-      className="press inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
+      className="press inline-flex h-9 md:h-7 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
     >
       {copied ? <Check className="h-3.5 w-3.5 text-success" /> : <Share2 className="h-3.5 w-3.5" />}
       {copied ? "Copied" : "Share"}
@@ -191,7 +192,7 @@ function RegenerateMenu({
       <DropdownMenuTrigger asChild>
         <button
           aria-label="Regenerate"
-          className="press inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
+          className="press inline-flex h-9 md:h-7 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
         >
           <RotateCw className="h-3.5 w-3.5" />
           Retry
@@ -232,7 +233,7 @@ function RewriteMenu({ onTransform }: { onTransform: (instruction: string) => vo
       <DropdownMenuTrigger asChild>
         <button
           aria-label="Rewrite this answer"
-          className="press inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
+          className="press inline-flex h-9 md:h-7 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
         >
           <Wand2 className="h-3.5 w-3.5" />
           Rewrite
@@ -265,15 +266,19 @@ function CopyBtn({
   return (
     <button
       onClick={() => {
-        navigator.clipboard.writeText(markdown ? removeMarkdown(text) : text);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1200);
+        navigator.clipboard.writeText(markdown ? removeMarkdown(text) : text).then(
+          () => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1200);
+          },
+          () => toast.error("Couldn't copy")
+        );
       }}
       aria-label={copied ? "Copied" : "Copy"}
       className={
         small
-          ? "press inline-flex h-6 items-center gap-1 rounded-md px-1.5 text-2xs font-medium text-text-tertiary hover:bg-background/60 hover:text-foreground transition-colors duration-fast ease-out"
-          : "press inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
+          ? "press inline-flex h-9 md:h-6 items-center gap-1 rounded-md px-1.5 text-2xs font-medium text-text-tertiary hover:bg-background/60 hover:text-foreground transition-colors duration-fast ease-out"
+          : "press inline-flex h-9 md:h-7 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
       }
     >
       {copied ? (
@@ -350,12 +355,17 @@ function AnswerCopy({
   };
   const run = async (how: "rich" | "plain" | "markdown") => {
     const root = getRoot();
-    if (how === "markdown" || !root) {
-      await navigator.clipboard.writeText(markdown);
-    } else if (how === "plain") {
-      await copyAnswerPlain(root);
-    } else {
-      await copyAnswer(root);
+    try {
+      if (how === "markdown" || !root) {
+        await navigator.clipboard.writeText(markdown);
+      } else if (how === "plain") {
+        await copyAnswerPlain(root);
+      } else {
+        await copyAnswer(root);
+      }
+    } catch {
+      toast.error("Couldn't copy");
+      return;
     }
     done();
   };
@@ -365,7 +375,7 @@ function AnswerCopy({
         type="button"
         onClick={() => run("rich")}
         aria-label={copied ? "Copied" : "Copy answer"}
-        className="press inline-flex h-7 items-center gap-1.5 rounded-l-full py-0 pl-2.5 pr-1.5 text-xs font-medium text-text-tertiary transition-colors duration-fast ease-out hover:bg-surface hover:text-foreground"
+        className="press inline-flex h-9 md:h-7 items-center gap-1.5 rounded-l-full py-0 pl-2.5 pr-1.5 text-xs font-medium text-text-tertiary transition-colors duration-fast ease-out hover:bg-surface hover:text-foreground"
       >
         {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
         {copied ? "Copied" : "Copy"}
@@ -375,7 +385,7 @@ function AnswerCopy({
           <button
             type="button"
             aria-label="More copy options"
-            className="press inline-flex h-7 items-center rounded-r-full pl-0.5 pr-2 text-text-tertiary transition-colors duration-fast hover:bg-surface hover:text-foreground"
+            className="press inline-flex h-9 md:h-7 items-center rounded-r-full pl-0.5 pr-2 text-text-tertiary transition-colors duration-fast hover:bg-surface hover:text-foreground"
           >
             <ChevronDown className="h-3 w-3" />
           </button>
@@ -467,7 +477,7 @@ function PreBlock({ children }: { children?: React.ReactNode }) {
             onClick={() => setWrap((w) => !w)}
             aria-label="Toggle soft wrap"
             title="Wrap"
-            className={`press inline-flex h-6 w-6 items-center justify-center rounded-md transition-colors duration-fast ${wrap ? "bg-background/60 text-accent" : "text-text-tertiary hover:bg-background/60 hover:text-foreground"}`}
+            className={`press inline-flex h-9 w-9 md:h-6 md:w-6 items-center justify-center rounded-md transition-colors duration-fast ${wrap ? "bg-background/60 text-accent" : "text-text-tertiary hover:bg-background/60 hover:text-foreground"}`}
           >
             <WrapText className="h-3.5 w-3.5" />
           </button>
@@ -475,7 +485,7 @@ function PreBlock({ children }: { children?: React.ReactNode }) {
             onClick={() => setShowNums((n) => !n)}
             aria-label="Toggle line numbers"
             title="Line numbers"
-            className={`press inline-flex h-6 w-6 items-center justify-center rounded-md transition-colors duration-fast ${showNums ? "bg-background/60 text-accent" : "text-text-tertiary hover:bg-background/60 hover:text-foreground"}`}
+            className={`press inline-flex h-9 w-9 md:h-6 md:w-6 items-center justify-center rounded-md transition-colors duration-fast ${showNums ? "bg-background/60 text-accent" : "text-text-tertiary hover:bg-background/60 hover:text-foreground"}`}
           >
             <ListOrdered className="h-3.5 w-3.5" />
           </button>
@@ -483,7 +493,7 @@ function PreBlock({ children }: { children?: React.ReactNode }) {
             <button
               onClick={handleOpen}
               aria-label="Open in artifact panel"
-              className="press inline-flex h-6 items-center gap-1 rounded-md px-1.5 text-2xs font-medium text-text-tertiary hover:bg-background/60 hover:text-foreground transition-colors duration-fast"
+              className="press inline-flex h-9 md:h-6 items-center gap-1 rounded-md px-1.5 text-2xs font-medium text-text-tertiary hover:bg-background/60 hover:text-foreground transition-colors duration-fast"
             >
               <ExternalLink className="h-3 w-3" />
               Open
@@ -720,6 +730,7 @@ export const MessageBubble = memo(function MessageBubble({
         <div className="flex justify-end">
           <div className="w-full max-w-[85%] md:max-w-[72%] rounded-3xl rounded-br-lg bg-elevated border border-accent/40 px-4 py-3 shadow-sm">
             <textarea
+              aria-label="Edit message"
               value={editValue}
               onChange={(e) => setEditValue(e.target.value)}
               onKeyDown={(e) => {
@@ -738,7 +749,7 @@ export const MessageBubble = memo(function MessageBubble({
             <div className="mt-2 flex justify-end gap-1">
               <button
                 onClick={() => setEditing(false)}
-                className="press inline-flex h-7 items-center gap-1 rounded-full px-2.5 text-xs font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast"
+                className="press inline-flex h-9 md:h-7 items-center gap-1 rounded-full px-2.5 text-xs font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast"
               >
                 <X className="h-3.5 w-3.5" />
                 Cancel
@@ -746,7 +757,7 @@ export const MessageBubble = memo(function MessageBubble({
               <button
                 onClick={submitEdit}
                 disabled={!editValue.trim()}
-                className="press inline-flex h-7 items-center gap-1 rounded-full bg-accent px-3 text-xs font-semibold text-white shadow-sm hover:bg-accent-hover disabled:opacity-50"
+                className="press inline-flex h-9 md:h-7 items-center gap-1 rounded-full bg-accent px-3 text-xs font-semibold text-white shadow-sm hover:bg-accent-hover disabled:opacity-50"
               >
                 Save & resend
               </button>
@@ -767,7 +778,7 @@ export const MessageBubble = memo(function MessageBubble({
               <button
                 onClick={() => setShowPrev(false)}
                 aria-label="Hide previous version"
-                className="press inline-flex h-5 w-5 items-center justify-center rounded-md hover:bg-elevated hover:text-foreground transition-colors"
+                className="press inline-flex h-8 w-8 md:h-5 md:w-5 items-center justify-center rounded-md hover:bg-elevated hover:text-foreground transition-colors"
               >
                 <X className="h-3 w-3" />
               </button>
@@ -840,7 +851,7 @@ export const MessageBubble = memo(function MessageBubble({
                   setEditing(true);
                 }}
                 aria-label="Edit message"
-                className="press inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
+                className="press inline-flex h-9 md:h-7 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
               >
                 <Pencil className="h-3.5 w-3.5" />
                 Edit
@@ -851,7 +862,7 @@ export const MessageBubble = memo(function MessageBubble({
                 onClick={fetchPrev}
                 disabled={loadingPrev}
                 aria-label={showPrev ? "Hide previous version" : "View previous version"}
-                className="press inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out disabled:opacity-50"
+                className="press inline-flex h-9 md:h-7 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out disabled:opacity-50"
               >
                 <History className="h-3.5 w-3.5" />
                 {loadingPrev ? "Loading…" : showPrev ? "Hide previous" : "Previous version"}

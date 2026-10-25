@@ -49,7 +49,14 @@ export async function GET(
 
   const { amount, currency } = paystackData.data;
   const originalAmount = amount / 100;
-  const cur = (currency as string).toUpperCase() as "NGN" | "USD";
+  const cur = String(currency).toUpperCase();
+  if (cur !== "NGN" && cur !== "USD") {
+    console.error(`Paystack verify: unsupported currency ${cur} for ${reference}`);
+    return NextResponse.json(
+      { status: "failed", message: "Unsupported currency" },
+      { status: 400 }
+    );
+  }
   const credits = await convertToCredits(originalAmount, cur);
 
   // The reference was confirmed above to belong to this user.

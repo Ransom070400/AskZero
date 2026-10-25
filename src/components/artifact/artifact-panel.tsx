@@ -17,6 +17,7 @@ import {
 import { cn } from "@/lib/utils";
 import { ArtifactRenderer } from "./artifact-renderer";
 import type { Artifact, ArtifactVersion } from "./types";
+import { toast } from "@/lib/toast";
 
 const TYPE_BADGE: Record<Artifact["type"], string> = {
   code: "Code",
@@ -35,6 +36,35 @@ const EXTENSION: Record<Artifact["type"], string> = {
   mermaid: "mmd",
   react: "tsx",
 };
+
+// Code-fence language names that aren't their own file extension.
+const LANGUAGE_EXTENSION: Record<string, string> = {
+  python: "py",
+  javascript: "js",
+  typescript: "ts",
+  bash: "sh",
+  shell: "sh",
+  zsh: "sh",
+  rust: "rs",
+  ruby: "rb",
+  golang: "go",
+  kotlin: "kt",
+  csharp: "cs",
+  "c#": "cs",
+  "c++": "cpp",
+  markdown: "md",
+  yaml: "yml",
+  text: "txt",
+  plaintext: "txt",
+};
+
+function downloadExtension(artifact: Artifact): string {
+  const lang = artifact.language?.toLowerCase();
+  if (!lang) return EXTENSION[artifact.type];
+  if (LANGUAGE_EXTENSION[lang]) return LANGUAGE_EXTENSION[lang];
+  // Short names are usually already the extension (ts, py, go, sql, css…).
+  return /^[a-z0-9]{1,5}$/.test(lang) ? lang : EXTENSION[artifact.type];
+}
 
 export function ArtifactPanel({
   artifactId,
@@ -55,6 +85,18 @@ export function ArtifactPanel({
   useEffect(() => {
     setActiveId(artifactId);
   }, [artifactId]);
+
+  // Escape leaves full screen first, then closes the panel (a full-screen
+  // overlay on mobile).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || e.defaultPrevented) return;
+      if (fullscreen) setFullscreen(false);
+      else onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [fullscreen, onClose]);
 
   useEffect(() => {
     let cancelled = false;
@@ -93,14 +135,18 @@ export function ArtifactPanel({
 
   const handleCopy = () => {
     if (!artifact) return;
-    navigator.clipboard.writeText(artifact.content);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1200);
+    navigator.clipboard.writeText(artifact.content).then(
+      () => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1200);
+      },
+      () => toast.error("Couldn't copy")
+    );
   };
 
   const handleDownload = () => {
     if (!artifact) return;
-    const ext = artifact.language ?? EXTENSION[artifact.type];
+    const ext = downloadExtension(artifact);
     const blob = new Blob([artifact.content], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -198,7 +244,8 @@ export function ArtifactPanel({
                 onClick={() => setShowVersions((v) => !v)}
                 aria-pressed={showVersions}
                 className={cn(
-                  "press inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold transition-colors duration-fast",
+                  // The versions list it toggles is desktop-only.
+                  "press hidden h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold transition-colors duration-fast md:inline-flex",
                   showVersions
                     ? "bg-accent-muted text-accent"
                     : "text-text-tertiary hover:bg-surface hover:text-foreground"

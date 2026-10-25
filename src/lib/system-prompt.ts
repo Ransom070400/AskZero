@@ -42,6 +42,11 @@ const STYLE_OVERLAY: Record<Exclude<ChatStyle, "default">, string> = {
 };
 
 export function buildSystemPrompt(style: ChatStyle = "default"): string {
-  if (style === "default") return BASE_PROMPT;
-  return `${BASE_PROMPT}\n\n${STYLE_OVERLAY[style]}`;
+  // `style` comes straight from the request body; anything unrecognised gets
+  // the default prompt rather than a literal "undefined" overlay.
+  const overlay =
+    style !== "default" && Object.hasOwn(STYLE_OVERLAY, style)
+      ? STYLE_OVERLAY[style]
+      : null;
+  return overlay ? `${BASE_PROMPT}\n\n${overlay}` : BASE_PROMPT;
 }

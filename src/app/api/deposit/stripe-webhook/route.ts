@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
         const amountDisplay = zeroDecimal
           ? raw.toLocaleString()
           : (raw / 100).toFixed(2);
-        sendDepositConfirmation(
+        await sendDepositConfirmation(
           userData.user.email,
           amountDisplay,
           credits,

@@ -1,18 +1,11 @@
 import { ethers } from "ethers";
 import { sendAnthropic } from "./anthropic-adapter";
-import {
-  createZGComputeNetworkBroker,
-  createZGComputeNetworkReadOnlyBroker,
-} from "@0glabs/0g-serving-broker";
+import { createZGComputeNetworkBroker } from "@0glabs/0g-serving-broker";
 import { fetchUpstream, upstreamFailure, type UpstreamOptions } from "./upstream";
 
 type Broker = Awaited<ReturnType<typeof createZGComputeNetworkBroker>>;
-type ReadOnlyBroker = Awaited<
-  ReturnType<typeof createZGComputeNetworkReadOnlyBroker>
->;
 
 let broker: Broker | null = null;
-let readOnlyBroker: ReadOnlyBroker | null = null;
 
 const RPC_URL =
   process.env.ZERO_G_CHAIN_RPC_URL || "https://evmrpc-testnet.0g.ai";
@@ -27,55 +20,6 @@ export async function getBroker(): Promise<Broker> {
     broker = await createZGComputeNetworkBroker(wallet);
   }
   return broker;
-}
-
-export async function getReadOnlyBroker(): Promise<ReadOnlyBroker> {
-  if (!readOnlyBroker) {
-    readOnlyBroker = await createZGComputeNetworkReadOnlyBroker(RPC_URL);
-  }
-  return readOnlyBroker;
-}
-
-export interface OGModel {
-  provider: string;
-  model: string;
-  url: string;
-  inputPrice: string; // neuron per token
-  outputPrice: string;
-  serviceType: string;
-}
-
-export async function listModels(): Promise<OGModel[]> {
-  try {
-    const b = await getReadOnlyBroker();
-    const services = await b.inference.listService();
-
-    return services
-      .filter(
-        (s: { serviceType: string }) =>
-          s.serviceType === "chatbot" || s.serviceType === "chat"
-      )
-      .map(
-        (s: {
-          provider: string;
-          model: string;
-          url: string;
-          inputPrice: bigint;
-          outputPrice: bigint;
-          serviceType: string;
-        }) => ({
-          provider: s.provider,
-          model: s.model,
-          url: s.url,
-          inputPrice: s.inputPrice.toString(),
-          outputPrice: s.outputPrice.toString(),
-          serviceType: s.serviceType,
-        })
-      );
-  } catch (err) {
-    console.error("Failed to list 0G models:", err);
-    return [];
-  }
 }
 
 export type ContentPart =
@@ -104,6 +48,7 @@ async function ensureAcknowledged(
     const msg = err instanceof Error ? err.message.toLowerCase() : "";
     if (!msg.includes("already") && !msg.includes("acknowledged")) {
       console.error("acknowledgeProviderSigner:", err);
+      return; // not acknowledged — try again on the next request
     }
   }
   acknowledged.add(providerAddress);
@@ -154,10 +99,6 @@ export async function sendPrompt(
   return response;
 }
 
-// Rough token estimation (1 token ~ 4 chars for English text)
-export function estimateTokens(text: string): number {
-  return Math.ceil(text.length / 4);
-}
 
 // 1 0G = 10^18 neuron, 1 credit = 0.1¢ = $0.001
 const NEURON_PER_OG = 1e18;

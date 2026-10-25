@@ -109,26 +109,30 @@ function DepositContent() {
   }, []);
 
   const fetchData = useCallback(async () => {
-    const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
+    try {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
 
-    const balRes = await fetch("/api/balance");
-    if (balRes.ok) {
-      const { balance: bal } = await balRes.json();
-      setBalance(bal);
+      const balRes = await fetch("/api/balance");
+      if (balRes.ok) {
+        const { balance: bal } = await balRes.json();
+        setBalance(bal);
+      }
+
+      const { data: txs } = await supabase
+        .from("transactions")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      if (txs) setTransactions(txs);
+    } catch {
+      // Offline or a transient error — keep what's shown; the poll retries.
     }
-
-    const { data: txs } = await supabase
-      .from("transactions")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(20);
-
-    if (txs) setTransactions(txs);
   }, []);
 
   useEffect(() => {
@@ -152,8 +156,18 @@ function DepositContent() {
             setSuccessMessage(
               `Payment successful! ${data.credits ? formatCredits(data.credits) + " credits added." : "Credits added."}`
             );
-            fetchData();
+          } else if (data.status === "failed") {
+            setPayError(data.message || "The payment wasn't completed.");
+          } else {
+            setSuccessMessage("Payment received! Credits will be added shortly.");
           }
+          fetchData();
+          window.history.replaceState({}, "", "/deposit");
+        })
+        .catch(() => {
+          // The webhook still credits a successful payment.
+          setSuccessMessage("Payment received! Credits will be added shortly.");
+          fetchData();
           window.history.replaceState({}, "", "/deposit");
         });
     } else if (stripeRef && sessionId) {
@@ -185,7 +199,10 @@ function DepositContent() {
   }, [searchParams, fetchData]);
 
   useEffect(() => {
-    const interval = setInterval(fetchData, 10000);
+    // No point refreshing a page nobody is looking at.
+    const interval = setInterval(() => {
+      if (!document.hidden) void fetchData();
+    }, 10000);
     return () => clearInterval(interval);
   }, [fetchData]);
 
@@ -407,6 +424,7 @@ function DepositContent() {
             {currencySymbol(currency)}
           </span>
           <Input
+            aria-label="Amount"
             id="fiat-amount"
             type="number"
             placeholder="0.00"
@@ -471,7 +489,7 @@ function DepositContent() {
 
         <p className="flex items-center justify-center gap-1.5 text-2xs font-medium text-text-tertiary">
           <ShieldCheck className="h-3 w-3" />
-          Payments secured by Paystack · funds custodied on-chain
+          Payments secured by {currency === "NGN" ? "Paystack" : "Stripe"} · funds custodied on-chain
         </p>
       </section>
       )}

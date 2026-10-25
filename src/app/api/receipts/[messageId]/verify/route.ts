@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { Contract, JsonRpcProvider } from "ethers";
 import { getAuthedUser } from "@/lib/supabase/api-auth";
 import { rootFromProof } from "@/lib/receipts";
-import { zerogChain } from "@/lib/zerog-chains";
+import { addressUrl, txUrl, zerogChain } from "@/lib/zerog-chains";
 
 // Independently re-derives the Merkle root from the receipt + its proof, then
 // confirms that root is anchored on the live 0G chain via the registry's
@@ -63,10 +63,10 @@ export async function GET(
     const registry = new Contract(batch.contract_addr, REGISTRY_ABI, provider);
     onChain = await registry.isAnchored(batch.merkle_root);
   } catch (e) {
-    chainError = (e as Error).message;
+    // The raw ethers error includes the RPC URL and request payload.
+    console.error("isAnchored check failed", e);
+    chainError = "Couldn't reach the 0G chain";
   }
-
-  const base = chain.explorer;
 
   return Response.json({
     status: "anchored",
@@ -84,7 +84,7 @@ export async function GET(
     contract: batch.contract_addr,
     txHash: batch.tx_hash,
     blockNumber: batch.block_number,
-    txUrl: batch.tx_hash ? `${base}/tx/${batch.tx_hash}` : null,
-    contractUrl: `${base}/address/${batch.contract_addr}`,
+    txUrl: batch.tx_hash ? txUrl(batch.chain_id, batch.tx_hash) : null,
+    contractUrl: addressUrl(batch.chain_id, batch.contract_addr),
   });
 }

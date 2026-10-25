@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
@@ -44,6 +44,9 @@ export default function CodePage() {
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  // Stop reading the stream when leaving the page. The server-side job keeps
+  // running and settles on its own.
+  useEffect(() => () => abortRef.current?.abort(), []);
 
   const latest = progress[progress.length - 1];
   const planned = progress.find((p) => p.plannedFiles)?.plannedFiles;
@@ -147,6 +150,7 @@ export default function CodePage() {
       {/* Task */}
       <div className="space-y-3 rounded-2xl border border-border/70 bg-elevated/60 p-4">
         <textarea
+          aria-label="What to build"
           value={task}
           onChange={(e) => setTask(e.target.value)}
           placeholder="e.g. A single-page pomodoro timer with start/pause/reset and a circular progress ring"
@@ -155,12 +159,13 @@ export default function CodePage() {
           className="w-full resize-none bg-transparent text-base text-foreground placeholder:text-text-tertiary outline-none"
         />
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <div className="inline-flex items-center rounded-xl bg-surface p-0.5">
               {(["quick", "standard"] as Depth[]).map((d) => (
                 <button
                   key={d}
                   onClick={() => setDepth(d)}
+                  aria-pressed={depth === d}
                   disabled={running}
                   className={`rounded-lg px-3 py-1.5 text-xs font-semibold capitalize transition-colors ${
                     depth === d
@@ -173,11 +178,12 @@ export default function CodePage() {
               ))}
             </div>
             <input
+              aria-label="Language"
               value={language}
               onChange={(e) => setLanguage(e.target.value)}
               placeholder="Language (optional)"
               disabled={running}
-              className="w-40 rounded-xl bg-surface px-3 py-1.5 text-xs text-foreground placeholder:text-text-tertiary outline-none"
+              className="w-full rounded-xl bg-surface px-3 py-1.5 text-xs text-foreground placeholder:text-text-tertiary outline-none sm:w-40"
             />
           </div>
           <Button onClick={run} disabled={running || !task.trim()} size="sm">

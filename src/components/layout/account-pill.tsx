@@ -96,8 +96,12 @@ export function AccountPill() {
       if (res.ok) {
         toast.success(`+${data.reward} credits · ${data.streak}-day streak`);
         refreshBalance();
+      } else {
+        toast.error(data.error || "Couldn't claim the reward");
       }
       await loadDaily();
+    } catch {
+      toast.error("Network error — try again");
     } finally {
       setClaiming(false);
     }
@@ -117,7 +121,7 @@ export function AccountPill() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
-          aria-label="Balance and rewards"
+          aria-label={`Balance ${balance !== null ? formatBalance(balance) : "loading"}, and rewards`}
           className={cn(
             "press relative flex h-8 items-center gap-1.5 rounded-full border px-3 text-sm font-semibold transition-colors duration-fast ease-out",
             out

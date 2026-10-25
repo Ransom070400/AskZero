@@ -9,11 +9,23 @@ interface Entry {
 
 const store = new Map<string, Entry>();
 
+// Expired entries are only replaced when the same key comes back, so drop
+// them now and then or the map grows with every key ever seen.
+const SWEEP_EVERY = 500;
+let calls = 0;
+
+function sweep(now: number) {
+  store.forEach((entry, key) => {
+    if (now > entry.resetAt) store.delete(key);
+  });
+}
+
 export function rateLimit(
   key: string,
   limit: number
 ): { ok: boolean; remaining: number } {
   const now = Date.now();
+  if (++calls % SWEEP_EVERY === 0) sweep(now);
   const entry = store.get(key);
 
   if (!entry || now > entry.resetAt) {

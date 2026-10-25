@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 
 // Cohort analytics for a small user base (tens–hundreds): the acquisition →
 // value → revenue funnel plus retention, so features are chosen from behavior,
@@ -10,24 +11,6 @@ const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "")
   .split(",")
   .map((e) => e.trim())
   .filter(Boolean);
-
-const PAGE = 1000;
-const MAX_PAGES = 50; // safety cap (50k rows) — far above a tens-of-users base
-
-// PostgREST caps a single response at ~1000 rows, so page through with range().
-async function fetchAll<T>(
-  make: (from: number, to: number) => PromiseLike<{ data: T[] | null }>
-): Promise<T[]> {
-  const out: T[] = [];
-  for (let p = 0; p < MAX_PAGES; p++) {
-    const from = p * PAGE;
-    const { data } = await make(from, from + PAGE - 1);
-    if (!data || data.length === 0) break;
-    out.push(...data);
-    if (data.length < PAGE) break;
-  }
-  return out;
-}
 
 export async function GET() {
   const supabase = await createClient();
@@ -43,13 +26,13 @@ export async function GET() {
 
   const [profiles, chats, umsgs, deposits, usage] = await Promise.all([
     fetchAll<{ id: string; created_at: string; referred_by: string | null }>((f, t) =>
-      db.from("profiles").select("id, created_at, referred_by").range(f, t)
+      db.from("profiles").select("id, created_at, referred_by").order("id").range(f, t)
     ),
     fetchAll<{ id: string; user_id: string }>((f, t) =>
-      db.from("chats").select("id, user_id").range(f, t)
+      db.from("chats").select("id, user_id").order("id").range(f, t)
     ),
     fetchAll<{ chat_id: string; created_at: string }>((f, t) =>
-      db.from("messages").select("chat_id, created_at").eq("role", "user").range(f, t)
+      db.from("messages").select("chat_id, created_at").eq("role", "user").order("id").range(f, t)
     ),
     fetchAll<{ user_id: string; amount: number; currency: string; created_at: string }>((f, t) =>
       db
@@ -57,10 +40,10 @@ export async function GET() {
         .select("user_id, amount, currency, created_at")
         .eq("type", "deposit")
         .eq("status", "completed")
-        .range(f, t)
+        .order("id").range(f, t)
     ),
     fetchAll<{ user_id: string; amount: number; metadata: { kind?: string } | null }>((f, t) =>
-      db.from("transactions").select("user_id, amount, metadata").eq("type", "usage").range(f, t)
+      db.from("transactions").select("user_id, amount, metadata").eq("type", "usage").order("id").range(f, t)
     ),
   ]);
 

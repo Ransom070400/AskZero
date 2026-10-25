@@ -234,8 +234,9 @@ export async function runBuild(
       `TASK: ${task}\n\n${filesBlock}`,
     { system: "You are a meticulous code reviewer. Report real defects, not style nits.", temperature: 0.2 }
   ).catch(() => "[]");
-  const issues = (extractJson<string[]>(reviewRaw) ?? [])
-    .filter((s) => typeof s === "string" && s.trim())
+  const reviewed = extractJson<unknown>(reviewRaw);
+  const issues = (Array.isArray(reviewed) ? reviewed : [])
+    .filter((s): s is string => typeof s === "string" && s.trim().length > 0)
     .slice(0, 6);
   emit({ phase: "reviewing", issues });
 

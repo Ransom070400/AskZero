@@ -26,8 +26,15 @@ function DropdownMenu({ children }: { children: React.ReactNode }) {
     const handlePointerDown = (e: PointerEvent) => {
       if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
     };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
     document.addEventListener("pointerdown", handlePointerDown);
-    return () => document.removeEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
   }, [open]);
 
   return (
@@ -53,14 +60,22 @@ function DropdownMenuTrigger({
     setOpen(!open);
   };
 
+  // Tells assistive tech it opens a menu, and gives styles a data-state hook.
+  const state = {
+    "aria-haspopup": "menu" as const,
+    "aria-expanded": open,
+    "data-state": open ? "open" : "closed",
+  };
+
   if (asChild && React.isValidElement(children)) {
     return React.cloneElement(children as React.ReactElement<{ onClick?: (e: React.MouseEvent) => void }>, {
       onClick: handleClick,
+      ...state,
     });
   }
 
   return (
-    <button onClick={handleClick} type="button">
+    <button onClick={handleClick} type="button" {...state}>
       {children}
     </button>
   );
@@ -71,7 +86,6 @@ function DropdownMenuContent({
   className,
   align = "start",
   side = "bottom",
-  forceMount,
 }: {
   children: React.ReactNode;
   className?: string;
@@ -80,11 +94,9 @@ function DropdownMenuContent({
   // near the bottom of the screen (e.g. the chat composer) so the menu
   // doesn't open off the bottom edge.
   side?: "top" | "bottom";
-  forceMount?: boolean;
 }) {
   const { open } = React.useContext(DropdownMenuContext);
 
-  if (!open && !forceMount) return null;
   if (!open) return null;
 
   return (

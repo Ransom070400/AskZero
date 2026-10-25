@@ -128,6 +128,7 @@ function ChatRow({
     return (
       <div className="flex items-center rounded-xl bg-elevated pl-3 pr-1.5 py-1.5">
         <input
+          aria-label="Chat title"
           autoFocus
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
@@ -174,27 +175,27 @@ function ChatRow({
         <span className="flex shrink-0 items-center gap-1 pl-1">
           <button
             onClick={onDelete}
-            className="press rounded-md px-1.5 py-0.5 text-2xs font-semibold text-error hover:bg-error/10"
+            className="press rounded-md px-1.5 py-2 md:py-0.5 text-2xs font-semibold text-error hover:bg-error/10"
           >
             Delete
           </button>
           <button
             onClick={() => setConfirmDelete(false)}
-            className="press rounded-md px-1.5 py-0.5 text-2xs font-medium text-text-tertiary hover:bg-background"
+            className="press rounded-md px-1.5 py-2 md:py-0.5 text-2xs font-medium text-text-tertiary hover:bg-background"
           >
             Cancel
           </button>
         </span>
       ) : (
         <span className="flex shrink-0 items-center pl-1">
-          <span className="pr-0.5 text-2xs tabular-nums text-text-tertiary/70 group-hover/row:hidden">
+          <span className="pr-0.5 text-2xs tabular-nums text-text-tertiary/70 group-hover/row:hidden max-md:hidden">
             {relativeTime(chat.updated_at)}
           </span>
           <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
               aria-label="Chat options"
-              className="press hidden shrink-0 items-center justify-center rounded-md p-1 text-text-tertiary transition-colors duration-fast hover:bg-background hover:text-foreground group-hover/row:flex data-[state=open]:flex"
+              className="press hidden shrink-0 items-center justify-center rounded-md p-1 text-text-tertiary transition-colors duration-fast hover:bg-background hover:text-foreground group-hover/row:flex group-focus-within/row:flex data-[state=open]:flex max-md:flex max-md:p-2"
             >
               <MoreHorizontal className="h-3.5 w-3.5" />
             </button>
@@ -459,7 +460,9 @@ function Rail({
   );
 }
 
-export function ContentSidebar() {
+// "sheet": full width inside the mobile menu — never collapses to the rail.
+export function ContentSidebar({ variant = "desktop" }: { variant?: "desktop" | "sheet" }) {
+  const inSheet = variant === "sheet";
   const pathname = usePathname();
   const router = useTransitionRouter();
   const [chats, setChats] = useState<Chat[]>([]);
@@ -519,7 +522,8 @@ export function ContentSidebar() {
       } catch {
         // ignore aborts and transient errors
       } finally {
-        setSearching(false);
+        // An aborted request was superseded; the newer one owns the spinner.
+        if (!controller.signal.aborted) setSearching(false);
       }
     }, 220);
     return () => {
@@ -529,8 +533,12 @@ export function ContentSidebar() {
   }, [query]);
 
   const handleDelete = async (chatId: string) => {
-    const res = await fetch(`/api/chats/${chatId}`, { method: "DELETE" });
-    if (res.ok) {
+    // A network failure (offline) counts as not ok, like an error status.
+    const ok = await fetch(`/api/chats/${chatId}`, { method: "DELETE" }).then(
+      (r) => r.ok,
+      () => false
+    );
+    if (ok) {
       setChats((prev) => prev.filter((c) => c.id !== chatId));
       if (pathname === `/chat/${chatId}`) router.push("/chat");
       toast.success("Chat deleted");
@@ -542,12 +550,12 @@ export function ContentSidebar() {
   const handleRename = async (chatId: string, title: string) => {
     const prev = chats;
     setChats((cs) => cs.map((c) => (c.id === chatId ? { ...c, title } : c)));
-    const res = await fetch(`/api/chats/${chatId}`, {
+    const ok = await fetch(`/api/chats/${chatId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title }),
-    });
-    if (!res.ok) {
+    }).then((r) => r.ok, () => false);
+    if (!ok) {
       setChats(prev); // revert
       toast.error("Couldn't rename the chat");
     }
@@ -556,12 +564,12 @@ export function ContentSidebar() {
   const handleTogglePin = async (chatId: string, pinned: boolean) => {
     const prev = chats;
     setChats((cs) => cs.map((c) => (c.id === chatId ? { ...c, pinned } : c)));
-    const res = await fetch(`/api/chats/${chatId}`, {
+    const ok = await fetch(`/api/chats/${chatId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ pinned }),
-    });
-    if (res.ok) {
+    }).then((r) => r.ok, () => false);
+    if (ok) {
       toast.success(pinned ? "Pinned" : "Unpinned");
     } else {
       setChats(prev); // revert
@@ -614,11 +622,13 @@ export function ContentSidebar() {
   return (
     <div
       className={cn(
-        "hidden md:flex h-full flex-col border-r border-border/70 bg-surface transition-[width] duration-base ease-out",
-        railCollapsed ? "w-[64px]" : "w-[268px]"
+        inSheet
+          ? "flex h-full w-full flex-col bg-surface"
+          : "hidden md:flex h-full flex-col border-r border-border/70 bg-surface transition-[width] duration-base ease-out",
+        !inSheet && (railCollapsed ? "w-[64px]" : "w-[268px]")
       )}
     >
-      {railCollapsed ? (
+      {railCollapsed && !inSheet ? (
         <Rail
           onExpand={toggleCollapsed}
           onNew={() => router.push("/chat")}
@@ -633,14 +643,14 @@ export function ContentSidebar() {
       {/* Brand */}
       <div className="flex items-center justify-between px-5 h-14">
         <Logo size={22} />
-        <button
+        {!inSheet && <button
           onClick={toggleCollapsed}
           title="Collapse sidebar"
           aria-label="Collapse sidebar"
           className="press flex h-7 w-7 items-center justify-center rounded-md text-text-tertiary hover:bg-elevated hover:text-foreground transition-colors duration-fast"
         >
           <PanelLeftClose className="h-4 w-4" />
-        </button>
+        </button>}
       </div>
 
       {/* Search */}
@@ -652,17 +662,18 @@ export function ContentSidebar() {
             <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-tertiary" />
           )}
           <input
+            aria-label="Search chats"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search"
-            className="h-9 w-full rounded-xl bg-elevated/70 pl-8 pr-8 text-sm font-medium text-foreground placeholder:font-normal placeholder:text-text-tertiary outline-none border border-transparent transition-[border-color,background-color,box-shadow] duration-fast ease-out hover:bg-elevated focus:bg-background focus:border-accent/50 focus:shadow-ring"
+            className="h-9 w-full rounded-xl bg-elevated/70 pl-8 pr-10 md:pr-8 text-sm font-medium text-foreground placeholder:font-normal placeholder:text-text-tertiary outline-none border border-transparent transition-[border-color,background-color,box-shadow] duration-fast ease-out hover:bg-elevated focus:bg-background focus:border-accent/50 focus:shadow-ring"
           />
           {query && (
             <button
               type="button"
               onClick={() => setQuery("")}
               aria-label="Clear search"
-              className="press absolute right-2 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-md text-text-tertiary transition-colors duration-fast hover:bg-elevated hover:text-foreground"
+              className="press absolute right-2 top-1/2 flex h-8 w-8 md:h-5 md:w-5 -translate-y-1/2 items-center justify-center rounded-md text-text-tertiary transition-colors duration-fast hover:bg-elevated hover:text-foreground"
             >
               <X className="h-3.5 w-3.5" />
             </button>

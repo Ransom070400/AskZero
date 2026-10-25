@@ -62,15 +62,23 @@ function toRouterModel(m: RawModel): RouterModel | null {
       ? "anthropic"
       : null;
   if (m.type !== "chatbot" || !format || !m.pricing?.prompt) return null;
+  let wholesaleNeuron: RouterModel["wholesaleNeuron"];
+  try {
+    wholesaleNeuron = {
+      input: BigInt(m.pricing.prompt),
+      output: BigInt(m.pricing.completion ?? "0"),
+    };
+  } catch {
+    // A price that isn't a whole neuron count — skip this model rather than
+    // fail the whole catalog.
+    return null;
+  }
   return {
     id: m.id,
     name: m.name ?? m.id,
     description: m.description ?? "",
     created: m.created ?? 0,
-    wholesaleNeuron: {
-      input: BigInt(m.pricing.prompt),
-      output: BigInt(m.pricing.completion ?? "0"),
-    },
+    wholesaleNeuron,
     supportsImages: (m.architecture?.input_modalities ?? []).includes("image"),
     format,
     trust:

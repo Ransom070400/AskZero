@@ -53,7 +53,7 @@ export const APAC_CURRENCIES: Record<ApacCurrency, ApacCurrencyMeta> = {
 export const APAC_CODES = Object.keys(APAC_CURRENCIES) as ApacCurrency[];
 
 export function isApacCurrency(code: string): code is ApacCurrency {
-  return code in APAC_CURRENCIES;
+  return Object.prototype.hasOwnProperty.call(APAC_CURRENCIES, code);
 }
 
 export function apacToCredits(amount: number, code: ApacCurrency): number {

@@ -203,6 +203,15 @@ export function ReceiptBadge({
   }, [isStreaming, spotlight]);
 
   useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open]);
+
+  useEffect(() => {
     try {
       setSeen(!!localStorage.getItem(PROOF_MOMENT_KEY));
     } catch {
@@ -307,7 +316,7 @@ export function ReceiptBadge({
             <button
               onClick={markSeen}
               aria-label="Dismiss"
-              className="press text-accent/60 hover:text-accent"
+              className="press -m-1 p-1.5 text-accent/60 hover:text-accent"
             >
               <X className="h-3 w-3" />
             </button>

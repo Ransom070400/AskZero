@@ -110,6 +110,7 @@ function ChatDetailContent() {
   // Set synchronously on send, so a second Enter during the upload step (before
   // isStreaming has re-rendered) can't send the message twice.
   const sendingRef = useRef(false);
+  const replacingRef = useRef(false);
   // Always-current transcript for the incognito history payload (sendMessage's
   // deps intentionally exclude `messages`, so read the latest via this ref).
   const messagesRef = useRef<Message[]>([]);
@@ -313,9 +314,9 @@ function ChatDetailContent() {
     return () => {
       cancelled = true;
     };
-  }, [chatId]);
+  }, [chatId, isIncognito]);
 
-  const uploadFiles = async (files: File[]): Promise<Attachment[]> => {
+  const uploadFiles = useCallback(async (files: File[]): Promise<Attachment[]> => {
     const results = await Promise.all(
       files.map(async (file) => {
         const form = new FormData();
@@ -332,7 +333,7 @@ function ChatDetailContent() {
       })
     );
     return results.filter((a): a is Attachment => a !== null);
-  };
+  }, [chatId]);
 
   const runImageGeneration = useCallback(
     async (prompt: string, displayContent: string) => {
@@ -729,7 +730,7 @@ function ChatDetailContent() {
         sendingRef.current = false;
       }
     },
-    [chatId, isStreaming, selectedModel, attachments, style, runImageGeneration, loadFollowups]
+    [chatId, isIncognito, isStreaming, selectedModel, attachments, style, uploadFiles, runImageGeneration, loadFollowups]
   );
 
   const handleStop = useCallback(() => {
@@ -791,25 +792,32 @@ function ChatDetailContent() {
       content: string,
       model?: { provider: string; model: string }
     ) => {
+      // A second Retry/Edit tap while the first awaits the RPC would slice
+      // away the turn the first one just started.
+      if (replacingRef.current || sendingRef.current) return;
       const idx = messagesRef.current.findIndex((m) => m.id === original.id);
       if (idx < 0) return;
+      replacingRef.current = true;
+      try {
+        let replacesId: string | undefined;
+        if (isIncognito) {
+          replacesId = original.id;
+        } else {
+          const { error } = await createClient().rpc("supersede_message", {
+            p_message_id: original.id,
+          });
+          if (!error) replacesId = original.id;
+        }
 
-      let replacesId: string | undefined;
-      if (isIncognito) {
-        replacesId = original.id;
-      } else {
-        const { error } = await createClient().rpc("supersede_message", {
-          p_message_id: original.id,
+        setMessages((prev) => prev.slice(0, idx));
+        sendMessage(content, {
+          replacesId,
+          model,
+          attachments: original.attachments,
         });
-        if (!error) replacesId = original.id;
+      } finally {
+        replacingRef.current = false;
       }
-
-      setMessages((prev) => prev.slice(0, idx));
-      sendMessage(content, {
-        replacesId,
-        model,
-        attachments: original.attachments,
-      });
     },
     [isIncognito, sendMessage]
   );
@@ -966,7 +974,7 @@ function ChatDetailContent() {
         onOpenArtifact={setOpenArtifactId}
         onOpenAsArtifact={handleOpenAsArtifact}
         hideReceipts={isIncognito}
-        onTransform={(instruction) => sendMessage(instruction)}
+        onTransform={handleFollowup}
         onQuote={handleQuote}
         onFollowup={handleFollowup}
       />
@@ -1057,7 +1065,7 @@ function ChatDetailContent() {
       </div>
       </div>
       {openArtifactId && (
-        <div className="fixed inset-0 z-overlay bg-background md:relative md:z-auto md:flex-1 md:border-l md:border-border/70">
+        <div className="fixed inset-0 z-overlay bg-background pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] md:relative md:z-auto md:flex-1 md:border-l md:border-border/70 md:p-0">
           <ArtifactPanel
             artifactId={openArtifactId}
             onClose={() => setOpenArtifactId(null)}

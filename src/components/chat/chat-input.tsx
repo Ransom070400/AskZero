@@ -101,6 +101,10 @@ export function ChatInput({
   const [recordError, setRecordError] = useState<string | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  // The latest text, for the transcript to append to: recording and
+  // transcription are async, and the user can keep typing meanwhile.
+  const valueRef = useRef(value);
+  valueRef.current = value;
   // The live mic stream, for the recording waveform.
   const [micStream, setMicStream] = useState<MediaStream | null>(null);
   // Highlighted row in the slash-command menu (arrow keys move it).
@@ -283,7 +287,8 @@ export function ChatInput({
       }
       const text = (data?.text || "").trim();
       if (text) {
-        onChange(value.trim() ? `${value.trimEnd()} ${text}` : text);
+        const current = valueRef.current;
+        onChange(current.trim() ? `${current.trimEnd()} ${text}` : text);
         textareaRef.current?.focus();
       } else {
         setRecordError("Didn't catch that — try again");
@@ -335,11 +340,15 @@ export function ChatInput({
     setMicStream(null);
   };
 
-  // Stop any in-flight recording if the composer unmounts.
+  // Stop any in-flight recording if the composer unmounts — releasing the
+  // mic without transcribing, since there's no composer left to fill.
   useEffect(() => {
     return () => {
       const r = mediaRecorderRef.current;
-      if (r && r.state !== "inactive") r.stop();
+      if (r && r.state !== "inactive") {
+        r.onstop = () => r.stream.getTracks().forEach((t) => t.stop());
+        r.stop();
+      }
     };
   }, []);
 
@@ -360,6 +369,8 @@ export function ChatInput({
         setDragOver(true);
       }}
       onDragLeave={() => setDragOver(false)}
+      // A drop fires no dragleave; the window listener attaches the file.
+      onDrop={() => setDragOver(false)}
     >
       {/* Full-window drop target (see the window drag listeners above). */}
       {windowDrag && (
@@ -431,7 +442,7 @@ export function ChatInput({
                 <button
                   onClick={() => onRemoveAttachment(i)}
                   aria-label="Remove attachment"
-                  className="press absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-foreground text-background shadow-md opacity-100 md:opacity-0 md:group-hover/att:opacity-100 focus-visible:opacity-100 transition-opacity duration-fast"
+                  className="press absolute -top-1.5 -right-1.5 flex h-7 w-7 md:h-5 md:w-5 items-center justify-center rounded-full bg-foreground text-background shadow-md opacity-100 md:opacity-0 md:group-hover/att:opacity-100 focus-visible:opacity-100 transition-opacity duration-fast"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -442,6 +453,7 @@ export function ChatInput({
       )}
 
       <textarea
+        aria-label="Message"
         ref={textareaRef}
         value={value}
         onChange={(e) => onChange(e.target.value)}

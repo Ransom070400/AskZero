@@ -20,6 +20,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "@/lib/toast";
 
 interface Stats {
   totalUsers: number;
@@ -100,9 +101,13 @@ export default function AdminPage() {
 
   const copyAddress = () => {
     if (!treasury?.address) return;
-    navigator.clipboard.writeText(treasury.address);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    navigator.clipboard.writeText(treasury.address).then(
+      () => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      },
+      () => toast.error("Couldn't copy")
+    );
   };
 
   if (error) {

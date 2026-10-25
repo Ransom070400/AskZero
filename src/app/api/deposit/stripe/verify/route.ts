@@ -27,7 +27,12 @@ export async function GET(req: NextRequest) {
   }
 
   const stripe = getStripe();
-  const session = await stripe.checkout.sessions.retrieve(sessionId);
+  let session: Awaited<ReturnType<typeof stripe.checkout.sessions.retrieve>>;
+  try {
+    session = await stripe.checkout.sessions.retrieve(sessionId);
+  } catch {
+    return NextResponse.json({ error: "Invalid session_id" }, { status: 400 });
+  }
 
   if (session.payment_status !== "paid") {
     return NextResponse.json({
