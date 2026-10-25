@@ -24,7 +24,13 @@ export async function POST(req: NextRequest) {
   if (event.event === "charge.success") {
     const { reference, amount, currency } = event.data;
     const originalAmount = amount / 100;
-    const cur = (currency as string).toUpperCase() as "NGN" | "USD";
+    const cur = String(currency).toUpperCase();
+    if (cur !== "NGN" && cur !== "USD") {
+      // Never credit an unknown currency at the USD rate. Acknowledge so
+      // Paystack doesn't retry; the transaction stays pending for review.
+      console.error(`Paystack webhook: unsupported currency ${cur} for ${reference}`);
+      return NextResponse.json({ message: "Unsupported currency" });
+    }
 
     // No user session on a webhook — the admin client does the crediting.
     const supabase = createAdminClient();
