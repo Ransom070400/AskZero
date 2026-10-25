@@ -29,7 +29,8 @@ export function detectArtifacts(content: string): DetectedArtifact[] {
   const artifacts: DetectedArtifact[] = [];
 
   for (const block of blocks) {
-    const lines = block.body.split("\n").length;
+    // The body ends with the newline before the closing fence; don't count it.
+    const lines = block.body.replace(/\n$/, "").split("\n").length;
     const lang = block.lang.toLowerCase();
 
     if (lang === "mermaid" && lines >= MERMAID_LINE_THRESHOLD) {
