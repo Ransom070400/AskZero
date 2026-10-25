@@ -362,7 +362,7 @@ export function ModelPicker({
       <DropdownMenuTrigger asChild>
         <button
           disabled={disabled}
-          aria-label="Choose model"
+          aria-label={`Choose model (current: ${active?.label.split(" · ")[0] ?? "none"})`}
           className="press group inline-flex h-8 min-w-0 items-center gap-1 rounded-full px-2.5 text-sm font-medium text-text-secondary transition-colors duration-fast ease-out hover:bg-surface hover:text-foreground disabled:opacity-50"
         >
           <span className="truncate">
