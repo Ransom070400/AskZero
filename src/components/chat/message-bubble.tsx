@@ -272,7 +272,7 @@ function CopyBtn({
       aria-label={copied ? "Copied" : "Copy"}
       className={
         small
-          ? "press inline-flex h-6 items-center gap-1 rounded-md px-1.5 text-2xs font-medium text-text-tertiary hover:bg-background/60 hover:text-foreground transition-colors duration-fast ease-out"
+          ? "press inline-flex h-9 md:h-6 items-center gap-1 rounded-md px-1.5 text-2xs font-medium text-text-tertiary hover:bg-background/60 hover:text-foreground transition-colors duration-fast ease-out"
           : "press inline-flex h-9 md:h-7 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium text-text-tertiary hover:bg-surface hover:text-foreground transition-colors duration-fast ease-out"
       }
     >
@@ -467,7 +467,7 @@ function PreBlock({ children }: { children?: React.ReactNode }) {
             onClick={() => setWrap((w) => !w)}
             aria-label="Toggle soft wrap"
             title="Wrap"
-            className={`press inline-flex h-6 w-6 items-center justify-center rounded-md transition-colors duration-fast ${wrap ? "bg-background/60 text-accent" : "text-text-tertiary hover:bg-background/60 hover:text-foreground"}`}
+            className={`press inline-flex h-9 w-9 md:h-6 md:w-6 items-center justify-center rounded-md transition-colors duration-fast ${wrap ? "bg-background/60 text-accent" : "text-text-tertiary hover:bg-background/60 hover:text-foreground"}`}
           >
             <WrapText className="h-3.5 w-3.5" />
           </button>
@@ -475,7 +475,7 @@ function PreBlock({ children }: { children?: React.ReactNode }) {
             onClick={() => setShowNums((n) => !n)}
             aria-label="Toggle line numbers"
             title="Line numbers"
-            className={`press inline-flex h-6 w-6 items-center justify-center rounded-md transition-colors duration-fast ${showNums ? "bg-background/60 text-accent" : "text-text-tertiary hover:bg-background/60 hover:text-foreground"}`}
+            className={`press inline-flex h-9 w-9 md:h-6 md:w-6 items-center justify-center rounded-md transition-colors duration-fast ${showNums ? "bg-background/60 text-accent" : "text-text-tertiary hover:bg-background/60 hover:text-foreground"}`}
           >
             <ListOrdered className="h-3.5 w-3.5" />
           </button>
@@ -483,7 +483,7 @@ function PreBlock({ children }: { children?: React.ReactNode }) {
             <button
               onClick={handleOpen}
               aria-label="Open in artifact panel"
-              className="press inline-flex h-6 items-center gap-1 rounded-md px-1.5 text-2xs font-medium text-text-tertiary hover:bg-background/60 hover:text-foreground transition-colors duration-fast"
+              className="press inline-flex h-9 md:h-6 items-center gap-1 rounded-md px-1.5 text-2xs font-medium text-text-tertiary hover:bg-background/60 hover:text-foreground transition-colors duration-fast"
             >
               <ExternalLink className="h-3 w-3" />
               Open
