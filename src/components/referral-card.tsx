@@ -140,6 +140,7 @@ export function ReferralCard() {
             <p className="mb-2 text-xs text-text-tertiary">Have a referral code?</p>
             <div className="flex items-center gap-2">
               <Input
+                aria-label="Referral code"
                 value={code}
                 onChange={(e) => setCode(e.target.value.toUpperCase())}
                 placeholder="e.g. K7QW2MN"

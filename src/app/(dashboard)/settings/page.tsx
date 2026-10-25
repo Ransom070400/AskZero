@@ -178,6 +178,7 @@ export default function SettingsPage() {
         >
           <div className="flex items-center gap-2">
             <Input
+              aria-label="Display name"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
               className="h-9 w-44 text-right"

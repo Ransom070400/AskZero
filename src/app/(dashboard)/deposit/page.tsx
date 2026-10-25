@@ -407,6 +407,7 @@ function DepositContent() {
             {currencySymbol(currency)}
           </span>
           <Input
+            aria-label="Amount"
             id="fiat-amount"
             type="number"
             placeholder="0.00"
