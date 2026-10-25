@@ -365,6 +365,8 @@ export function ChatInput({
         setDragOver(true);
       }}
       onDragLeave={() => setDragOver(false)}
+      // A drop fires no dragleave; the window listener attaches the file.
+      onDrop={() => setDragOver(false)}
     >
       {/* Full-window drop target (see the window drag listeners above). */}
       {windowDrag && (
