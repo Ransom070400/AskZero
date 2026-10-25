@@ -112,6 +112,7 @@ export default function ResearchPage() {
       {/* Query */}
       <div className="space-y-3 rounded-2xl border border-border/70 bg-elevated/60 p-4">
         <textarea
+          aria-label="Research question"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="e.g. What are the tradeoffs between 0G, Filecoin, and Arweave for storage?"
@@ -125,6 +126,7 @@ export default function ResearchPage() {
               <button
                 key={d}
                 onClick={() => setDepth(d)}
+                aria-pressed={depth === d}
                 disabled={running}
                 className={`rounded-lg px-3 py-1.5 text-xs font-semibold capitalize transition-colors ${
                   depth === d
