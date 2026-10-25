@@ -17,6 +17,7 @@ import {
 import { cn } from "@/lib/utils";
 import { ArtifactRenderer } from "./artifact-renderer";
 import type { Artifact, ArtifactVersion } from "./types";
+import { toast } from "@/lib/toast";
 
 const TYPE_BADGE: Record<Artifact["type"], string> = {
   code: "Code",
@@ -105,9 +106,13 @@ export function ArtifactPanel({
 
   const handleCopy = () => {
     if (!artifact) return;
-    navigator.clipboard.writeText(artifact.content);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1200);
+    navigator.clipboard.writeText(artifact.content).then(
+      () => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1200);
+      },
+      () => toast.error("Couldn't copy")
+    );
   };
 
   const handleDownload = () => {

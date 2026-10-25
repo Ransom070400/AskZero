@@ -115,9 +115,13 @@ export default function SettingsPage() {
 
   const copyId = () => {
     if (!user) return;
-    navigator.clipboard.writeText(user.id);
-    setCopiedId(true);
-    setTimeout(() => setCopiedId(false), 1500);
+    navigator.clipboard.writeText(user.id).then(
+      () => {
+        setCopiedId(true);
+        setTimeout(() => setCopiedId(false), 1500);
+      },
+      () => toast.error("Couldn't copy")
+    );
   };
 
   const initials = profile?.display_name

@@ -37,6 +37,7 @@ import { ActivityPanel, type AgentStep, type ActivitySource } from "./activity-p
 import { FollowupChips, MarkdownLink, SourcesContext, SourcesRow } from "./citations";
 import { linkCitations } from "@/lib/citations";
 import { useSmoothText } from "@/hooks/use-smooth-text";
+import { toast } from "@/lib/toast";
 
 // Markdown paragraph that fades in when it first appears. As the last paragraph
 // grows during streaming its element persists (same position), so it fades once
@@ -265,9 +266,13 @@ function CopyBtn({
   return (
     <button
       onClick={() => {
-        navigator.clipboard.writeText(markdown ? removeMarkdown(text) : text);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1200);
+        navigator.clipboard.writeText(markdown ? removeMarkdown(text) : text).then(
+          () => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1200);
+          },
+          () => toast.error("Couldn't copy")
+        );
       }}
       aria-label={copied ? "Copied" : "Copy"}
       className={
@@ -350,12 +355,17 @@ function AnswerCopy({
   };
   const run = async (how: "rich" | "plain" | "markdown") => {
     const root = getRoot();
-    if (how === "markdown" || !root) {
-      await navigator.clipboard.writeText(markdown);
-    } else if (how === "plain") {
-      await copyAnswerPlain(root);
-    } else {
-      await copyAnswer(root);
+    try {
+      if (how === "markdown" || !root) {
+        await navigator.clipboard.writeText(markdown);
+      } else if (how === "plain") {
+        await copyAnswerPlain(root);
+      } else {
+        await copyAnswer(root);
+      }
+    } catch {
+      toast.error("Couldn't copy");
+      return;
     }
     done();
   };
