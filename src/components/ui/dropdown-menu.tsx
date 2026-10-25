@@ -86,7 +86,6 @@ function DropdownMenuContent({
   className,
   align = "start",
   side = "bottom",
-  forceMount,
 }: {
   children: React.ReactNode;
   className?: string;
@@ -95,11 +94,9 @@ function DropdownMenuContent({
   // near the bottom of the screen (e.g. the chat composer) so the menu
   // doesn't open off the bottom edge.
   side?: "top" | "bottom";
-  forceMount?: boolean;
 }) {
   const { open } = React.useContext(DropdownMenuContext);
 
-  if (!open && !forceMount) return null;
   if (!open) return null;
 
   return (
