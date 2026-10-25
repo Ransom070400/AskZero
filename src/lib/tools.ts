@@ -105,11 +105,30 @@ export async function webSearchTool(
   };
 }
 
+// Hostnames that point back into our own or a private network. The URL comes
+// from the user's message, so don't let it reach internal services.
+const PRIVATE_HOST =
+  /^(localhost|.*\.local|.*\.internal|0\.0\.0\.0|127\.\d+\.\d+\.\d+|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|169\.254\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+|\[.*\])$/i;
+
+const FETCH_TIMEOUT_MS = 8000;
+const MAX_PAGE_CHARS = 500_000;
+
 export async function fetchUrlTool(url: string): Promise<string> {
-  if (!/^https?:\/\//i.test(url)) throw new Error("invalid url");
-  const res = await fetch(url, { headers: { "User-Agent": "AskZeroBot/1.0" } });
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    throw new Error("invalid url");
+  }
+  if (!/^https?:$/.test(parsed.protocol)) throw new Error("invalid url");
+  if (PRIVATE_HOST.test(parsed.hostname)) throw new Error("private address");
+  // A slow or endless page must not hold up the answer.
+  const res = await fetch(parsed, {
+    headers: { "User-Agent": "AskZeroBot/1.0" },
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+  });
   if (!res.ok) throw new Error(`fetch ${res.status}`);
-  const html = await res.text();
+  const html = (await res.text()).slice(0, MAX_PAGE_CHARS);
   const text = html
     .replace(/<script[\s\S]*?<\/script>/gi, "")
     .replace(/<style[\s\S]*?<\/style>/gi, "")
