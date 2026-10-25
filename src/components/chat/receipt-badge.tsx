@@ -203,6 +203,15 @@ export function ReceiptBadge({
   }, [isStreaming, spotlight]);
 
   useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open]);
+
+  useEffect(() => {
     try {
       setSeen(!!localStorage.getItem(PROOF_MOMENT_KEY));
     } catch {
