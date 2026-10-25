@@ -181,7 +181,7 @@ An hourly Cloudflare Cron Trigger (`triggers.crons` in `wrangler.jsonc`, handled
 | Whisper (`whisper-large-v3`) | Speech-to-text | Integrate Network (internal) |
 | `text-embedding-3-small` | Embeddings | Integrate Network (powers memory recall) |
 
-Chat routing dispatches on the `provider` prefix: `integrate:*` → Integrate Network; a provider address → 0G Compute broker.
+Chat routing dispatches on the `provider` prefix: `integrate:*` → Integrate Network; `router:*` → 0G Router (needs `ROUTER_API_KEY`; models are tagged TEE, TEE-route or unattested from the router's `verifiability` field); a provider address → 0G Compute broker.
 
 ---
 
