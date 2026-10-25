@@ -549,8 +549,13 @@ function MemorySection() {
 
   const handleDelete = async (id: string) => {
     // Optimistic — RLS lets a user delete only their own rows.
+    const before = memories;
     setMemories((prev) => prev.filter((m) => m.id !== id));
-    await supabase.from("memories").delete().eq("id", id);
+    const { error } = await supabase.from("memories").delete().eq("id", id);
+    if (error) {
+      setMemories(before);
+      toast.error("Couldn't forget that memory");
+    }
   };
 
   return (
