@@ -152,8 +152,18 @@ function DepositContent() {
             setSuccessMessage(
               `Payment successful! ${data.credits ? formatCredits(data.credits) + " credits added." : "Credits added."}`
             );
-            fetchData();
+          } else if (data.status === "failed") {
+            setPayError(data.message || "The payment wasn't completed.");
+          } else {
+            setSuccessMessage("Payment received! Credits will be added shortly.");
           }
+          fetchData();
+          window.history.replaceState({}, "", "/deposit");
+        })
+        .catch(() => {
+          // The webhook still credits a successful payment.
+          setSuccessMessage("Payment received! Credits will be added shortly.");
+          fetchData();
           window.history.replaceState({}, "", "/deposit");
         });
     } else if (stripeRef && sessionId) {
