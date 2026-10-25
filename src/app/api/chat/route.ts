@@ -593,12 +593,16 @@ export async function POST(req: NextRequest) {
         usage_source: usage ? "provider" : "estimate",
         ...(stopped ? { stopped: true } : {}),
       });
+      // Warn once, on the charge that crosses the threshold — not on every
+      // message after it.
+      const balance = settlement.new_balance;
       if (
-        settlement.new_balance !== undefined &&
-        settlement.new_balance < LOW_BALANCE_THRESHOLD &&
+        balance !== undefined &&
+        balance < LOW_BALANCE_THRESHOLD &&
+        balance + (settlement.charged ?? 0) >= LOW_BALANCE_THRESHOLD &&
         user.email
       ) {
-        sendLowBalanceWarning(user.email, settlement.new_balance);
+        await sendLowBalanceWarning(user.email, balance);
       }
     } catch (err) {
       // The hold stays in place and the cron refunds it; log for follow-up.
