@@ -521,7 +521,8 @@ export function ContentSidebar({ variant = "desktop" }: { variant?: "desktop" | 
       } catch {
         // ignore aborts and transient errors
       } finally {
-        setSearching(false);
+        // An aborted request was superseded; the newer one owns the spinner.
+        if (!controller.signal.aborted) setSearching(false);
       }
     }, 220);
     return () => {
