@@ -372,10 +372,11 @@ export default function SettingsPage() {
                 </p>
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-text-tertiary">
+                <label htmlFor="delete-confirm" className="text-xs font-medium text-text-tertiary">
                   Type <span className="font-mono">DELETE</span> to confirm
                 </label>
                 <Input
+                  id="delete-confirm"
                   value={deleteConfirmText}
                   onChange={(e) => setDeleteConfirmText(e.target.value)}
                   placeholder="DELETE"
