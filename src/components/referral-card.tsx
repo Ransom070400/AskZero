@@ -71,6 +71,8 @@ export function ReferralCard() {
       setRedeemed(true);
       setCode("");
       toast.success(`You earned ${data.refereeBonus} free credits! 🎉`);
+    } catch {
+      toast.error("Network error — try again");
     } finally {
       setRedeeming(false);
     }
