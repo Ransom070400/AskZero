@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
@@ -44,6 +44,9 @@ export default function CodePage() {
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  // Stop reading the stream when leaving the page. The server-side job keeps
+  // running and settles on its own.
+  useEffect(() => () => abortRef.current?.abort(), []);
 
   const latest = progress[progress.length - 1];
   const planned = progress.find((p) => p.plannedFiles)?.plannedFiles;
