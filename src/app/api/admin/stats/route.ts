@@ -49,7 +49,7 @@ export async function GET() {
           .select("amount")
           .eq("type", "deposit")
           .eq("status", "completed")
-          .range(f, t)
+          .order("id").range(f, t)
       ),
       fetchAll<{ amount: number }>((f, t) =>
         db
@@ -57,7 +57,7 @@ export async function GET() {
           .select("amount")
           .eq("type", "usage")
           .eq("status", "completed")
-          .range(f, t)
+          .order("id").range(f, t)
       ),
     ]);
 

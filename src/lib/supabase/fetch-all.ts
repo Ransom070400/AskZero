@@ -1,5 +1,6 @@
 // PostgREST caps a single response at ~1000 rows (a .limit() above that is
 // silently clamped), so platform-wide aggregates page through with range().
+// Callers must order by a unique column, or pages can overlap or skip rows.
 const PAGE = 1000;
 const MAX_PAGES = 50; // safety cap: 50k rows
 

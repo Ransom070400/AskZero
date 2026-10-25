@@ -150,7 +150,7 @@ export async function GET(req: Request) {
         .eq("type", "usage")
         .eq("status", "completed")
         .gte("created_at", since)
-        .range(f, t)
+        .order("id").range(f, t)
     );
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });

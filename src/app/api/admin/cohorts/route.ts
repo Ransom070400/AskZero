@@ -26,13 +26,13 @@ export async function GET() {
 
   const [profiles, chats, umsgs, deposits, usage] = await Promise.all([
     fetchAll<{ id: string; created_at: string; referred_by: string | null }>((f, t) =>
-      db.from("profiles").select("id, created_at, referred_by").range(f, t)
+      db.from("profiles").select("id, created_at, referred_by").order("id").range(f, t)
     ),
     fetchAll<{ id: string; user_id: string }>((f, t) =>
-      db.from("chats").select("id, user_id").range(f, t)
+      db.from("chats").select("id, user_id").order("id").range(f, t)
     ),
     fetchAll<{ chat_id: string; created_at: string }>((f, t) =>
-      db.from("messages").select("chat_id, created_at").eq("role", "user").range(f, t)
+      db.from("messages").select("chat_id, created_at").eq("role", "user").order("id").range(f, t)
     ),
     fetchAll<{ user_id: string; amount: number; currency: string; created_at: string }>((f, t) =>
       db
@@ -40,10 +40,10 @@ export async function GET() {
         .select("user_id, amount, currency, created_at")
         .eq("type", "deposit")
         .eq("status", "completed")
-        .range(f, t)
+        .order("id").range(f, t)
     ),
     fetchAll<{ user_id: string; amount: number; metadata: { kind?: string } | null }>((f, t) =>
-      db.from("transactions").select("user_id, amount, metadata").eq("type", "usage").range(f, t)
+      db.from("transactions").select("user_id, amount, metadata").eq("type", "usage").order("id").range(f, t)
     ),
   ]);
 
