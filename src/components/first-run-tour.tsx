@@ -50,6 +50,15 @@ export function FirstRunTour() {
     setOpen(false);
   };
 
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") finish();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open]);
+
   if (!open) return null;
 
   const s = STEPS[step];
