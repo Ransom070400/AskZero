@@ -340,11 +340,15 @@ export function ChatInput({
     setMicStream(null);
   };
 
-  // Stop any in-flight recording if the composer unmounts.
+  // Stop any in-flight recording if the composer unmounts — releasing the
+  // mic without transcribing, since there's no composer left to fill.
   useEffect(() => {
     return () => {
       const r = mediaRecorderRef.current;
-      if (r && r.state !== "inactive") r.stop();
+      if (r && r.state !== "inactive") {
+        r.onstop = () => r.stream.getTracks().forEach((t) => t.stop());
+        r.stop();
+      }
     };
   }, []);
 
