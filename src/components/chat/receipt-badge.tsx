@@ -316,7 +316,7 @@ export function ReceiptBadge({
             <button
               onClick={markSeen}
               aria-label="Dismiss"
-              className="press text-accent/60 hover:text-accent"
+              className="press -m-1 p-1.5 text-accent/60 hover:text-accent"
             >
               <X className="h-3 w-3" />
             </button>
