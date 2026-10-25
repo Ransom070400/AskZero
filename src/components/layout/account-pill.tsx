@@ -96,8 +96,12 @@ export function AccountPill() {
       if (res.ok) {
         toast.success(`+${data.reward} credits · ${data.streak}-day streak`);
         refreshBalance();
+      } else {
+        toast.error(data.error || "Couldn't claim the reward");
       }
       await loadDaily();
+    } catch {
+      toast.error("Network error — try again");
     } finally {
       setClaiming(false);
     }
