@@ -49,11 +49,14 @@ export async function complete(
     throw new Error(`LLM ${res.status}: ${text.slice(0, 200)}`);
   }
   const data = await res.json();
-  const content = (data?.choices?.[0]?.message?.content as string) ?? "";
-  // glm-5.1-fp8 reasons even with enable_thinking:false, writing the trace
-  // into content and closing it with </think>. Callers parse this output
-  // (THINKING:/ACTION: lines, JSON), and the trace can echo the requested
-  // format or contain stray braces — so keep only what follows it.
+  return stripThinkTrace((data?.choices?.[0]?.message?.content as string) ?? "");
+}
+
+// glm-5.1-fp8 reasons even with enable_thinking:false, writing the trace into
+// content and closing it with </think>. Callers parse this output
+// (THINKING:/ACTION: lines, JSON), and the trace can echo the requested format
+// or contain stray braces — so keep only what follows it.
+export function stripThinkTrace(content: string): string {
   const end = content.lastIndexOf("</think>");
   return end === -1 ? content : content.slice(end + "</think>".length).trim();
 }
