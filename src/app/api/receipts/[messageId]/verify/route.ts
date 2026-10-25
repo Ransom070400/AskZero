@@ -63,7 +63,9 @@ export async function GET(
     const registry = new Contract(batch.contract_addr, REGISTRY_ABI, provider);
     onChain = await registry.isAnchored(batch.merkle_root);
   } catch (e) {
-    chainError = (e as Error).message;
+    // The raw ethers error includes the RPC URL and request payload.
+    console.error("isAnchored check failed", e);
+    chainError = "Couldn't reach the 0G chain";
   }
 
   const base = chain.explorer;
