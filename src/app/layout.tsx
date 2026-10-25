@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans, Bricolage_Grotesque, JetBrains_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import { cn } from "@/lib/utils";
 import { ViewTransitions } from "next-view-transitions";
 import { ThemeProvider } from "@/components/providers/theme-provider";
@@ -7,26 +7,32 @@ import { Toaster } from "@/components/ui/toaster";
 import "./globals.css";
 import "katex/dist/katex.min.css";
 
-const sans = Plus_Jakarta_Sans({
-  subsets: ["latin"],
+// Self-hosted (latin variable subsets from Google Fonts, all OFL) rather than
+// next/font/google: that fetches from Google at build time, and an uncached
+// build failed when Google answered with a font URL Next couldn't parse.
+const sans = localFont({
+  src: "./fonts/PlusJakartaSans-Variable.woff2",
   variable: "--font-sans",
-  weight: ["400", "500", "600", "700"],
+  weight: "400 700",
   display: "swap",
 });
 
-const display = Bricolage_Grotesque({
-  subsets: ["latin"],
+const display = localFont({
+  src: "./fonts/BricolageGrotesque-Variable.woff2",
   variable: "--font-display",
-  weight: ["500", "600", "700", "800"],
+  weight: "500 800",
   display: "swap",
 });
 
 // Hashes, tx ids, amounts — the "proof" surfaces read as machine output.
-const mono = JetBrains_Mono({
-  subsets: ["latin"],
+const mono = localFont({
+  src: "./fonts/JetBrainsMono-Variable.woff2",
   variable: "--font-mono",
-  weight: ["400", "500"],
+  weight: "400 500",
   display: "swap",
+  // The default metric-matched fallback is Arial, which isn't monospace.
+  adjustFontFallback: false,
+  fallback: ["ui-monospace", "SFMono-Regular", "monospace"],
 });
 
 export const viewport = {
