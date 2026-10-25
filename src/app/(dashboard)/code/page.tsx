@@ -150,6 +150,7 @@ export default function CodePage() {
       {/* Task */}
       <div className="space-y-3 rounded-2xl border border-border/70 bg-elevated/60 p-4">
         <textarea
+          aria-label="What to build"
           value={task}
           onChange={(e) => setTask(e.target.value)}
           placeholder="e.g. A single-page pomodoro timer with start/pause/reset and a circular progress ring"
@@ -164,6 +165,7 @@ export default function CodePage() {
                 <button
                   key={d}
                   onClick={() => setDepth(d)}
+                  aria-pressed={depth === d}
                   disabled={running}
                   className={`rounded-lg px-3 py-1.5 text-xs font-semibold capitalize transition-colors ${
                     depth === d
@@ -176,6 +178,7 @@ export default function CodePage() {
               ))}
             </div>
             <input
+              aria-label="Language"
               value={language}
               onChange={(e) => setLanguage(e.target.value)}
               placeholder="Language (optional)"
