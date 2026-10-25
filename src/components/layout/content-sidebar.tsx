@@ -194,7 +194,7 @@ function ChatRow({
           <DropdownMenuTrigger asChild>
             <button
               aria-label="Chat options"
-              className="press hidden shrink-0 items-center justify-center rounded-md p-1 text-text-tertiary transition-colors duration-fast hover:bg-background hover:text-foreground group-hover/row:flex data-[state=open]:flex max-md:flex max-md:p-2"
+              className="press hidden shrink-0 items-center justify-center rounded-md p-1 text-text-tertiary transition-colors duration-fast hover:bg-background hover:text-foreground group-hover/row:flex group-focus-within/row:flex data-[state=open]:flex max-md:flex max-md:p-2"
             >
               <MoreHorizontal className="h-3.5 w-3.5" />
             </button>
