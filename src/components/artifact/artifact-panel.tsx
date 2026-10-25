@@ -210,7 +210,8 @@ export function ArtifactPanel({
                 onClick={() => setShowVersions((v) => !v)}
                 aria-pressed={showVersions}
                 className={cn(
-                  "press inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold transition-colors duration-fast",
+                  // The versions list it toggles is desktop-only.
+                  "press hidden h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold transition-colors duration-fast md:inline-flex",
                   showVersions
                     ? "bg-accent-muted text-accent"
                     : "text-text-tertiary hover:bg-surface hover:text-foreground"
