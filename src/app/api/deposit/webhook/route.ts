@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
     if (userId) {
       const { data: userData } = await supabase.auth.admin.getUserById(userId);
       if (userData?.user?.email) {
-        sendDepositConfirmation(
+        await sendDepositConfirmation(
           userData.user.email,
           originalAmount.toLocaleString(),
           credits,
