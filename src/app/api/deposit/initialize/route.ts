@@ -21,7 +21,8 @@ export async function POST(req: NextRequest) {
   const reference = `askzero_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
 
   // Amount in smallest currency unit (kobo for NGN, cents for USD)
-  const paystackAmount = amount * 100;
+  // (rounded: 19.99 * 100 is 1998.9999999999998 in floating point)
+  const paystackAmount = Math.round(amount * 100);
 
   // Save pending transaction. Transactions are server-written only, so this
   // goes through the admin client (user_id comes from the verified session).
