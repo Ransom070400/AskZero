@@ -966,7 +966,7 @@ function ChatDetailContent() {
         onOpenArtifact={setOpenArtifactId}
         onOpenAsArtifact={handleOpenAsArtifact}
         hideReceipts={isIncognito}
-        onTransform={(instruction) => sendMessage(instruction)}
+        onTransform={handleFollowup}
         onQuote={handleQuote}
         onFollowup={handleFollowup}
       />
