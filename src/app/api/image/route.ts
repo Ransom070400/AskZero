@@ -90,8 +90,13 @@ export async function POST(req: NextRequest) {
     try {
       image = await generateImage({ prompt, size });
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Image generation failed";
-      return new Response(JSON.stringify({ error: message }), { status: 502 });
+      // The error carries the provider URL, model id and raw response body —
+      // log it, don't send it.
+      console.error("Image generation failed", err);
+      return new Response(
+        JSON.stringify({ error: "Image generation failed. Please try again." }),
+        { status: 502 }
+      );
     }
 
     // Upload to chat-attachments bucket
@@ -103,8 +108,9 @@ export async function POST(req: NextRequest) {
         upsert: false,
       });
     if (uploadErr) {
+      console.error("Image upload failed", uploadErr);
       return new Response(
-        JSON.stringify({ error: `Storage upload failed: ${uploadErr.message}` }),
+        JSON.stringify({ error: "Failed to store image" }),
         { status: 500 }
       );
     }
