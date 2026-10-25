@@ -533,8 +533,12 @@ export function ContentSidebar({ variant = "desktop" }: { variant?: "desktop" | 
   }, [query]);
 
   const handleDelete = async (chatId: string) => {
-    const res = await fetch(`/api/chats/${chatId}`, { method: "DELETE" });
-    if (res.ok) {
+    // A network failure (offline) counts as not ok, like an error status.
+    const ok = await fetch(`/api/chats/${chatId}`, { method: "DELETE" }).then(
+      (r) => r.ok,
+      () => false
+    );
+    if (ok) {
       setChats((prev) => prev.filter((c) => c.id !== chatId));
       if (pathname === `/chat/${chatId}`) router.push("/chat");
       toast.success("Chat deleted");
@@ -546,12 +550,12 @@ export function ContentSidebar({ variant = "desktop" }: { variant?: "desktop" | 
   const handleRename = async (chatId: string, title: string) => {
     const prev = chats;
     setChats((cs) => cs.map((c) => (c.id === chatId ? { ...c, title } : c)));
-    const res = await fetch(`/api/chats/${chatId}`, {
+    const ok = await fetch(`/api/chats/${chatId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title }),
-    });
-    if (!res.ok) {
+    }).then((r) => r.ok, () => false);
+    if (!ok) {
       setChats(prev); // revert
       toast.error("Couldn't rename the chat");
     }
@@ -560,12 +564,12 @@ export function ContentSidebar({ variant = "desktop" }: { variant?: "desktop" | 
   const handleTogglePin = async (chatId: string, pinned: boolean) => {
     const prev = chats;
     setChats((cs) => cs.map((c) => (c.id === chatId ? { ...c, pinned } : c)));
-    const res = await fetch(`/api/chats/${chatId}`, {
+    const ok = await fetch(`/api/chats/${chatId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ pinned }),
-    });
-    if (res.ok) {
+    }).then((r) => r.ok, () => false);
+    if (ok) {
       toast.success(pinned ? "Pinned" : "Unpinned");
     } else {
       setChats(prev); // revert
