@@ -128,6 +128,7 @@ function ChatRow({
     return (
       <div className="flex items-center rounded-xl bg-elevated pl-3 pr-1.5 py-1.5">
         <input
+          aria-label="Chat title"
           autoFocus
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
@@ -657,6 +658,7 @@ export function ContentSidebar({ variant = "desktop" }: { variant?: "desktop" | 
             <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-tertiary" />
           )}
           <input
+            aria-label="Search chats"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search"
