@@ -158,7 +158,7 @@ export default function CodePage() {
           className="w-full resize-none bg-transparent text-base text-foreground placeholder:text-text-tertiary outline-none"
         />
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <div className="inline-flex items-center rounded-xl bg-surface p-0.5">
               {(["quick", "standard"] as Depth[]).map((d) => (
                 <button
@@ -180,7 +180,7 @@ export default function CodePage() {
               onChange={(e) => setLanguage(e.target.value)}
               placeholder="Language (optional)"
               disabled={running}
-              className="w-40 rounded-xl bg-surface px-3 py-1.5 text-xs text-foreground placeholder:text-text-tertiary outline-none"
+              className="w-full rounded-xl bg-surface px-3 py-1.5 text-xs text-foreground placeholder:text-text-tertiary outline-none sm:w-40"
             />
           </div>
           <Button onClick={run} disabled={running || !task.trim()} size="sm">
