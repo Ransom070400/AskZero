@@ -37,6 +37,35 @@ const EXTENSION: Record<Artifact["type"], string> = {
   react: "tsx",
 };
 
+// Code-fence language names that aren't their own file extension.
+const LANGUAGE_EXTENSION: Record<string, string> = {
+  python: "py",
+  javascript: "js",
+  typescript: "ts",
+  bash: "sh",
+  shell: "sh",
+  zsh: "sh",
+  rust: "rs",
+  ruby: "rb",
+  golang: "go",
+  kotlin: "kt",
+  csharp: "cs",
+  "c#": "cs",
+  "c++": "cpp",
+  markdown: "md",
+  yaml: "yml",
+  text: "txt",
+  plaintext: "txt",
+};
+
+function downloadExtension(artifact: Artifact): string {
+  const lang = artifact.language?.toLowerCase();
+  if (!lang) return EXTENSION[artifact.type];
+  if (LANGUAGE_EXTENSION[lang]) return LANGUAGE_EXTENSION[lang];
+  // Short names are usually already the extension (ts, py, go, sql, css…).
+  return /^[a-z0-9]{1,5}$/.test(lang) ? lang : EXTENSION[artifact.type];
+}
+
 export function ArtifactPanel({
   artifactId,
   onClose,
@@ -117,7 +146,7 @@ export function ArtifactPanel({
 
   const handleDownload = () => {
     if (!artifact) return;
-    const ext = artifact.language ?? EXTENSION[artifact.type];
+    const ext = downloadExtension(artifact);
     const blob = new Blob([artifact.content], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
