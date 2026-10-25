@@ -471,7 +471,7 @@ function DepositContent() {
 
         <p className="flex items-center justify-center gap-1.5 text-2xs font-medium text-text-tertiary">
           <ShieldCheck className="h-3 w-3" />
-          Payments secured by Paystack · funds custodied on-chain
+          Payments secured by {currency === "NGN" ? "Paystack" : "Stripe"} · funds custodied on-chain
         </p>
       </section>
       )}
