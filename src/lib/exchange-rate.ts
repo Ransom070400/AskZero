@@ -31,8 +31,3 @@ export async function getNgnPerUsd(): Promise<number> {
 
   return cachedRate ?? FALLBACK_RATE;
 }
-
-// Synchronous getter for client-side use (returns last known or fallback)
-export function getNgnPerUsdSync(): number {
-  return cachedRate ?? FALLBACK_RATE;
-}

@@ -1,7 +1,5 @@
 import { getNgnPerUsd } from "@/lib/exchange-rate";
 
-// Fallback constant for synchronous contexts
-export const NGN_TO_USD_FALLBACK = 1500;
 export const USD_TO_CREDITS_RATE = 1000; // 1000 credits per $1 (i.e. 1 credit = 0.1 cent)
 
 // Pricing per 1K tokens in credits. 1 credit = $0.001 (0.1¢).

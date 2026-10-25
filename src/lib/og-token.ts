@@ -40,10 +40,6 @@ export function ogToCredits(ogAmount: number, ogPriceUsd: number): number {
   return Math.floor(ogAmount * ogPriceUsd * 1000);
 }
 
-export function formatOGAmount(amount: number): string {
-  return `${amount.toLocaleString()} 0G`;
-}
-
 export const REQUIRED_CONFIRMATIONS = 12;
 
 export const DEPOSIT_ADDRESS =
