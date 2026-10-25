@@ -250,15 +250,18 @@ export function ActivityPanel({
 
   if (active) {
     return (
-      <div className="mb-3" role="status" aria-live="polite">
+      // Only "Working" is announced: the panel also holds a timer that ticks
+      // 4x a second and streaming reasoning, which a live region would read
+      // out continuously.
+      <div className="mb-3">
         <div className="flex items-center gap-2 text-sm">
           <span className="relative flex h-3.5 w-3.5 items-center justify-center">
             <span className="absolute inset-0 animate-ping rounded-full bg-accent/30" />
             <span className="h-2 w-2 rounded-full bg-accent" />
           </span>
-          <span className="shimmer-text font-medium">Working</span>
+          <span role="status" className="shimmer-text font-medium">Working</span>
           {elapsed != null && (
-            <span className="tabular-nums text-text-tertiary">{seconds(Math.max(elapsed, 0))}</span>
+            <span aria-hidden="true" className="tabular-nums text-text-tertiary">{seconds(Math.max(elapsed, 0))}</span>
           )}
         </div>
         {timeline(true)}
