@@ -13,24 +13,27 @@ export async function readSSE<T = Record<string, unknown>>(
   const reader = body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
+  const emit = (frame: string) => {
+    const data = frame.replace(/^data: /, "");
+    if (!data || data === "[DONE]") return;
+    let event: T;
+    try {
+      event = JSON.parse(data);
+    } catch {
+      return; // skip malformed chunks
+    }
+    onEvent(event);
+  };
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
     buffer += decoder.decode(value, { stream: true });
     const frames = buffer.split("\n\n");
     buffer = frames.pop() || "";
-    for (const frame of frames) {
-      const data = frame.replace(/^data: /, "");
-      if (!data || data === "[DONE]") continue;
-      let event: T;
-      try {
-        event = JSON.parse(data);
-      } catch {
-        continue; // skip malformed chunks
-      }
-      onEvent(event);
-    }
+    frames.forEach(emit);
   }
+  // A last event the stream closed on without its trailing blank line.
+  emit((buffer + decoder.decode()).trim());
 }
 
 // Coalesces streamed text so React renders a growing answer ~30 times a
