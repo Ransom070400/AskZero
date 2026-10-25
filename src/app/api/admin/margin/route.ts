@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 import {
   listIntegrateModels,
   wholesaleCostCredits,
@@ -139,20 +140,24 @@ export async function GET(req: Request) {
   // Platform-wide usage — must bypass RLS (which would scope this to the
   // admin's own transactions). Admin identity is verified above.
   const db = createAdminClient();
-  const { data, error } = await db
-    .from("transactions")
-    .select("amount, metadata, created_at")
-    .eq("type", "usage")
-    .eq("status", "completed")
-    .gte("created_at", since)
-    .limit(50_000);
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  // PostgREST clamps any .limit() to ~1000 rows, so page through.
+  let data: UsageRow[];
+  try {
+    data = await fetchAll<UsageRow>((f, t) =>
+      db
+        .from("transactions")
+        .select("amount, metadata, created_at")
+        .eq("type", "usage")
+        .eq("status", "completed")
+        .gte("created_at", since)
+        .range(f, t)
+    );
+  } catch (err) {
+    return NextResponse.json({ error: (err as Error).message }, { status: 500 });
   }
 
   const buckets = new Map<string, ModelAgg>();
-  for (const row of (data || []) as UsageRow[]) {
+  for (const row of data) {
     const model = row.metadata?.model || "unknown";
     const b = buckets.get(model) ?? {
       model,
