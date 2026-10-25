@@ -313,9 +313,9 @@ function ChatDetailContent() {
     return () => {
       cancelled = true;
     };
-  }, [chatId]);
+  }, [chatId, isIncognito]);
 
-  const uploadFiles = async (files: File[]): Promise<Attachment[]> => {
+  const uploadFiles = useCallback(async (files: File[]): Promise<Attachment[]> => {
     const results = await Promise.all(
       files.map(async (file) => {
         const form = new FormData();
@@ -332,7 +332,7 @@ function ChatDetailContent() {
       })
     );
     return results.filter((a): a is Attachment => a !== null);
-  };
+  }, [chatId]);
 
   const runImageGeneration = useCallback(
     async (prompt: string, displayContent: string) => {
@@ -729,7 +729,7 @@ function ChatDetailContent() {
         sendingRef.current = false;
       }
     },
-    [chatId, isStreaming, selectedModel, attachments, style, runImageGeneration, loadFollowups]
+    [chatId, isIncognito, isStreaming, selectedModel, attachments, style, uploadFiles, runImageGeneration, loadFollowups]
   );
 
   const handleStop = useCallback(() => {
