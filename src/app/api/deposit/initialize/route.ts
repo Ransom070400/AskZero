@@ -14,8 +14,13 @@ export async function POST(req: NextRequest) {
     currency: "NGN" | "USD";
   };
 
-  if (!amount || amount <= 0) {
+  if (typeof amount !== "number" || !Number.isFinite(amount) || amount <= 0) {
     return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
+  }
+  // Credits are converted as NGN or USD only; anything else would be credited
+  // as if it were dollars.
+  if (currency !== "NGN" && currency !== "USD") {
+    return NextResponse.json({ error: "Unsupported currency" }, { status: 400 });
   }
 
   const reference = `askzero_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
