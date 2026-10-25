@@ -19,6 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { toast } from "@/lib/toast";
 
 interface Profile {
   display_name: string;
@@ -68,13 +69,21 @@ export default function SettingsPage() {
   }, [fetchProfile]);
 
   const handleSave = async () => {
-    if (!user || !displayName.trim()) return;
+    const name = displayName.trim();
+    if (!user || !name) return;
     setSaving(true);
-    await supabase
+    const { error } = await supabase
       .from("profiles")
-      .update({ display_name: displayName.trim() })
+      .update({ display_name: name })
       .eq("id", user.id);
     setSaving(false);
+    if (error) {
+      toast.error("Couldn't save your name");
+      return;
+    }
+    // Keep the saved value in sync so the Save button disables again.
+    setProfile((p) => (p ? { ...p, display_name: name } : p));
+    setDisplayName(name);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
