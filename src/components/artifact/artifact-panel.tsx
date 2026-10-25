@@ -56,6 +56,18 @@ export function ArtifactPanel({
     setActiveId(artifactId);
   }, [artifactId]);
 
+  // Escape leaves full screen first, then closes the panel (a full-screen
+  // overlay on mobile).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || e.defaultPrevented) return;
+      if (fullscreen) setFullscreen(false);
+      else onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [fullscreen, onClose]);
+
   useEffect(() => {
     let cancelled = false;
     setArtifact(null);
