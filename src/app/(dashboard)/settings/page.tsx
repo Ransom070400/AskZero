@@ -692,6 +692,7 @@ function Segmented<T extends string>({
           <button
             key={opt.value}
             onClick={() => onChange(opt.value)}
+            aria-pressed={active}
             className={cn(
               "press flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition-[background-color,color,box-shadow] duration-fast ease-out",
               active
