@@ -109,26 +109,30 @@ function DepositContent() {
   }, []);
 
   const fetchData = useCallback(async () => {
-    const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
+    try {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
 
-    const balRes = await fetch("/api/balance");
-    if (balRes.ok) {
-      const { balance: bal } = await balRes.json();
-      setBalance(bal);
+      const balRes = await fetch("/api/balance");
+      if (balRes.ok) {
+        const { balance: bal } = await balRes.json();
+        setBalance(bal);
+      }
+
+      const { data: txs } = await supabase
+        .from("transactions")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      if (txs) setTransactions(txs);
+    } catch {
+      // Offline or a transient error — keep what's shown; the poll retries.
     }
-
-    const { data: txs } = await supabase
-      .from("transactions")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(20);
-
-    if (txs) setTransactions(txs);
   }, []);
 
   useEffect(() => {
@@ -195,7 +199,10 @@ function DepositContent() {
   }, [searchParams, fetchData]);
 
   useEffect(() => {
-    const interval = setInterval(fetchData, 10000);
+    // No point refreshing a page nobody is looking at.
+    const interval = setInterval(() => {
+      if (!document.hidden) void fetchData();
+    }, 10000);
     return () => clearInterval(interval);
   }, [fetchData]);
 
