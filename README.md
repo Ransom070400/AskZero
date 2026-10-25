@@ -162,9 +162,13 @@ npm run dev            # web → http://localhost:3000
 cd mobile && npx expo start   # mobile
 ```
 
-### 5. Receipt anchoring (production)
+### 5. Deploy
 
-`vercel.json` registers an hourly Vercel Cron hitting `GET /api/cron/anchor-receipts` (authorized via `CRON_SECRET`), which batches pending receipts and anchors their Merkle root. Keep the batcher wallet funded with 0G for gas.
+The web app runs on Cloudflare Workers via OpenNext (`npm run cf:deploy`; `npm run cf:preview` for a local Worker). `NEXT_PUBLIC_*` variables are inlined at build time, so they must be set where the build runs, not only as Worker secrets.
+
+### 6. Receipt anchoring (production)
+
+An hourly Cloudflare Cron Trigger (`triggers.crons` in `wrangler.jsonc`, handled by `scheduled` in `cloudflare/worker.ts`) calls `GET /api/cron/anchor-receipts` inside the Worker, authorized via `CRON_SECRET`. The route batches pending receipts and anchors their Merkle root. Keep the batcher wallet funded with 0G for gas.
 
 ---
 
