@@ -768,7 +768,7 @@ export const MessageBubble = memo(function MessageBubble({
               <button
                 onClick={() => setShowPrev(false)}
                 aria-label="Hide previous version"
-                className="press inline-flex h-5 w-5 items-center justify-center rounded-md hover:bg-elevated hover:text-foreground transition-colors"
+                className="press inline-flex h-8 w-8 md:h-5 md:w-5 items-center justify-center rounded-md hover:bg-elevated hover:text-foreground transition-colors"
               >
                 <X className="h-3 w-3" />
               </button>

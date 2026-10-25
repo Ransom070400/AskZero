@@ -438,7 +438,7 @@ export function ChatInput({
                 <button
                   onClick={() => onRemoveAttachment(i)}
                   aria-label="Remove attachment"
-                  className="press absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-foreground text-background shadow-md opacity-100 md:opacity-0 md:group-hover/att:opacity-100 focus-visible:opacity-100 transition-opacity duration-fast"
+                  className="press absolute -top-1.5 -right-1.5 flex h-7 w-7 md:h-5 md:w-5 items-center justify-center rounded-full bg-foreground text-background shadow-md opacity-100 md:opacity-0 md:group-hover/att:opacity-100 focus-visible:opacity-100 transition-opacity duration-fast"
                 >
                   <X className="h-3 w-3" />
                 </button>

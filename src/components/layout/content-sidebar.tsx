@@ -175,13 +175,13 @@ function ChatRow({
         <span className="flex shrink-0 items-center gap-1 pl-1">
           <button
             onClick={onDelete}
-            className="press rounded-md px-1.5 py-0.5 text-2xs font-semibold text-error hover:bg-error/10"
+            className="press rounded-md px-1.5 py-2 md:py-0.5 text-2xs font-semibold text-error hover:bg-error/10"
           >
             Delete
           </button>
           <button
             onClick={() => setConfirmDelete(false)}
-            className="press rounded-md px-1.5 py-0.5 text-2xs font-medium text-text-tertiary hover:bg-background"
+            className="press rounded-md px-1.5 py-2 md:py-0.5 text-2xs font-medium text-text-tertiary hover:bg-background"
           >
             Cancel
           </button>
@@ -662,14 +662,14 @@ export function ContentSidebar({ variant = "desktop" }: { variant?: "desktop" | 
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search"
-            className="h-9 w-full rounded-xl bg-elevated/70 pl-8 pr-8 text-sm font-medium text-foreground placeholder:font-normal placeholder:text-text-tertiary outline-none border border-transparent transition-[border-color,background-color,box-shadow] duration-fast ease-out hover:bg-elevated focus:bg-background focus:border-accent/50 focus:shadow-ring"
+            className="h-9 w-full rounded-xl bg-elevated/70 pl-8 pr-10 md:pr-8 text-sm font-medium text-foreground placeholder:font-normal placeholder:text-text-tertiary outline-none border border-transparent transition-[border-color,background-color,box-shadow] duration-fast ease-out hover:bg-elevated focus:bg-background focus:border-accent/50 focus:shadow-ring"
           />
           {query && (
             <button
               type="button"
               onClick={() => setQuery("")}
               aria-label="Clear search"
-              className="press absolute right-2 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-md text-text-tertiary transition-colors duration-fast hover:bg-elevated hover:text-foreground"
+              className="press absolute right-2 top-1/2 flex h-8 w-8 md:h-5 md:w-5 -translate-y-1/2 items-center justify-center rounded-md text-text-tertiary transition-colors duration-fast hover:bg-elevated hover:text-foreground"
             >
               <X className="h-3.5 w-3.5" />
             </button>
