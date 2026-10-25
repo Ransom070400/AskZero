@@ -60,14 +60,22 @@ function DropdownMenuTrigger({
     setOpen(!open);
   };
 
+  // Tells assistive tech it opens a menu, and gives styles a data-state hook.
+  const state = {
+    "aria-haspopup": "menu" as const,
+    "aria-expanded": open,
+    "data-state": open ? "open" : "closed",
+  };
+
   if (asChild && React.isValidElement(children)) {
     return React.cloneElement(children as React.ReactElement<{ onClick?: (e: React.MouseEvent) => void }>, {
       onClick: handleClick,
+      ...state,
     });
   }
 
   return (
-    <button onClick={handleClick} type="button">
+    <button onClick={handleClick} type="button" {...state}>
       {children}
     </button>
   );
