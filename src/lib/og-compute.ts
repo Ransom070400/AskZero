@@ -104,6 +104,7 @@ async function ensureAcknowledged(
     const msg = err instanceof Error ? err.message.toLowerCase() : "";
     if (!msg.includes("already") && !msg.includes("acknowledged")) {
       console.error("acknowledgeProviderSigner:", err);
+      return; // not acknowledged — try again on the next request
     }
   }
   acknowledged.add(providerAddress);
