@@ -95,7 +95,15 @@ export async function POST(req: NextRequest) {
   const message = sanitizeInput(body.message || "");
   const model = body.model;
   const provider = body.provider;
-  const attachments = body.attachments || [];
+  // Only well-formed attachments: the history builder reads `type` and `url`
+  // off each one, and a malformed entry would throw mid-stream.
+  const attachments: { name?: string; type: string; url: string; extractedText?: string }[] =
+    (Array.isArray(body.attachments) ? body.attachments : []).filter(
+      (a: unknown): a is { type: string; url: string } =>
+        !!a &&
+        typeof (a as { type?: unknown }).type === "string" &&
+        typeof (a as { url?: unknown }).url === "string"
+    );
   const style = (body.style as ChatStyle | undefined) ?? "default";
   const replacesId =
     typeof body.replacesId === "string" && body.replacesId.length > 0
