@@ -101,6 +101,10 @@ export function ChatInput({
   const [recordError, setRecordError] = useState<string | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  // The latest text, for the transcript to append to: recording and
+  // transcription are async, and the user can keep typing meanwhile.
+  const valueRef = useRef(value);
+  valueRef.current = value;
   // The live mic stream, for the recording waveform.
   const [micStream, setMicStream] = useState<MediaStream | null>(null);
   // Highlighted row in the slash-command menu (arrow keys move it).
@@ -283,7 +287,8 @@ export function ChatInput({
       }
       const text = (data?.text || "").trim();
       if (text) {
-        onChange(value.trim() ? `${value.trimEnd()} ${text}` : text);
+        const current = valueRef.current;
+        onChange(current.trim() ? `${current.trimEnd()} ${text}` : text);
         textareaRef.current?.focus();
       } else {
         setRecordError("Didn't catch that — try again");
